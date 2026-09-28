@@ -4,9 +4,9 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P0 — Repository Audit`
-- Status: `COMPLETE`
-- Last Verified Commit: `38a9755`
+- Current Phase: `UI Specification`
+- Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
+- Last Verified Commit: `ef5f825`
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -16,23 +16,29 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Obtain/audit the actual starter repository files required by P0.
-- Reconcile the evidence-backed decisions in `docs/ARCHITECTURE.md` with the real Gradle/package/compose/seed configuration.
-- Do not start product-code implementation until repository-dependent `OPEN`/`PROVISIONAL` decisions are resolved.
+- P1 — Database & Seed Foundation remains `NOT_STARTED`.
+- The missing design source blocks visual-fidelity work only; it does not block P1.
 
 ### P0 Completion Update
 
 - Completed static audit of the assignment/instruction documents, non-generated repository tree, backend/frontend manifests and sources, Compose configuration, public assets, and valid seed JSON.
 - Recorded verified starter contracts, seed facts, missing design assets, and ADR reconciliations in `docs/ARCHITECTURE.md`.
 - P0 exit criteria are satisfied: no product code, dependency, package installation, schema, compose behavior, seed data, README, or immutable `/dev-user` change was made.
-- Architecture review is complete. Do not start P1 in this task; the next documentation-only action is preparation of `docs/UI_SPEC.md`. P7 remains blocked by the missing design source.
+- Historical record: P0 is complete. Its audit state is not the current phase.
 
 ### Architecture Review Status
 
 - Status: `COMPLETE`
 - Final decisions are recorded in `docs/ARCHITECTURE.md`: Spring JDBC/JdbcClient, Flyway plus `ApplicationRunner` seed lifecycle, identity IDs, boolean soft delete, base-count likes, keyset pagination, TanStack Query v5, focused client boundaries, CSS Modules, IntersectionObserver, native relative time, and backend-authoritative validation/ownership.
 - No high-impact architecture decision remains unresolved. Runtime verification of those decisions is deferred to their implementation phases.
-- Next Action: Prepare `docs/UI_SPEC.md`; do not start P1 implementation or modify product files.
+- Historical record: Architecture Review is complete. Its decision gate is not active work.
+
+### UI Specification Status
+
+- Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
+- `docs/UI_SPEC.md` defines the required screens, functional flows, states, ownership behavior, validation, API dependencies, and requirement traceability without inventing visual values.
+- Exact visual fidelity remains blocked because the official Figma file and reference images are `MISSING` from the empty `design/` directory.
+- Next Action: P1 — Database & Seed Foundation remains `NOT_STARTED`; do not start it in this documentation task.
 
 ---
 
@@ -121,7 +127,7 @@ See `docs/ARCHITECTURE.md`.
 
 ### Status
 
-`IN_PROGRESS — external/assignment research complete; actual starter repository audit still required`
+`COMPLETE`
 
 ---
 
