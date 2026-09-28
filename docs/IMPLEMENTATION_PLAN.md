@@ -1,0 +1,456 @@
+# Implementation Plan
+
+This document is the operational state for the assignment. Keep it concise and current.
+
+## Current State
+
+- Current Phase: `P0 — Repository Audit`
+- Status: `COMPLETE`
+- Last Verified Commit: `38a9755`
+- Last Updated: `2026-09-29`
+
+### Known Blockers
+
+- Official design asset expected at `design/메디큐브톡.fig` was not present in the reviewed package.
+- Exact visual-token extraction is blocked until the official design asset or equivalent source is available.
+
+### Next Action
+
+- Obtain/audit the actual starter repository files required by P0.
+- Reconcile the evidence-backed decisions in `docs/ARCHITECTURE.md` with the real Gradle/package/compose/seed configuration.
+- Do not start product-code implementation until repository-dependent `OPEN`/`PROVISIONAL` decisions are resolved.
+
+### P0 Completion Update
+
+- Completed static audit of the assignment/instruction documents, non-generated repository tree, backend/frontend manifests and sources, Compose configuration, public assets, and valid seed JSON.
+- Recorded verified starter contracts, seed facts, missing design assets, and ADR reconciliations in `docs/ARCHITECTURE.md`.
+- P0 exit criteria are satisfied: no product code, dependency, package installation, schema, compose behavior, seed data, README, or immutable `/dev-user` change was made.
+- Architecture review is complete. Do not start P1 in this task; the next documentation-only action is preparation of `docs/UI_SPEC.md`. P7 remains blocked by the missing design source.
+
+### Architecture Review Status
+
+- Status: `COMPLETE`
+- Final decisions are recorded in `docs/ARCHITECTURE.md`: Spring JDBC/JdbcClient, Flyway plus `ApplicationRunner` seed lifecycle, identity IDs, boolean soft delete, base-count likes, keyset pagination, TanStack Query v5, focused client boundaries, CSS Modules, IntersectionObserver, native relative time, and backend-authoritative validation/ownership.
+- No high-impact architecture decision remains unresolved. Runtime verification of those decisions is deferred to their implementation phases.
+- Next Action: Prepare `docs/UI_SPEC.md`; do not start P1 implementation or modify product files.
+
+---
+
+## Phase Rules
+
+For each phase:
+
+1. Inspect relevant existing code and requirements.
+2. Confirm unresolved architecture decisions.
+3. Implement only the current phase.
+4. Run relevant automated checks.
+5. Run relevant acceptance scenarios in `VERIFICATION.md`.
+6. Update requirement statuses with evidence.
+7. Record changed files, risks, and remaining work.
+8. Stop before the next phase unless explicitly instructed to continue.
+
+A phase is complete only when its exit criteria are satisfied.
+
+---
+
+## P0 — Repository Audit
+
+### Goal
+
+Understand the starter repository and map assignment requirements to the existing codebase without changing product behavior.
+
+### Tasks
+
+- Inspect `docker-compose.yml`.
+- Inspect backend build/configuration.
+- Inspect existing `/health` implementation.
+- Inspect existing CORS configuration.
+- Inspect frontend App Router structure.
+- Confirm `frontend/app/dev-user/` contents and treat it as immutable.
+- Inspect `seed/seed.json` structure and data types.
+- Inspect provided public assets and fonts.
+- Confirm whether the official Figma asset exists.
+- Map existing starter behavior to requirement IDs.
+- Identify architecture decisions required before P1/P2/P3.
+
+### Exit Criteria
+
+- Starter contracts are documented.
+- Seed shape is understood.
+- No mandatory provided behavior has been accidentally modified.
+- Missing assets/blockers are recorded.
+- Required architecture decisions are listed.
+
+### Status
+
+`COMPLETE`
+
+---
+
+## Architecture Decision Gate — before P1/P3
+
+### Goal
+
+Convert architecture research into repository-verified decisions before implementation.
+
+### Evidence Standard
+
+For each high-impact choice:
+
+1. cite the assignment/starter fact that creates the constraint;
+2. cite first-party technical documentation when framework/database behavior matters;
+3. record the selected option;
+4. record at least one realistic alternative;
+5. record why the selected option fits this assignment;
+6. record the trade-off being accepted;
+7. mark unresolved repository-dependent claims `OPEN` or `PROVISIONAL`.
+
+### Current Record
+
+See `docs/ARCHITECTURE.md`.
+
+### Exit Criteria
+
+- Persistence access decision is repository-compatible.
+- Migration/schema strategy is repository-compatible.
+- Seed initialization lifecycle is resolved.
+- Pagination contract is fixed.
+- Frontend server-state strategy is fixed.
+- Styling strategy is compatible with the starter.
+- Every decision has traceable evidence and explicit trade-offs.
+
+### Status
+
+`IN_PROGRESS — external/assignment research complete; actual starter repository audit still required`
+
+---
+
+## P1 — Database & Seed Foundation
+
+### Goal
+
+Create a durable persistence model and idempotent seed initialization.
+
+### Requirement Focus
+
+- `SEED-*`
+- `DEL-*`
+- relevant `USER-*`
+- relevant `ENV-*`
+
+### Tasks
+
+- Finalize persistence/ORM decision.
+- Finalize DB schema.
+- Implement post persistence.
+- Implement comment persistence.
+- Implement like persistence/state model.
+- Implement soft-delete representation.
+- Implement seed import.
+- Preserve seed IDs.
+- Apply `deletedPostIds` / `deletedCommentIds`.
+- Ensure restart idempotency.
+- Ensure deleted comments do not affect counts.
+
+### Exit Criteria
+
+- Database starts successfully.
+- Seed records are queryable.
+- Seed IDs are preserved.
+- Repeated startup does not duplicate data.
+- Deleted seed entities remain persisted but excluded from normal reads.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P2 — Backend Domain & API
+
+### Goal
+
+Implement the assignment API with ownership, validation, pagination, and consistent deleted-resource behavior.
+
+### Requirement Focus
+
+- `USER-*`
+- `DEL-*`
+- `API-*`
+- relevant `EDIT-*`
+
+### Tasks
+
+- Resolve requester from header/cookie/default.
+- Implement post list/detail/create/update/delete.
+- Implement comment list/create/delete.
+- Implement like toggle.
+- Implement ownership enforcement.
+- Implement input validation.
+- Implement pagination.
+- Return required JSON shapes.
+- Handle deleted/missing resources consistently.
+- Add backend tests for critical business rules.
+
+### Exit Criteria
+
+- All mandatory API routes exist.
+- Response contracts match the assignment.
+- Ownership restrictions are backend-enforced.
+- Pagination does not fetch the entire collection.
+- Deleted resources behave as absent.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P3 — Frontend Foundation
+
+### Goal
+
+Establish a simple frontend structure for API communication, server state, routing, and shared UI behavior.
+
+### Requirement Focus
+
+- `START-*`
+- `UI-*`
+- architecture decisions for state/styling
+
+### Tasks
+
+- Finalize server-state strategy.
+- Finalize styling strategy.
+- Implement API client with credentialed requests where required.
+- Define shared response/request types.
+- Define route structure.
+- Define reusable UI primitives only where justified.
+- Add relative-time utility.
+- Preserve `/dev-user` unchanged.
+
+### Exit Criteria
+
+- API calls can resolve the current user through the provided cookie flow.
+- Shared request/response handling is stable.
+- No product screen relies on duplicated API logic.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P4 — Post List
+
+### Goal
+
+Implement the 375px post-list experience with newest-first infinite scrolling.
+
+### Requirement Focus
+
+- `LIST-*`
+- relevant `UI-*`
+- relevant `API-001`, `API-031`, `API-032`
+
+### Tasks
+
+- Render post cards.
+- Render relative timestamps.
+- Implement newest-first paginated loading.
+- Implement infinite scroll.
+- Implement write navigation.
+- Implement loading/empty/error states.
+- Align with official design when available.
+
+### Exit Criteria
+
+- Initial page renders correctly.
+- Additional pages load only when needed.
+- Duplicate items are not introduced during pagination.
+- Write action navigates correctly.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P5 — Post Detail, Comments & Likes
+
+### Goal
+
+Implement post detail, requester-specific likes, initial-two-comments behavior, and comment continuation flow.
+
+### Requirement Focus
+
+- `DETAIL-001` through `DETAIL-011`
+- relevant `API-*`
+
+### Tasks
+
+- Render post detail.
+- Implement like toggle.
+- Load at most 2 comments initially.
+- Show “More” only when total >= 3.
+- After “More”, continue via infinite scroll.
+- Implement comment creation.
+- Implement own-comment deletion.
+- Keep count/list states synchronized after mutations.
+
+### Exit Criteria
+
+- Like state/count remain consistent after toggle.
+- Initial comment limit is respected.
+- “More” visibility logic is correct.
+- Infinite scroll begins only after “More”.
+- Deleting a comment updates both list and `commentCount`.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P6 — Post Create / Edit / Delete
+
+### Goal
+
+Implement post authoring and ownership-controlled post management.
+
+### Requirement Focus
+
+- `DETAIL-012` through `DETAIL-020`
+- `EDIT-*`
+- relevant `API-*`
+
+### Tasks
+
+- Implement create screen.
+- Implement required-field validation.
+- Enforce title max length 20.
+- Disable completion action when invalid.
+- Navigate to list after successful creation.
+- Show completion toast.
+- Reuse create layout/flow for edit.
+- Prefill existing title/content for edit.
+- Implement own-post delete with navigation back to list.
+- Ensure other users cannot edit/delete through UI or API.
+
+### Exit Criteria
+
+- Create/edit validation matches requirements.
+- Successful create shows toast and returns to list.
+- Edit prefill/save works.
+- Delete returns to list.
+- Other-user mutation attempts fail.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P7 — Visual Integration & UX Polish
+
+### Goal
+
+Align the implemented flows with the official design and resolve UX edge cases without changing assignment semantics.
+
+### Requirement Focus
+
+- `UI-*`
+- final visual aspects of `LIST-*`, `DETAIL-*`, `EDIT-*`
+
+### Tasks
+
+- Apply official spacing, typography, colors, radii, icons, sheets, and disabled states from the design source.
+- Verify 375px viewport.
+- Verify bottom-sheet/menu interactions.
+- Verify toast placement/behavior.
+- Verify loading, empty, and error states.
+- Document intentional design deviations/improvements.
+
+### Exit Criteria
+
+- Mandatory flows are visually consistent with official design.
+- No functional regression introduced by visual work.
+- Any intentional deviation is documented.
+
+### Status
+
+`BLOCKED_BY_DESIGN_SOURCE`
+
+---
+
+## P8 — Full Integration & Acceptance Verification
+
+### Goal
+
+Verify the application the way an evaluator is likely to run it.
+
+### Requirement Focus
+
+- all mandatory IDs
+- all release gates
+
+### Tasks
+
+- Clean-start with `docker compose up`.
+- Verify `/health`.
+- Verify frontend reachability.
+- Verify alternate port overrides.
+- Verify seed idempotency after restart.
+- Verify all ownership rules.
+- Verify soft delete.
+- Verify pagination/infinite scroll.
+- Verify `isLiked` per requester.
+- Run automated test suites.
+- Run final acceptance scenarios.
+
+### Exit Criteria
+
+- All mandatory requirements are `VERIFIED`.
+- All release-gate scenarios pass.
+- No known blocker remains for submission.
+
+### Status
+
+`NOT_STARTED`
+
+---
+
+## P9 — README & Submission PR
+
+### Goal
+
+Produce evaluator-facing documentation based on the actual implementation and complete the repository submission workflow.
+
+### Requirement Focus
+
+- `DOC-*`
+- `SUB-*`
+
+### Tasks
+
+- Document actual technical choices.
+- Document server-state design.
+- Document frontend/backend layering.
+- Document seed strategy.
+- Document tests and why they matter.
+- Reference actual files/functions.
+- Record alternatives and trade-offs.
+- Record intentional UX improvements/deviations.
+- Create final PR.
+- Merge to `main`.
+- Confirm collaborator/private repository settings.
+
+### Exit Criteria
+
+- README matches implementation reality.
+- Final PR is merged.
+- Repository is ready to submit.
+
+### Status
+
+`NOT_STARTED`
