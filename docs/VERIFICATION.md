@@ -90,6 +90,8 @@ Open frontend at `http://localhost:13000`.
 3. Stop application without deleting DB volume.
 4. Start application again.
 5. Record row counts again.
+6. Before any like toggle, request a readable seeded post as each requester available through the supplied `/dev-user` selector and confirm `isLiked` is `false`.
+7. Before any like toggle, compare every readable seeded post’s API `likeCount` with its `seed/seed.json` `likeCount`.
 
 ### Expected
 
@@ -98,6 +100,8 @@ Open frontend at `http://localhost:13000`.
 - Already-deleted seed IDs remain persisted as deleted.
 - Second startup does not duplicate seed rows.
 - Readable totals remain stable.
+- Every requester begins with `isLiked: false` for seeded posts.
+- Every readable seeded post begins with its supplied `likeCount`.
 
 **Result:** `NOT_RUN`
 

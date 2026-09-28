@@ -9,6 +9,15 @@
 
 This specification defines functional structure and behavior only. Exact spacing, typography, color, radius, shadow, icon geometry, component height, and animation timing remain `BLOCKED` until an official Figma file or reference image is supplied.
 
+## Evidence Taxonomy
+
+- `ASSIGNMENT_DEFINED`: explicit requirement in `ASSIGNMENT.md` or its tracked requirement IDs.
+- `REPOSITORY_DEFINED`: fact already present in repository files or assets.
+- `ARCHITECTURE_DECISION`: direction approved in `docs/ARCHITECTURE.md`.
+- `PRODUCT_DECISION`: functional completion permitted where the assignment leaves behavior unspecified.
+- `DESIGN_DEFINED`: value verified from an official design source.
+- `BLOCKED`: detail that cannot be determined because required evidence is unavailable.
+
 ## 2. Evidence Status
 
 | Source | Status | Notes |
@@ -22,12 +31,12 @@ This specification defines functional structure and behavior only. Exact spacing
 
 | UI ID | Screen / state | Evidence | Visual status |
 | --- | --- | --- |
-| UI-001 | Post List | `ASSIGNMENT_DEFINED` | `BLOCKED` |
-| UI-002 | Post Detail | `ASSIGNMENT_DEFINED` | `BLOCKED` |
-| UI-003 | Create Post | `ASSIGNMENT_DEFINED` | `BLOCKED` |
-| UI-004 | Edit Post | `ASSIGNMENT_DEFINED` | `BLOCKED` |
-| UI-005 | Post Action Bottom Sheet | `ASSIGNMENT_DEFINED` | `BLOCKED` |
-| UI-006 | Completion toast | `ASSIGNMENT_DEFINED` | `BLOCKED` |
+| SCREEN-001 | Post List | `ASSIGNMENT_DEFINED` | `BLOCKED` |
+| SCREEN-002 | Post Detail | `ASSIGNMENT_DEFINED` | `BLOCKED` |
+| SCREEN-003 | Create Post | `ASSIGNMENT_DEFINED` | `BLOCKED` |
+| SCREEN-004 | Edit Post | `ASSIGNMENT_DEFINED` | `BLOCKED` |
+| SCREEN-005 | Post Action Bottom Sheet | `ASSIGNMENT_DEFINED` | `BLOCKED` |
+| SCREEN-006 | Completion toast | `ASSIGNMENT_DEFINED` | `BLOCKED` |
 
 Loading, empty, error, next-page loading, mutation-pending, and expanded-comment states are UI states, not separate routes (`PRODUCT_DECISION`).
 
@@ -56,12 +65,12 @@ Edit Post success -> updated Post Detail
 - Browser API requests that rely on the requester cookie use `credentials: "include"` (`ASSIGNMENT_DEFINED`, `START-003`).
 - A resource whose deletion succeeds disappears from the user’s normal view; no deleted placeholder is introduced (`ASSIGNMENT_DEFINED`, `DEL-007`).
 - `isLiked`, comment deletion actions, and post action menus are derived from the current requester; backend ownership enforcement remains authoritative (`ASSIGNMENT_DEFINED`, `USER-005`, `USER-006`, `API-034`).
-- Remote list/detail/mutation state follows the decided TanStack Query strategy; local input, sheet, and toast state stays local (`REPOSITORY_DEFINED` via `docs/ARCHITECTURE.md`).
+- Remote list/detail/mutation state follows the decided TanStack Query strategy; local input, sheet, and toast state stays local (`ARCHITECTURE_DECISION`).
 - Exact loading/error presentation is intentionally unspecified; only behavior is defined here (`PRODUCT_DECISION`).
 
 ## 6. Screen Specifications
 
-### UI-001 — Post List
+### SCREEN-001 — Post List
 
 #### Purpose
 
@@ -73,7 +82,7 @@ Browse readable posts in newest-first order and enter detail or creation flows (
 
 #### Data Dependencies
 
-- `GET /posts`, with `items`, `total`, and the architecture-defined cursor continuation (`ASSIGNMENT_DEFINED` + `REPOSITORY_DEFINED`).
+- `GET /posts`, with `items`, `total`, and the architecture-defined cursor continuation (`ASSIGNMENT_DEFINED` + `ARCHITECTURE_DECISION`).
 - Every card requires `id`, `title`, `content`, `likeCount`, `commentCount`, `author`, and `createdAt` (`ASSIGNMENT_DEFINED`).
 
 #### Structure
@@ -89,10 +98,10 @@ Only the functional hierarchy is defined; card layout and visual hierarchy are `
 
 #### Interactions and States
 
-- Selecting a post enters UI-002 (`ASSIGNMENT_DEFINED`).
-- The write action enters UI-003 and is functionally positioned as the required floating/right-bottom action (`ASSIGNMENT_DEFINED`, `LIST-006`); its size, icon, and exact position are `BLOCKED`.
+- Selecting a post enters SCREEN-002 (`ASSIGNMENT_DEFINED`).
+- The write action enters SCREEN-003 and is functionally positioned as the required floating/right-bottom action (`ASSIGNMENT_DEFINED`, `LIST-006`); its size, icon, and exact position are `BLOCKED`.
 - Initial loading, success, empty, request failure, next-page pending, and end-of-list are required behavior states (`PRODUCT_DECISION`).
-- A sentinel requests the next bounded cursor page only when a next cursor exists and another request is not pending (`REPOSITORY_DEFINED`). It must never fetch the complete collection in one request (`ASSIGNMENT_DEFINED`).
+- A sentinel requests the next bounded cursor page only when a next cursor exists and another request is not pending (`ARCHITECTURE_DECISION`). It must never fetch the complete collection in one request (`ASSIGNMENT_DEFINED`).
 
 #### Content and Ownership
 
@@ -100,7 +109,7 @@ Only the functional hierarchy is defined; card layout and visual hierarchy are `
 - Render post author and one supplied avatar asset (`ASSIGNMENT_DEFINED`, `UI-006`).
 - Stable avatar mapping is `stableHash(author) % 3` (`PRODUCT_DECISION`): the same author receives the same supplied avatar across screens. This favors recognizability over random variation.
 
-### UI-002 — Post Detail
+### SCREEN-002 — Post Detail
 
 #### Purpose
 
@@ -141,10 +150,10 @@ PostDetail
 #### Ownership Behavior
 
 - A comment deletion action is available only for a comment whose `author` equals the current requester; successful deletion removes it from this view (`ASSIGNMENT_DEFINED`, `DETAIL-010`–`DETAIL-011`).
-- An own post shows the UI-005 trigger; another user’s post exposes no edit/delete UI (`ASSIGNMENT_DEFINED`, `DETAIL-012`–`DETAIL-013`, `DETAIL-019`–`DETAIL-020`).
+- An own post shows the SCREEN-005 trigger; another user’s post exposes no edit/delete UI (`ASSIGNMENT_DEFINED`, `DETAIL-012`–`DETAIL-013`, `DETAIL-019`–`DETAIL-020`).
 - UI visibility is not the authorization boundary; the backend rejects unauthorized mutation attempts (`ASSIGNMENT_DEFINED`, `API-034`).
 
-### UI-003 — Create Post
+### SCREEN-003 — Create Post
 
 #### Purpose
 
@@ -168,14 +177,14 @@ Title and content are required; title has a maximum length of 20 characters (`AS
 #### Interactions and States
 
 - The submit action is disabled when either required field is invalid (`ASSIGNMENT_DEFINED`, `EDIT-004`).
-- Successful submission returns to UI-001 and displays UI-006 (`ASSIGNMENT_DEFINED`, `EDIT-005`–`EDIT-006`).
+- Successful submission returns to SCREEN-001 and displays SCREEN-006 (`ASSIGNMENT_DEFINED`, `EDIT-005`–`EDIT-006`).
 - Initial, invalid, submitting, submission-error, and success-navigation states are functional states (`PRODUCT_DECISION`).
 
-### UI-004 — Edit Post
+### SCREEN-004 — Edit Post
 
 #### Purpose
 
-Edit an own post with the same form structure and validation as UI-003 (`ASSIGNMENT_DEFINED`).
+Edit an own post with the same form structure and validation as SCREEN-003 (`ASSIGNMENT_DEFINED`).
 
 #### Requirement IDs
 
@@ -187,7 +196,7 @@ Edit an own post with the same form structure and validation as UI-003 (`ASSIGNM
 - Save applies the same required/max-length validation and updates rendered post data after success (`ASSIGNMENT_DEFINED`, `DETAIL-016`–`DETAIL-017`).
 - This screen is only reachable through own-post UI; direct unauthorized attempts remain a backend concern (`ASSIGNMENT_DEFINED`, `DETAIL-019`, `API-034`).
 
-### UI-005 — Post Action Bottom Sheet
+### SCREEN-005 — Post Action Bottom Sheet
 
 #### Purpose
 
@@ -201,15 +210,15 @@ Expose own-post edit and delete actions (`ASSIGNMENT_DEFINED`).
 
 ```text
 PostActionBottomSheet
-  EditAction -> UI-004
-  DeleteAction -> delete mutation -> UI-001
+  EditAction -> SCREEN-004
+  DeleteAction -> delete mutation -> SCREEN-001
 ```
 
 - The menu is available only for an own post (`ASSIGNMENT_DEFINED`).
-- Delete success navigates to UI-001 and the deleted post is absent from normal reads (`ASSIGNMENT_DEFINED`, `DETAIL-018`, `DEL-003`–`DEL-004`).
+- Delete success navigates to SCREEN-001 and the deleted post is absent from normal reads (`ASSIGNMENT_DEFINED`, `DETAIL-018`, `DEL-003`–`DEL-004`).
 - Sheet geometry, overlay treatment, dismissal motion, and icons are `BLOCKED`.
 
-### UI-006 — Completion Toast
+### SCREEN-006 — Completion Toast
 
 #### Purpose
 
@@ -221,19 +230,19 @@ Presentation, location, color, duration, and motion are `BLOCKED`; only its crea
 
 ## 7. Soft Delete UX
 
-- A deleted post returns the user to UI-001 and no longer appears in lists or normal detail reads (`ASSIGNMENT_DEFINED`, `DEL-003`–`DEL-004`, `DETAIL-018`).
-- A deleted comment disappears from UI-002 and no longer contributes to visible `commentCount` (`ASSIGNMENT_DEFINED`, `DEL-005`–`DEL-007`).
+- A deleted post returns the user to SCREEN-001 and no longer appears in lists or normal detail reads (`ASSIGNMENT_DEFINED`, `DEL-003`–`DEL-004`, `DETAIL-018`).
+- A deleted comment disappears from SCREEN-002 and no longer contributes to visible `commentCount` (`ASSIGNMENT_DEFINED`, `DEL-005`–`DEL-007`).
 - Deleted-resource placeholders are not introduced (`PRODUCT_DECISION`), because the assignment requires behavior as if the resource no longer exists.
 
 ## 8. Loading / Empty / Error State Matrix
 
 | Screen | Loading | Empty | Error | Mutation pending |
 | --- | --- | --- | --- | --- |
-| UI-001 | Initial bounded page request | No readable posts | List request failure | N/A |
-| UI-002 | Detail or initial comments request | Zero comments is valid | Detail/comments request failure or unreadable post | Like/comment/create/delete request pending |
-| UI-003 | N/A | Empty form is initial state | Create failure | Submit pending |
-| UI-004 | Existing post prefill request | N/A | Prefill/update failure or unauthorized post | Save pending |
-| UI-005 | N/A | N/A | Delete failure | Delete pending |
+| SCREEN-001 | Initial bounded page request | No readable posts | List request failure | N/A |
+| SCREEN-002 | Detail or initial comments request | Zero comments is valid | Detail/comments request failure or unreadable post | Like/comment/create/delete request pending |
+| SCREEN-003 | N/A | Empty form is initial state | Create failure | Submit pending |
+| SCREEN-004 | Existing post prefill request | N/A | Prefill/update failure or unauthorized post | Save pending |
+| SCREEN-005 | N/A | N/A | Delete failure | Delete pending |
 
 The behavioral states above are `PRODUCT_DECISION`; their visual treatment is `BLOCKED`.
 
@@ -263,4 +272,4 @@ The following cannot be closed without the missing design source:
 
 ## 11. Traceability
 
-The screen sections link every required interaction to `docs/REQUIREMENTS.md` IDs. No additional route, visual token, or product behavior is presented as assignment-defined. Architecture-defined behavior is explicitly marked as `REPOSITORY_DEFINED`; stable avatar mapping and non-visual state handling are marked as `PRODUCT_DECISION`.
+The SCREEN-* namespace identifies screens only. UI-* identifiers are requirement references from `docs/REQUIREMENTS.md`. The screen sections link each required interaction to those requirement IDs. No additional route, visual token, or product behavior is presented as assignment-defined. Existing starter facts are `REPOSITORY_DEFINED`; approved decisions from `docs/ARCHITECTURE.md` are `ARCHITECTURE_DECISION`; stable avatar mapping and non-visual state handling are `PRODUCT_DECISION`.
