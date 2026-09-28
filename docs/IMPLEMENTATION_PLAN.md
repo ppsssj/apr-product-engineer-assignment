@@ -34,6 +34,13 @@ This document is the operational state for the assignment. Keep it concise and c
 - No high-impact architecture decision remains unresolved. Runtime verification of those decisions is deferred to their implementation phases.
 - Next Action: Prepare `docs/UI_SPEC.md`; do not start P1 implementation or modify product files.
 
+### UI Specification Status
+
+- Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
+- `docs/UI_SPEC.md` defines the required screens, functional flows, states, ownership behavior, validation, API dependencies, and requirement traceability without inventing visual values.
+- Exact visual fidelity remains blocked because the official Figma file and reference images are `MISSING` from the empty `design/` directory.
+- Next Action: resolve the design source or begin non-visual implementation planning; do not start P1/P3/P4 implementation in this documentation task.
+
 ---
 
 ## Phase Rules
