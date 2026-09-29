@@ -90,7 +90,7 @@ Open frontend at `http://localhost:13000`.
 
 **Requirements fully verified by this scenario:** `SEED-001`, `SEED-002`, `SEED-005`, `SEED-006`, `SEED-007`, `SEED-011`, `SEED-012`
 
-**Persistence evidence only:** `SEED-003`, `SEED-004`, `SEED-008`, `SEED-009`, `SEED-010`
+**Persistence evidence in this scenario only:** `SEED-003`, `SEED-004`, `SEED-008`, `SEED-009`, `SEED-010` (their later API evidence is recorded in the P2A scenarios below)
 
 ### Steps
 
@@ -132,9 +132,8 @@ Open frontend at `http://localhost:13000`.
 ### Acceptance Boundary
 
 - This `PASS` records the completed P1 persistence/seed verification; it is not final API acceptance for every composite `SEED-*` requirement.
-- `SEED-003` remains `IMPLEMENTED` until V-021 verifies that deleted seed posts are absent from normal post list/detail reads after P2.
-- `SEED-004`, `SEED-008`, and `SEED-009` remain `IMPLEMENTED` until V-065 verifies comment-read exclusion and API `commentCount` behavior after P2.
-- `SEED-010` remains `IMPLEMENTED` until V-050 verifies requester-specific API `isLiked: false` before the first toggle after P2.
+- P2A subsequently verified `SEED-003` through V-021 and `SEED-004`, `SEED-008`, and `SEED-009` through V-065.
+- P2A also verified the initial-read portion of `SEED-010`: `post_likes` was empty and every readable seeded post returned `isLiked: false`. Full like-toggle scenario V-050 remains deferred to P2B.
 
 **Result:** `PASS`
 
@@ -160,6 +159,20 @@ Open frontend at `http://localhost:13000`.
 
 ---
 
+## P2A Read API Runtime Acceptance — 2026-09-29
+
+- `backend/gradlew.bat test --no-daemon` completed with `BUILD SUCCESSFUL`; 26 tests passed, covering cursor codec precision/malformed inputs, requester precedence/fallback, and read-web contracts/errors.
+- `docker compose up -d --build` rebuilt and started the application against the existing P1 volume. `db`, `backend`, and `frontend` were all `healthy`; backend `/health` and the frontend root each returned HTTP 200.
+- `GET /api/posts?limit=7` traversed 39 readable posts in 6 pages. API IDs exactly matched the PostgreSQL `(created_at DESC, id DESC)` result with no duplicate/skip, `total` stayed 39, every page contained at most 7 rows, and final `nextCursor` was null.
+- Deleted post IDs `9`, `30`, and `31` were absent from the full traversal; both detail and comments reads for each returned 404 without content leakage.
+- All 39 readable post responses matched PostgreSQL-derived `base_like_count + post_likes` and non-deleted comment counts. Before requester mutation evidence, `post_likes` contained zero rows and every readable post returned `isLiked: false`.
+- Comments for all 39 readable posts were traversed at limit 50 (69 pages total) and exactly matched PostgreSQL readable-comment IDs and order. None of all 81 seed-deleted comment IDs appeared. Post 2 was additionally traversed at limit 2: all 1,411 readable comments across 706 pages, with no duplicate/skip and a null final cursor.
+- A unique temporary `post_likes` row proved header and cookie requester matching, default `apr_tester`, and header-over-cookie precedence. The row was removed in cleanup and `post_likes` returned to zero rows.
+- Malformed post/comment cursors returned HTTP 400 `INVALID_CURSOR`; limits 0 and 51 returned HTTP 400 `INVALID_LIMIT`.
+- The runtime verifier parsed JSON with Node.js and was removed after execution; it is not a repository artifact.
+
+---
+
 # Requester / Ownership
 
 ## V-010 — Default Requester
@@ -174,7 +187,12 @@ Call a requester-sensitive endpoint without `x-user-id` header or cookie.
 
 - Request is treated as coming from `apr_tester`.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Resolver tests verified the no-header/no-cookie fallback.
+- Runtime detail read without header/cookie remained `isLiked: false` while a different temporary requester had a like row.
+
+**Result:** `PASS`
 
 ---
 
@@ -194,7 +212,12 @@ x-user-id: <known-author>
 
 - Ownership and `isLiked` are evaluated for the header user.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Resolver tests covered header-only and header-over-cookie precedence.
+- Runtime detail read returned `isLiked: true` only when `x-user-id` matched the temporary like requester; a different header over the matching cookie returned false.
+
+**Result:** `PASS`
 
 ---
 
@@ -211,6 +234,11 @@ x-user-id: <known-author>
 
 - `x-user-id` cookie is sent.
 - Backend evaluates ownership/like state for that cookie user.
+
+### P2A Partial Evidence — 2026-09-29
+
+- Resolver tests and a direct runtime API request verified that the backend accepts the `x-user-id` cookie and evaluates `isLiked` for that requester.
+- The immutable `/dev-user` frontend-to-backend credentialed browser flow has not been executed, so this combined scenario remains open.
 
 **Result:** `NOT_RUN`
 
@@ -236,7 +264,12 @@ x-user-id: <known-author>
 - No duplicate post appears across adjacent pages.
 - `total` represents the full readable count rather than current page size.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Limit-7 traversal covered 39 readable posts in 6 pages, exactly matching PostgreSQL order and IDs with stable `total: 39`, bounded pages, no duplicate/skip, and final `nextCursor: null`.
+- This passes the P2A backend pagination scenario. Frontend infinite scrolling (`LIST-004`, UI portion of `LIST-005`) remains `TODO`.
+
+**Result:** `PASS`
 
 ---
 
@@ -255,7 +288,12 @@ x-user-id: <known-author>
 - Deleted post is not present in the list.
 - Normal detail API does not expose the deleted post as readable content.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Full post traversal excluded all seed-deleted IDs `9`, `30`, and `31`.
+- Detail and comments endpoints returned HTTP 404 for each of those IDs.
+
+**Result:** `PASS`
 
 ---
 
@@ -412,6 +450,12 @@ x-user-id: <known-author>
 - Requester B's `isLiked` is independently evaluated.
 - Second toggle for requester A reverses the state/count change.
 
+### P2A Partial Evidence — 2026-09-29
+
+- With an empty `post_likes` table, all 39 readable posts and the sampled detail returned `isLiked: false` and the database-derived base `likeCount`.
+- A unique temporary like row made `isLiked` true only for the matching header/cookie requester and raised the derived count by one; cleanup restored `post_likes` to zero.
+- The toggle endpoint is intentionally deferred to P2B, so the complete scenario has not passed.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -538,7 +582,12 @@ Test posts with:
 - Deleted seed comments are absent from comment API.
 - `commentCount` equals readable comments only.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- All 39 readable posts' API `commentCount` values matched PostgreSQL `comments WHERE is_deleted = FALSE` counts.
+- Full comment traversal for every readable post exactly matched PostgreSQL readable IDs/order; none of the 81 seed-deleted comment IDs appeared.
+
+**Result:** `PASS`
 
 ---
 
@@ -556,6 +605,14 @@ Test posts with:
 - detail includes `isLiked`, `commentCount`
 - patch returns updated post object
 
+### P2A Partial Evidence — 2026-09-29
+
+- List responses were JSON envelopes with `items`, full readable `total`, and the implemented `nextCursor` extension.
+- Every traversed post item contained exactly `id`, `title`, `content`, `likeCount`, `commentCount`, `isLiked`, `author`, and ISO-8601 `createdAt`.
+- Detail returned the same fields as a single object without an `items` envelope.
+- `API-010` final verification remains pending until P2B mutation request bodies and responses exist.
+- PATCH is intentionally deferred to P2B, so V-070 remains open rather than claiming a complete pass.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -569,7 +626,12 @@ Test posts with:
 - comment list contains `items`, `total`
 - comment item contains `id`, `postId`, `content`, `author`, `createdAt`
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Every comment page used the `items`, full readable `total`, and `nextCursor` envelope.
+- All traversed comment items contained exactly `id`, `postId`, `content`, `author`, and ISO-8601 `createdAt`.
+
+**Result:** `PASS`
 
 ---
 

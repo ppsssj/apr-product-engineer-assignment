@@ -4,21 +4,21 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `Figma Design Audit`
-- Status: `COMPLETE`
-- Last Verified Commit: `8215b3e` (P1 merge); official Figma Page 1 audit completed on `2026-09-29`.
+- Current Phase: `P2 — Backend Domain & API`
+- Status: `IN_PROGRESS`
+- Last Verified Commit: `01e8743089c33a88c9b84a2af490bab8d0e0b28c` (P2A implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- No design-source availability blocker remains. The official Figma file is accessible and audited.
-- Loading, error, pending, and animation treatments not represented in the static design remain later product decisions, not blockers.
+- No blocker remains for P2A review.
+- P2B mutation work is intentionally deferred and is not a blocker for the scoped P2A PR.
 
 ### Next Action
 
-- Merge the reviewed Figma design-audit PR.
-- After merge, P2 — Backend Domain & API is the next implementation phase.
-- Do not start P2 until explicitly requested.
+- Merge the reviewed P2A PR.
+- After merge, P2B mutation implementation is the next P2 subphase.
+- Do not start P2B until explicitly requested.
 
 ### P0 Completion Update
 
@@ -40,7 +40,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
 - `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
 - Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
-- P1 remains complete; P2 remains not started.
+- P1 remains complete; P2A is complete and P2 remains in progress until P2B is implemented and verified.
 
 ### Figma Design Audit Status
 
@@ -48,6 +48,13 @@ This document is the operational state for the assignment. Keep it concise and c
 - The official Figma source is `AVAILABLE`; the repository-local `.fig` file remains absent but no longer blocks design inspection.
 - No backend, frontend, schema, dependency, Compose, seed, or assignment-source change is part of this audit.
 - P2-impact review found no new endpoint or response-field requirement.
+
+### P2A Status
+
+- Status: `COMPLETE`
+- Implemented only `GET /api/posts`, `GET /api/posts/{postId}`, and `GET /api/posts/{postId}/comments`, plus requester resolution, strict cursor pagination, read DTO/error contracts, and focused tests.
+- Real PostgreSQL acceptance covered all 39 readable posts, all readable-comment pages, seed-deleted resource exclusion, requester-specific `isLiked`, and invalid pagination inputs.
+- P2B Status: `NOT_STARTED`; no mutation endpoint, mutation validation, or ownership mutation enforcement is included.
 
 ---
 
@@ -216,7 +223,7 @@ Implement the assignment API with ownership, validation, pagination, and consist
 
 ### Status
 
-`NOT_STARTED`
+`IN_PROGRESS`
 
 ---
 

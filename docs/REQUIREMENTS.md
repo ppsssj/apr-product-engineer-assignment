@@ -61,14 +61,14 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 |---|---|---|---|
 | SEED-001 | Posts from `seed/seed.json` are persisted and queryable after startup. | §3 | VERIFIED |
 | SEED-002 | Comments from `seed/seed.json` are persisted and queryable after startup. | §3 | VERIFIED |
-| SEED-003 | `deletedPostIds` entries are persisted as deleted and excluded from normal reads. | §3 | IMPLEMENTED |
-| SEED-004 | `deletedCommentIds` entries are persisted as deleted and excluded from normal reads. | §3 | IMPLEMENTED |
+| SEED-003 | `deletedPostIds` entries are persisted as deleted and excluded from normal reads. | §3 | VERIFIED |
+| SEED-004 | `deletedCommentIds` entries are persisted as deleted and excluded from normal reads. | §3 | VERIFIED |
 | SEED-005 | IDs from the seed are preserved exactly. | §3 | VERIFIED |
 | SEED-006 | Newly created post IDs may be generated independently without conflicting with preserved seed IDs. | §3 | VERIFIED |
 | SEED-007 | Newly created comment IDs may be generated independently without conflicting with preserved seed IDs. | §3 | VERIFIED |
-| SEED-008 | `commentCount` is derived from comments rather than read from the seed. | §3 | IMPLEMENTED |
-| SEED-009 | Deleted comments are excluded from `commentCount`. | §3, §4 | IMPLEMENTED |
-| SEED-010 | Initial `isLiked` is false for every requester because the seed contains no like history. | §3 | IMPLEMENTED |
+| SEED-008 | `commentCount` is derived from comments rather than read from the seed. | §3 | VERIFIED |
+| SEED-009 | Deleted comments are excluded from `commentCount`. | §3, §4 | VERIFIED |
+| SEED-010 | Initial `isLiked` is false for every requester because the seed contains no like history. | §3 | VERIFIED |
 | SEED-011 | Initial `likeCount` starts from the seed value. | §3 | VERIFIED |
 | SEED-012 | Repeated application startup does not duplicate seed rows. | §3 | VERIFIED |
 
@@ -78,9 +78,9 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| USER-001 | Current user may be resolved from `x-user-id` request header. | §4 | TODO |
-| USER-002 | Current user may be resolved from `x-user-id` cookie. | §4 | TODO |
-| USER-003 | If neither header nor cookie is present, current user is `apr_tester`. | §4 | TODO |
+| USER-001 | Current user may be resolved from `x-user-id` request header. | §4 | VERIFIED |
+| USER-002 | Current user may be resolved from `x-user-id` cookie. | §4 | VERIFIED |
+| USER-003 | If neither header nor cookie is present, current user is `apr_tester`. | §4 | VERIFIED |
 | USER-004 | Login/authentication UI is not implemented. | §4 | TODO |
 | USER-005 | Post ownership is determined by `post.author == currentUser`. | §4 | TODO |
 | USER-006 | Comment ownership is determined by `comment.author == currentUser`. | §4 | TODO |
@@ -111,10 +111,10 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 |---|---|---|---|
 | DEL-001 | Deleting a post does not physically delete the DB row. | §4 | TODO |
 | DEL-002 | Deleting a comment does not physically delete the DB row. | §4 | TODO |
-| DEL-003 | Deleted posts are absent from list responses. | §4 | TODO |
-| DEL-004 | Deleted posts are inaccessible through normal detail reads. | §4 | TODO |
-| DEL-005 | Deleted comments are absent from comment list responses. | §4 | TODO |
-| DEL-006 | Deleted comments are excluded from `commentCount`. | §4 | TODO |
+| DEL-003 | Deleted posts are absent from list responses. | §4 | VERIFIED |
+| DEL-004 | Deleted posts are inaccessible through normal detail reads. | §4 | VERIFIED |
+| DEL-005 | Deleted comments are absent from comment list responses. | §4 | VERIFIED |
+| DEL-006 | Deleted comments are excluded from `commentCount`. | §4 | VERIFIED |
 | DEL-007 | UI behaves as if deleted resources no longer exist. | §4 | TODO |
 
 ---
@@ -125,7 +125,7 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 |---|---|---|---|
 | LIST-001 | Post timestamps are shown as relative time. | §4 | TODO |
 | LIST-002 | Relative time is calculated against current time. | §4 | TODO |
-| LIST-003 | Posts are ordered newest first. | §4 | TODO |
+| LIST-003 | Posts are ordered newest first. | §4 | VERIFIED |
 | LIST-004 | Post list uses infinite scroll. | §4 | TODO |
 | LIST-005 | Reaching the end loads the next page rather than all posts at once. | §4, §5 | TODO |
 | LIST-006 | Floating/right-bottom write action navigates to the post creation screen. | §4 | TODO |
@@ -179,13 +179,13 @@ Base path: `http://localhost:8080/api`
 
 | ID | Method | Path | Requirement | Status |
 |---|---|---|---|---|
-| API-001 | GET | `/posts` | Return newest-first post list. | TODO |
+| API-001 | GET | `/posts` | Return newest-first post list. | VERIFIED |
 | API-002 | POST | `/posts` | Create post from `{ title, content }`. | TODO |
-| API-003 | GET | `/posts/{postId}` | Return single post detail. | TODO |
+| API-003 | GET | `/posts/{postId}` | Return single post detail. | VERIFIED |
 | API-004 | PATCH | `/posts/{postId}` | Update own post from `{ title, content }`. | TODO |
 | API-005 | DELETE | `/posts/{postId}` | Soft-delete own post. | TODO |
 | API-006 | POST | `/posts/{postId}/likes/toggle` | Toggle requester-specific like state. | TODO |
-| API-007 | GET | `/posts/{postId}/comments` | Return newest-first comments. | TODO |
+| API-007 | GET | `/posts/{postId}/comments` | Return newest-first comments. | VERIFIED |
 | API-008 | POST | `/posts/{postId}/comments` | Create comment from `{ content }`. | TODO |
 | API-009 | DELETE | `/comments/{commentId}` | Soft-delete own comment. | TODO |
 
@@ -195,32 +195,32 @@ Base path: `http://localhost:8080/api`
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| API-010 | Request/response bodies are JSON. | §5 | TODO |
-| API-011 | `GET /posts` response contains `items`. | §5 | TODO |
-| API-012 | `GET /posts` response contains `total`. | §5 | TODO |
-| API-013 | `GET /posts` `total` means total matching readable rows, not current page size. | §5 | TODO |
-| API-014 | Post list item includes `id`. | §5 | TODO |
-| API-015 | Post list item includes `title`. | §5 | TODO |
-| API-016 | Post list item includes `content`. | §5 | TODO |
-| API-017 | Post list item includes `likeCount`. | §5 | TODO |
-| API-018 | Post list item includes `commentCount`. | §5 | TODO |
-| API-019 | Post list item includes requester-specific `isLiked`. | §5 | TODO |
-| API-020 | Post list item includes `author`. | §5 | TODO |
-| API-021 | Post list item includes `createdAt`. | §5 | TODO |
-| API-022 | `GET /posts/{postId}` returns a single post object rather than an `items` envelope. | §5 | TODO |
-| API-023 | `GET /posts/{postId}` includes `isLiked` and `commentCount`. | §5 | TODO |
-| API-024 | Comment list response contains `items`. | §5 | TODO |
-| API-025 | Comment list response contains `total`. | §5 | TODO |
-| API-026 | Comment item includes `id`, `postId`, `content`, `author`, `createdAt`. | §5 | TODO |
+| API-010 | Request/response bodies are JSON. | §5 | IMPLEMENTED |
+| API-011 | `GET /posts` response contains `items`. | §5 | VERIFIED |
+| API-012 | `GET /posts` response contains `total`. | §5 | VERIFIED |
+| API-013 | `GET /posts` `total` means total matching readable rows, not current page size. | §5 | VERIFIED |
+| API-014 | Post list item includes `id`. | §5 | VERIFIED |
+| API-015 | Post list item includes `title`. | §5 | VERIFIED |
+| API-016 | Post list item includes `content`. | §5 | VERIFIED |
+| API-017 | Post list item includes `likeCount`. | §5 | VERIFIED |
+| API-018 | Post list item includes `commentCount`. | §5 | VERIFIED |
+| API-019 | Post list item includes requester-specific `isLiked`. | §5 | VERIFIED |
+| API-020 | Post list item includes `author`. | §5 | VERIFIED |
+| API-021 | Post list item includes `createdAt`. | §5 | VERIFIED |
+| API-022 | `GET /posts/{postId}` returns a single post object rather than an `items` envelope. | §5 | VERIFIED |
+| API-023 | `GET /posts/{postId}` includes `isLiked` and `commentCount`. | §5 | VERIFIED |
+| API-024 | Comment list response contains `items`. | §5 | VERIFIED |
+| API-025 | Comment list response contains `total`. | §5 | VERIFIED |
+| API-026 | Comment item includes `id`, `postId`, `content`, `author`, `createdAt`. | §5 | VERIFIED |
 | API-027 | Like toggle response contains `isLiked`. | §5 | TODO |
 | API-028 | Like toggle response contains `likeCount`. | §5 | TODO |
 | API-029 | Patch response returns the updated post object. | §5 | TODO |
-| API-030 | `isLiked` is evaluated per requester. | §5 | TODO |
-| API-031 | List APIs support pagination designed by the implementation. | §5 | TODO |
-| API-032 | List APIs do not return the complete collection in one request. | §5 | TODO |
-| API-033 | Error/success status codes are chosen consistently by the implementation. | §5 | TODO |
+| API-030 | `isLiked` is evaluated per requester. | §5 | VERIFIED |
+| API-031 | List APIs support pagination designed by the implementation. | §5 | VERIFIED |
+| API-032 | List APIs do not return the complete collection in one request. | §5 | VERIFIED |
+| API-033 | Error/success status codes are chosen consistently by the implementation. | §5 | IMPLEMENTED |
 | API-034 | Unauthorized ownership operations are rejected by backend behavior. | §5 | TODO |
-| API-035 | Deleted resources are excluded/rejected consistently by API behavior. | §5 | TODO |
+| API-035 | Deleted resources are excluded/rejected consistently by API behavior. | §5 | IMPLEMENTED |
 
 ---
 
