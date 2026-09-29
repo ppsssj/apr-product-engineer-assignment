@@ -4,21 +4,21 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P4 — Post List`
-- Status: `COMPLETE`
-- Last Verified Commit: `471952cab9d82c6ba4aeaa859db44adb56bc6be6` (P4 implementation and acceptance).
+- Current Phase: `P5A — Post Detail Read / Like / Comment Read & Continuation`
+- Status: `P5A COMPLETE`; `P5B NOT_STARTED`; P5 as a whole is not complete.
+- Last Verified Commit: `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (P5A per-visit comment cache fix and full P5A/P4 re-acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- No blocker remains for P4 review.
-- A fresh Figma MCP comparison is unavailable (Starter-plan tool-call limit exhausted); P4 used the `DESIGN_DEFINED` values already in `docs/UI_SPEC.md`. This does not block P4 but keeps V-081 `NOT_RUN`.
+- No blocker remains for P5A review.
+- A fresh Figma MCP comparison is unavailable (Starter-plan tool-call limit exhausted). P4/P5A used `docs/UI_SPEC.md` `DESIGN_DEFINED` values plus local PNG exports for estimation; V-081 stays `NOT_RUN`.
 
 ### Next Action
 
-- Merge the reviewed P4 PR.
-- After merge, P5 — Post Detail, Comments & Likes is the next implementation phase.
-- Do not start P5 until explicitly requested.
+- Review and merge the P5A PR.
+- After merge, P5B — Comment Create / Own-Comment Delete is the next implementation phase.
+- Do not start P5B until explicitly requested.
 
 ### P0 Completion Update
 
@@ -40,7 +40,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
 - `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
 - Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
-- P1, P2, P3, and P4 are complete. P5 remains not started.
+- P1, P2, P3, P4, and P5A are complete. P5B has not started.
 
 ### Figma Design Audit Status
 
@@ -74,6 +74,14 @@ This document is the operational state for the assignment. Keep it concise and c
 - Status: `COMPLETE`
 - `/` renders the post list through `useInfiniteQuery` (page size 10, cursor as `pageParam`) and an `IntersectionObserver` sentinel, with relative time, deterministic avatars, detail links, the write FAB, and loading/empty/error/next-page loading/next-page error states in CSS Modules.
 - Verified at 375×778 in Chromium (48/48 checks): 10/10/10/9 pagination over all 39 readable posts, no duplicate, API order, no request after the end, `/dev-user` cookie flow, and `UI_SPEC.md` geometry/typography. Detail and create routes are linked but built in P5/P6. V-080/V-081 remain `NOT_RUN`.
+
+### P5A Status
+
+- Status: `COMPLETE`
+- `/posts/[postId]` renders post detail, a non-optimistic like toggle synchronized into detail and list caches, and newest-first comments: at most 2 initially (`limit=2`), `댓글 더보기` only when total >= 3, and sentinel continuation (`limit=20`) only after More. Loading/not-found/error and continuation states are handled.
+- Verified at 375×778 in Chromium (63/63 checks), the same-session revisit regression (12/12), and the P4 regression suite (48/48). `DETAIL-001`–`DETAIL-008` are `VERIFIED`; V-060/V-061 `PASS`.
+- Review fix: the comment query uses `gcTime: 0` so a revisit without full reload restarts at the initial two comments; cached continuation pages can no longer be refetched before More or exposed at once on More.
+- Out of scope and not rendered: comment composer, own-comment delete, and its confirmation (P5B); own-post menu, edit, delete, and create (P6).
 
 ---
 
@@ -348,7 +356,7 @@ Implement post detail, requester-specific likes, initial-two-comments behavior, 
 
 ### Status
 
-`NOT_STARTED`
+`IN_PROGRESS` — P5A (`DETAIL-001`–`DETAIL-008`) `COMPLETE`; P5B (comment create, own-comment delete, `DETAIL-009`–`DETAIL-011` UI, mutation cache sync) `NOT_STARTED`.
 
 ---
 

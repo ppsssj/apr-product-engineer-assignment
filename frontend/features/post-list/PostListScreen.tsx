@@ -100,7 +100,8 @@ export function PostListScreen() {
         href={routes.postCreate()}
         className={styles.fab}
         aria-label="게시글 작성"
-        // Create route arrives in P6; skip prefetching a 404 until then.
+        // Create route arrives in P6. Until then /posts/new falls through to the
+        // [postId] segment (not-found state), so it is not prefetched.
         prefetch={false}
       >
         <PencilIcon />

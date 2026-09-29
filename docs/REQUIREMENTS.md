@@ -144,14 +144,14 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| DETAIL-001 | Like action is a toggle. | §4 | TODO |
-| DETAIL-002 | Like toggle updates displayed count. | §4 | TODO |
-| DETAIL-003 | Like toggle updates visual liked state/icon. | §4 | TODO |
-| DETAIL-004 | Comments are ordered newest first. | §4 | TODO |
-| DETAIL-005 | Detail initially displays at most 2 comments. | §4 | TODO |
-| DETAIL-006 | “More” control appears only when comment total is 3 or more. | §4 | TODO |
-| DETAIL-007 | “More” control does not appear when total comments are 2 or fewer. | §4 | TODO |
-| DETAIL-008 | After “More” is activated, remaining comments load through infinite scroll. | §4 | TODO |
+| DETAIL-001 | Like action is a toggle. | §4 | VERIFIED |
+| DETAIL-002 | Like toggle updates displayed count. | §4 | VERIFIED |
+| DETAIL-003 | Like toggle updates visual liked state/icon. | §4 | VERIFIED |
+| DETAIL-004 | Comments are ordered newest first. | §4 | VERIFIED |
+| DETAIL-005 | Detail initially displays at most 2 comments. | §4 | VERIFIED |
+| DETAIL-006 | “More” control appears only when comment total is 3 or more. | §4 | VERIFIED |
+| DETAIL-007 | “More” control does not appear when total comments are 2 or fewer. | §4 | VERIFIED |
+| DETAIL-008 | After “More” is activated, remaining comments load through infinite scroll. | §4 | VERIFIED |
 | DETAIL-009 | User can create a comment. | §4 | VERIFIED |
 | DETAIL-010 | Only the author of a comment can delete that comment. | §4 | VERIFIED |
 | DETAIL-011 | Deleted comment disappears from the displayed list. | §4 | TODO |
@@ -164,6 +164,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DETAIL-018 | Deleting own post navigates back to the list. | §4 | TODO |
 | DETAIL-019 | A user cannot edit another user’s post. | §4 | VERIFIED |
 | DETAIL-020 | A user cannot delete another user’s post. | §4 | VERIFIED |
+
+> P5A: `DETAIL-001`–`DETAIL-008` are `VERIFIED` by browser runs at 375×778 against the Compose production frontend (V-050 UI evidence, V-060, V-061). `DETAIL-009`/`DETAIL-010` keep their P2B backend `VERIFIED` status, but their UI (comment composer, own-comment delete) is P5B, as is `DETAIL-011`. `DETAIL-012`–`DETAIL-018` are P6.
 
 ---
 

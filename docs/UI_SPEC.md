@@ -193,6 +193,23 @@ A fresh Figma MCP comparison of node `755:8831` was not possible during P4 (Star
 - The many-comments frame shows two comments and `댓글 더보기`, consistent with the assignment’s initial-two rule (`DESIGN_DEFINED` + `ASSIGNMENT_DEFINED`).
 - An own-comment delete affordance appears even on an other-user post, confirming that comment ownership is independent of post ownership (`DESIGN_DEFINED`, consistent with `ASSIGNMENT_DEFINED`).
 
+#### P5A Implementation Decisions
+
+P5A implements detail read, like toggle, and comment read/continuation only. The comment composer and own-comment delete (P5B) and the own-post `⋯` menu, edit, and delete (P6) are intentionally not rendered yet; no non-functional placeholder controls were added. Values below were estimated from the local PNG exports of `755:10420`, `755:10774`, `755:12645`, `755:13104`, and `769:142` (375×778 at 3×). They are not Figma node measurements.
+
+| Detail | P5A choice | Evidence |
+| --- | --- | --- |
+| Top navigation | sticky 375×48, 24px back arrow at x=16 (`뒤로 가기`); history back, or `/` on a direct load | Region `DESIGN_DEFINED`; behavior `PRODUCT_DECISION` |
+| Post header | title at y≈80 (24px below content start); 36px avatar; author/date to its right with 10px gap | PNG-estimated `PRODUCT_DECISION` |
+| Post date | `YY.MM.DD` in local time, 14/18 `#979EA9` | Format observed in PNG; size `PRODUCT_DECISION` |
+| Body | 24px below byline, `white-space: pre-wrap` | Type `DESIGN_DEFINED`; spacing `PRODUCT_DECISION` |
+| Like control | 24px heart + `좋아요 n` 14/18 `#979EA9`, 32px below body; outline `#979EA9` when unliked, filled `--color-liked` when liked | `#FF8DA1` liked accent `DESIGN_DEFINED`; icon drawing and sizes `PRODUCT_DECISION` |
+| Section band | 8px, reuses `--color-disabled-surface` (`#F3F4F8`) | PNG-observed; token reuse `PRODUCT_DECISION` |
+| Comment heading | `댓글 (n)` Bold 16/24 with `ko-KR` thousands separator, 48px row, full-width `--color-border-light` divider | Type `DESIGN_DEFINED`; row/divider `PRODUCT_DECISION` |
+| Comment item | 30px avatar, author Bold 15/22 `#292828`, relative time 12/16 `#979EA9`, content Regular 15/22 `#292828` | PNG-estimated `PRODUCT_DECISION` (the PNG mixes relative and absolute comment dates; P5A uses relative time throughout) |
+| More | `댓글 더보기` + chevron, 343×40, 1px `--color-border-light`, 12px radius, 14/18 `#979EA9` | Presence `DESIGN_DEFINED`; geometry PNG-estimated |
+| Loading / not-found / error | centered secondary text; `목록으로` for not-found, `다시 시도` for errors; continuation errors below loaded comments | `PRODUCT_DECISION` |
+
 ### SCREEN-003 — Create Post
 
 #### Functional Contract

@@ -212,6 +212,30 @@ Open frontend at `http://localhost:13000`.
 
 ---
 
+## P5A Post Detail / Like / Comment Read Evidence — 2026-09-29
+
+- Implementation commit `2af23aab5cf1009c6e39a359be5abb01a7c34566`. `npm run typecheck` exited 0; a clean `npm run build` produced `ƒ /posts/[postId]`; `git diff --check` was clean. `docker compose up -d --build frontend` rebuilt the production frontend against the healthy `db`/`backend`.
+- A temporary Playwright (Chromium) script at `375 × 778` passed 63/63 checks; the script and screenshots stayed in the session scratchpad and are not committed.
+- Detail: a list row opened `/posts/1` with the same title; the back button returned to `/`; direct `/posts/4` rendered title, author, provided avatar, `YY.MM.DD` date, content, `좋아요 1,109`, and `댓글 (27)`; nav 375×48, content from y=56, no horizontal scroll, title Bold 18/26, author Bold 15/22, body Regular 14/18, heading Bold 16/24 (`#292828`).
+- Missing/deleted: `/posts/9` (seed-deleted) and `/posts/99999` showed `게시글을 찾을 수 없습니다.` with a `목록으로` link; the 404 was not retried (one detail request) and no comment request was sent; `/posts/abc` showed the same state without an API request. Detail loading and a forced 500 (after default retries) with a working `다시 시도` were also exercised.
+- Like (post 13, `apr_tester`): unliked → liked with `856 → 857`, filled heart `rgb(255, 141, 161)` vs unliked `rgb(151, 158, 169)`, `aria-pressed` updated; reload matched the backend; liked → unliked restored `856`. Two clicks dispatched in the same tick plus a forced click during a held request produced exactly one toggle request, and the button was disabled while pending. A forced 500 left the state unliked at `856`, showed `좋아요를 반영하지 못했습니다. 다시 시도해 주세요.`, and re-enabled the button.
+- Requester isolation: with `apr_tester` liking post 13 via the API, selecting `mintcream` on the unchanged `/dev-user` page showed the post unliked at `857`; toggling as `mintcream` gave `858` with both users liked on the backend. All temporary likes were reverted (post 13 back to `856`, neither user liked).
+- List consistency: after liking the newest post from its detail page with list refetches frozen by route interception, returning to `/` showed the incremented count from the updated list cache. The like was reverted.
+- Comment counts: post 10 (0) showed only `댓글 (0)` with no list, no More, and no empty message; post 24 (1) and post 1 (2) showed all comments newest-first without More. Each sent exactly one comment request, `limit=2` without cursor.
+- More + infinite scroll: posts 3 (3 comments) and 4 (27) first sent one `limit=2` request and showed the two newest plus `댓글 더보기`; scrolling to the bottom before More sent no further request. After More, requests were `limit=20` with each cursor equal to the previous `nextCursor`; all comments rendered newest-first with no duplicate, More disappeared, the last `nextCursor` was `null`, and no request followed it (post 3: 2 requests, post 4: 3 requests). Post 2 (1,411) loaded incrementally in bounded `limit=20` pages.
+- Comment states: initial loading, initial error (post body stays visible) with retry, continuation loading, and continuation error that keeps the 22 loaded comments, shows a single `다시 시도` without the initial-error block, does not auto-retry on scrolling, and recovers to 27.
+- Regression found and fixed during this run: a same-tick double click sent two toggles because TanStack's `isPending` renders one scheduler tick after `mutate`; `useTogglePostLike` now guards with an in-flight ref. A leftover test like from the failed run was reverted before the passing run.
+- P4 regression: the P4 script passed 48/48 (39 posts as 10/10/10/9, no duplicate, FAB → `/posts/new`) with zero 404 responses; list detail-link prefetch now issues background requests that succeed, and no `/posts/new` prefetch occurs.
+
+### P5A Review Fix — Same-Session Revisit — 2026-09-29
+
+- Defect (PR #9 review): comment pages survived in the shared `QueryClient` after leaving the detail screen. A temporary Playwright revisit script at `375 × 778` reproduced it against the unfixed production build (`14ab5a0`): on re-entering post 4 without a full reload, the mount refetch sent the two cached `limit=20` continuation requests before More, and More showed all 27 comments within 50 ms (6/12 checks failed).
+- Fix commit `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (`useComments` `gcTime: 0`). `npm run typecheck` exited 0, a clean `npm run build` succeeded, `git diff --check` was clean, and the production frontend container was rebuilt.
+- Revisit script against the fixed build, 12/12: visit 1 made one `limit=2` request, then More and scrolling loaded two continuation pages (27 shown). Going back with the in-app back button and clicking the same row (no full reload, verified by a window marker) produced exactly one fresh `limit=2` request and 0 continuation requests before More, even after scrolling; at most 2 comments were visible. 50 ms after More only 2 were shown. The first continuation was `limit=20` with the revisit's first-page `nextCursor` and rendered 22. Scrolling completed the cursor chain to 27 in API newest-first order with no duplicate, the final `nextCursor` was `null`, and no request followed it.
+- Re-run on the same build: the P5A script passed 63/63 and the P4 script passed 48/48 (zero 404 responses). Post 13 like state was confirmed restored (`856`, unliked for `apr_tester` and `mintcream`).
+
+---
+
 # Requester / Ownership
 
 ## V-010 — Default Requester
@@ -288,6 +312,10 @@ x-user-id: <known-author>
 
 - A temporary like on the newest post was created for `mintcream` through the API. In Chromium, selecting `mintcream` on the unchanged `/dev-user` page redirected to `/`; the list request carried `Cookie: x-user-id=mintcream` and returned that post with `isLiked: true`. The like was toggled back afterwards (`isLiked: false`, `likeCount` restored to `1796`).
 - This verifies the credentialed browser request and requester-specific like evaluation. Ownership reflected in the browser (own-post menu, own-comment delete) is not yet rendered and remains for P5/P6.
+
+### P5A Evidence — 2026-09-29
+
+- Selecting `mintcream` on `/dev-user` produced a detail view with that requester's own `isLiked`, independent of `apr_tester`'s like, and the cookie user's toggle was recorded for `mintcream` only. Ownership UI (own-post menu, own-comment delete) is still unbuilt (P5B/P6), so the combined scenario remains open.
 
 **Result:** `NOT_RUN`
 
@@ -545,6 +573,10 @@ x-user-id: <known-author>
 - PostgreSQL ended with zero `post_likes` rows for the verification post. The response contained both `isLiked` and derived `likeCount`.
 - This passes the backend/API scenario. Visual icon behavior remains a frontend requirement and is not promoted by this evidence.
 
+### P5A UI Evidence — 2026-09-29
+
+- The detail like button toggles, updates the displayed count and the heart (`#FF8DA1` filled when liked), stays consistent with the backend after reload, guards against duplicate requests, and shows requester-specific state after `/dev-user` switching. See "P5A Post Detail / Like / Comment Read Evidence".
+
 **Result:** `PASS`
 
 ---
@@ -570,7 +602,12 @@ Test posts with:
 - At most 2 comments are initially visible.
 - “More” appears only when total >= 3.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Posts 10 (0), 24 (1), 1 (2), 3 (3), and 4 (27) in Chromium at 375×778: at most 2 comments before More, newest-first matching the API, More only for 3 and 27, and exactly one initial `limit=2` comment request per post. The 0-comment state shows only `댓글 (0)`.
+- After the review fix, a same-session revisit of post 4 again showed at most 2 comments and made one fresh `limit=2` request (see "P5A Review Fix — Same-Session Revisit").
+
+**Result:** `PASS`
 
 ---
 
@@ -592,7 +629,12 @@ Test posts with:
 - No duplicate comments appear.
 - Comments remain newest-first.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- No comment request beyond the initial `limit=2` page before More, even after scrolling the sentinel into view. After More, bounded `limit=20` pages chained by `nextCursor` loaded through the sentinel until `nextCursor: null`, with newest-first order, no duplicate, and no request after the end (posts 3, 4; incremental loading on post 2 with 1,411 comments).
+- The same gate holds on a same-session revisit after previously loading continuation pages: 0 continuation requests before More and no bulk exposure of cached comments on More (fix `ddc1a9d`).
+
+**Result:** `PASS`
 
 ---
 
@@ -767,6 +809,10 @@ Inspect required screens at 375px viewport:
 - Post list only, at `375 × 778`: document `scrollWidth` 375 (no horizontal scroll), 48px header, list at y=56, 118px rows with a 343×93 content region at x=16, and the 50×50 FAB at x=310, y=679 not blocking the last row (120px bottom padding).
 - Detail, create, edit, and action-sheet screens do not exist yet, so this scenario is not complete.
 
+### P5A Partial Evidence — 2026-09-29
+
+- Post detail at `375 × 778`: 375×48 sticky navigation, content from y=56, document `scrollWidth` 375. Create, edit, and action-sheet screens do not exist yet.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -801,6 +847,10 @@ Implementation matches official design as closely as practical, with any intenti
 - Measured in Chromium against the `docs/UI_SPEC.md` `DESIGN_DEFINED` values for node `755:8831`: frame regions (header 48, list y=56, row 118, content 343×93 at x=16/y=+12, divider 343×1), avatar 18×18 circular, FAB 50×50 at x=310/y=679, app title Bold 20/28 `#292828`, post title Medium 16/24 `#292828`, preview Regular 14/18 `#979EA9`, metadata Regular 12/16 with author `#5E5E5E` and counts/time `#979EA9`, Pretendard loaded.
 - This proves conformance to the recorded spec values, not to the Figma frame. Title/preview clamps, metadata gaps, icon paths/sizes, FAB red/shadow, and inner spacing are `PRODUCT_DECISION` values recorded in `docs/UI_SPEC.md` and were not compared with Figma. The divider uses the existing `--color-border-light` token as an implementation choice, not a Figma-exact mapping.
 - Only the list screen exists. The result remains `NOT_RUN`.
+
+### P5A Partial Evidence — 2026-09-29
+
+- Detail typography matched the `docs/UI_SPEC.md` `DESIGN_DEFINED` values (title Bold 18/26, author Bold 15/22, body Regular 14/18, heading Bold 16/24, `#292828`, liked `#FF8DA1`). Layout offsets, avatar sizes, comment typography, icons, and the More button were estimated from local PNG exports of the official frames (`755-10420`, `755-10774`, `755-12645`, `755-13104`, `769-142`) and are `PRODUCT_DECISION` values, not Figma node measurements. Comparing against local PNGs does not constitute V-081; the result remains `NOT_RUN`.
 
 **Result:** `NOT_RUN`
 
