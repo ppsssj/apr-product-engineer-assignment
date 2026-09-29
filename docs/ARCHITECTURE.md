@@ -147,6 +147,17 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# P2A Read API Implementation Update — 2026-09-29
+
+- Requester resolution is implemented by one `RequesterResolver` with deterministic precedence `x-user-id` header > `x-user-id` cookie > `apr_tester`. Blank or whitespace-only values are absent, and no user table is introduced.
+- Both read collections accept optional `limit` and `cursor`. The default limit is 20, the accepted range is 1–50, and invalid limits or cursors return HTTP 400 JSON errors.
+- The canonical order is `(created_at DESC, id DESC)`. The next-page predicate compares the same timestamp and ID pair, and repositories fetch `limit + 1` rows to decide whether `nextCursor` exists without using `OFFSET`.
+- The opaque cursor payload is the exact `Instant` text plus the numeric ID, separated by `|`, encoded as URL-safe Base64 without padding. Decoding rejects non-canonical Base64, invalid timestamps, non-positive/invalid IDs, and malformed payload structure.
+- `GET /api/posts`, `GET /api/posts/{postId}`, and `GET /api/posts/{postId}/comments` are the only P2A endpoints. Post page rows derive `likeCount`, requester-specific `isLiked`, and readable `commentCount` in one bounded SQL query; a separate count query supplies full `total`.
+- Missing and soft-deleted posts both return the same 404 JSON contract. Comment reads first require a readable parent post. P2B mutation validation and ownership enforcement remain intentionally unimplemented.
+
+---
+
 # 1. Current Evidence Boundary
 
 ## Verified from assignment / provided README
@@ -435,7 +446,7 @@ It also avoids maintaining two mutable sources of truth (`like_count` counter + 
 
 # ADR-006 — Pagination: Cursor/keyset pagination with deterministic ordering
 
-**Status:** `PROVISIONAL`
+**Status:** `DECIDED`
 
 ## Decision
 
@@ -447,7 +458,21 @@ Canonical order:
 ORDER BY created_at DESC, id DESC
 ```
 
-The cursor represents the final `(created_at, id)` pair from the current page. The API keeps the required `items` and `total` fields and adds a pagination field such as `nextCursor`.
+The cursor represents the final `(created_at, id)` pair from the current page. The API keeps the required `items` and `total` fields and adds `nextCursor`.
+
+Implemented wire contract:
+
+```text
+GET /api/posts?limit=20&cursor=<opaque>
+GET /api/posts/{postId}/comments?limit=20&cursor=<opaque>
+
+default limit: 20
+valid limit: 1..50
+omitted cursor: first page
+invalid limit or cursor: HTTP 400
+```
+
+The opaque cursor is URL-safe Base64 without padding over `<exact Instant text>|<id>`. Its timestamp is not reduced to epoch milliseconds. The decoder accepts only the canonical encoding and valid positive IDs. Repositories use `LIMIT + 1`, return at most the requested limit, and never use `OFFSET`.
 
 Example conceptual response:
 

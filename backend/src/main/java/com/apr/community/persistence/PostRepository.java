@@ -1,7 +1,12 @@
 package com.apr.community.persistence;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Optional;
 
+import com.apr.community.common.pagination.CursorPosition;
 import com.apr.community.seed.SeedData.SeedPost;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -30,15 +35,124 @@ public class PostRepository {
                 .update();
     }
 
-    public int countReadable() {
+    public long countReadable() {
         return jdbcClient.sql("SELECT COUNT(*) FROM posts WHERE is_deleted = FALSE")
-                .query(Integer.class)
+                .query(Long.class)
                 .single();
+    }
+
+    public boolean existsReadable(long postId) {
+        return jdbcClient.sql("SELECT EXISTS (SELECT 1 FROM posts WHERE id = :postId AND is_deleted = FALSE)")
+                .param("postId", postId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    public List<ReadablePost> findReadablePage(
+            String requester,
+            CursorPosition cursor,
+            int fetchSize) {
+        String cursorPredicate = cursor == null
+                ? ""
+                : """
+                        AND (
+                            p.created_at < :cursorCreatedAt
+                            OR (p.created_at = :cursorCreatedAt AND p.id < :cursorId)
+                        )
+                        """;
+
+        var statement = jdbcClient.sql("""
+                        SELECT
+                            p.id,
+                            p.title,
+                            p.content,
+                            p.base_like_count
+                                + (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id) AS like_count,
+                            (SELECT COUNT(*) FROM comments c
+                                WHERE c.post_id = p.id AND c.is_deleted = FALSE) AS comment_count,
+                            EXISTS (
+                                SELECT 1 FROM post_likes requester_like
+                                WHERE requester_like.post_id = p.id
+                                  AND requester_like.user_id = :requester
+                            ) AS is_liked,
+                            p.author,
+                            p.created_at
+                        FROM posts p
+                        WHERE p.is_deleted = FALSE
+                        """ + cursorPredicate + """
+                        ORDER BY p.created_at DESC, p.id DESC
+                        LIMIT :fetchSize
+                        """)
+                .param("requester", requester)
+                .param("fetchSize", fetchSize);
+
+        if (cursor != null) {
+            statement = statement
+                    .param("cursorCreatedAt", OffsetDateTime.ofInstant(cursor.createdAt(), ZoneOffset.UTC))
+                    .param("cursorId", cursor.id());
+        }
+
+        return statement.query((resultSet, rowNumber) -> new ReadablePost(
+                        resultSet.getLong("id"),
+                        resultSet.getString("title"),
+                        resultSet.getString("content"),
+                        resultSet.getLong("like_count"),
+                        resultSet.getLong("comment_count"),
+                        resultSet.getBoolean("is_liked"),
+                        resultSet.getString("author"),
+                        resultSet.getObject("created_at", OffsetDateTime.class).toInstant()))
+                .list();
+    }
+
+    public Optional<ReadablePost> findReadableById(long postId, String requester) {
+        return jdbcClient.sql("""
+                        SELECT
+                            p.id,
+                            p.title,
+                            p.content,
+                            p.base_like_count
+                                + (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id) AS like_count,
+                            (SELECT COUNT(*) FROM comments c
+                                WHERE c.post_id = p.id AND c.is_deleted = FALSE) AS comment_count,
+                            EXISTS (
+                                SELECT 1 FROM post_likes requester_like
+                                WHERE requester_like.post_id = p.id
+                                  AND requester_like.user_id = :requester
+                            ) AS is_liked,
+                            p.author,
+                            p.created_at
+                        FROM posts p
+                        WHERE p.id = :postId
+                          AND p.is_deleted = FALSE
+                        """)
+                .param("postId", postId)
+                .param("requester", requester)
+                .query((resultSet, rowNumber) -> new ReadablePost(
+                        resultSet.getLong("id"),
+                        resultSet.getString("title"),
+                        resultSet.getString("content"),
+                        resultSet.getLong("like_count"),
+                        resultSet.getLong("comment_count"),
+                        resultSet.getBoolean("is_liked"),
+                        resultSet.getString("author"),
+                        resultSet.getObject("created_at", OffsetDateTime.class).toInstant()))
+                .optional();
     }
 
     public int countAll() {
         return jdbcClient.sql("SELECT COUNT(*) FROM posts")
                 .query(Integer.class)
                 .single();
+    }
+
+    public record ReadablePost(
+            long id,
+            String title,
+            String content,
+            long likeCount,
+            long commentCount,
+            boolean isLiked,
+            String author,
+            Instant createdAt) {
     }
 }
