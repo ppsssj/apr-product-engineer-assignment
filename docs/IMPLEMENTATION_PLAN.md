@@ -4,21 +4,29 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P5A — Post Detail Read / Like / Comment Read & Continuation`
-- Status: `P5A COMPLETE`; `P5B NOT_STARTED`; P5 as a whole is not complete.
-- Last Verified Commit: `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (P5A per-visit comment cache fix and full P5A/P4 re-acceptance).
+- Current Gate: `Performance Audit Gate — before P5B`
+- Status: Audit `COMPLETE`; Optimization `NOT_DECIDED`; P5B `NOT_STARTED`.
+- Last Verified Commit: `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (P5A per-visit comment cache fix and full P5A/P4 re-acceptance; merged in `e521fd8`). The audit changes documentation only.
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- No blocker remains for P5A review.
-- A fresh Figma MCP comparison is unavailable (Starter-plan tool-call limit exhausted). P4/P5A used `docs/UI_SPEC.md` `DESIGN_DEFINED` values plus local PNG exports for estimation; V-081 stays `NOT_RUN`.
+- No blocker. The audit (`docs/PERFORMANCE.md`) found no user-visible query bottleneck on the provided seed (verdict `NO_OPTIMIZATION_NEEDED`).
+- Open decisions for review: optional row-value keyset predicate; separate first-boot readiness window (`/health` 200 before the seed commits).
+- A fresh Figma MCP comparison remains unavailable; V-081 stays `NOT_RUN`.
 
 ### Next Action
 
-- Review and merge the P5A PR.
-- After merge, P5B — Comment Create / Own-Comment Delete is the next implementation phase.
-- Do not start P5B until explicitly requested.
+- Review the performance audit PR and decide which, if any, candidate enters a separate optimization change.
+- After that decision, P5B — Comment Create / Own-Comment Delete is the next implementation phase.
+- Do not start P5B or any optimization until explicitly requested.
+
+### Performance Audit Gate Status
+
+- Status: Audit `COMPLETE` (measurement only; no product code, schema, migration, dependency, or API change).
+- Seed: 39 readable posts; readable comments per post median 7, max 1,411 (post 2 = 73.3 %).
+- Clean seed segment median 911 ms once per fresh volume; read endpoints median 3.5–8.5 ms; a full 1,411-comment traversal takes 72 requests / 216 statements / median 523 ms.
+- Confirmed inefficiencies without user-visible impact: the keyset cursor is a Filter rather than an index bound (deep pages scan linearly), and every comment page repeats EXISTS + COUNT.
 
 ### P0 Completion Update
 
