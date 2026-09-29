@@ -6,9 +6,9 @@ import {
   type InfiniteData,
   type QueryClient,
 } from "@tanstack/react-query";
-import { useRef } from "react";
 import { createComment, deleteComment } from "@/lib/api/community";
 import type { Comment, PageResponse, Post } from "@/lib/api/types";
+import { useSingleFlight } from "@/lib/hooks/useSingleFlight";
 import { postKeys } from "@/lib/query/keys";
 
 type CommentPages = InfiniteData<PageResponse<Comment>>;
@@ -45,22 +45,6 @@ function setPostCommentCount(queryClient: QueryClient, postId: number, count: nu
 
 function detailCount(queryClient: QueryClient, postId: number): number | undefined {
   return queryClient.getQueryData<Post>(postKeys.detail(postId))?.commentCount;
-}
-
-// Submits at most one request at a time, even for two submits in the same tick
-// (`isPending` only renders after a scheduler tick).
-function useSingleFlight() {
-  const inFlight = useRef(false);
-  return {
-    begin: () => {
-      if (inFlight.current) return false;
-      inFlight.current = true;
-      return true;
-    },
-    end: () => {
-      inFlight.current = false;
-    },
-  };
 }
 
 export function useCreateComment(postId: number) {

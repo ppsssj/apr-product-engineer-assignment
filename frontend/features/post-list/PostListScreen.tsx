@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { takeFlash } from "@/lib/flash";
+import { rememberFormOrigin } from "@/lib/formOrigin";
 import { useInfiniteScrollTrigger } from "@/lib/hooks/useInfiniteScrollTrigger";
 import { routes } from "@/lib/routes";
 import { PencilIcon } from "./icons";
 import { PostListItem } from "./PostListItem";
 import { usePostList } from "./usePostList";
 import styles from "./PostListScreen.module.css";
+
+const TOAST_DURATION_MS = 2500;
 
 export function PostListScreen() {
   const {
@@ -27,6 +32,18 @@ export function PostListScreen() {
       !isFetchNextPageError,
     onIntersect: () => void fetchNextPage(),
   });
+
+  // One-shot message from the previous screen (the create toast).
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    const message = takeFlash();
+    if (message) setToast(message);
+  }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   const posts = data?.pages.flatMap((page) => page.items) ?? [];
   // Data is fetched in the browser only, so the clock is read after hydration.
@@ -100,12 +117,16 @@ export function PostListScreen() {
         href={routes.postCreate()}
         className={styles.fab}
         aria-label="게시글 작성"
-        // Create route arrives in P6. Until then /posts/new falls through to the
-        // [postId] segment (not-found state), so it is not prefetched.
-        prefetch={false}
+        onClick={() => rememberFormOrigin(routes.home())}
       >
         <PencilIcon />
       </Link>
+
+      {toast && (
+        <p className={styles.toast} role="status">
+          {toast}
+        </p>
+      )}
     </div>
   );
 }

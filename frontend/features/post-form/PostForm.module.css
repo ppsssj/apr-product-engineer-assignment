@@ -1,0 +1,123 @@
+/*
+ * DESIGN_DEFINED (docs/UI_SPEC.md §6.1–6.2, SCREEN-003): 16px inset; label
+ * Pretendard Bold 14/22 #292828; input/placeholder Regular 14/18 #292828 /
+ * #979EA9; title placeholder with "(최대 20자)"; fixed bottom action
+ * (375×68 action area + 375×26 safe area) that is disabled when invalid.
+ * PRODUCT_DECISION (estimated from the local PNG exports 755-14007/755-14046,
+ * not Figma node values): label at y≈82, underlined title field whose rule is
+ * light when empty and #292828 when filled, content 32px below it, 343×56
+ * button (radius 12, Bold 16/24 white) on #292828 when enabled and #DADEE3
+ * when disabled, the over-length hint, and the error line.
+ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 48px);
+  /* Content clears the fixed 94px action region. */
+  padding: 34px var(--space-page-inset) 118px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-text-primary);
+}
+
+.title {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+}
+
+.title[data-filled="true"],
+.title:focus {
+  border-bottom-color: var(--color-text-primary);
+}
+
+.title[aria-invalid="true"] {
+  border-bottom-color: var(--color-text-support);
+}
+
+.title::placeholder,
+.content::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-support);
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  min-height: 240px;
+  margin-top: 32px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.actionBar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  /* 6 + 56 + 6 = 68px action area, then a 26px safe area. */
+  padding: 6px var(--space-page-inset) 32px;
+  background: var(--color-surface);
+}
+
+.error {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-support);
+  text-align: center;
+}
+
+.submit {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-text-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--color-surface);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  background: #dadee3;
+  cursor: default;
+}
+
+.submit:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}

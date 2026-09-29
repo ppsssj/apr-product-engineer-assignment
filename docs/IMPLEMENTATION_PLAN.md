@@ -4,11 +4,11 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P5B — Comment Create / Own-Comment Delete / Mutation Cache Sync`
-- Status: P5A `COMPLETE`; P5B `COMPLETE`; P5 overall `COMPLETE`; P6 `NOT_STARTED`.
-- Last Verified Commit: `07c93724df195b2158d459d98eddd399797faa9b` (P5B implementation and acceptance: 52/52 P5B browser checks, P5A revisit 12/12, P4 48/48, P5A 63/63, keyset traversal/tie regression, backend 49/49).
+- Current Phase: `P6 — Post Create / Edit / Delete`
+- Status: P6 `COMPLETE`; core feature implementation `COMPLETE` (P1–P6); P7 `NOT_STARTED`.
+- Last Verified Commit: `4e53dbd6fb951015f595ae980da1fe845929b60b` (P6 + Deletion Policy Hardening: deletion consistency 28/28, P6 74/74, P5B 52/52, P4 48/48, P5A 63/63, revisit 12/12, backend 49/49; P6 implementation `1f8a21f`).
 - Last Updated: `2026-09-29`
-- Performance Audit gate: closed. The audit and the selected row-value keyset optimization are `COMPLETE`; other candidates remain `DEFERRED` / `REJECTED`.
+- Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
 
 ### Known Blockers
 
@@ -18,9 +18,15 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review and merge the P5B PR.
-2. After merge, P6 — Post Create / Edit / Delete is the next implementation phase.
-3. Do not start P6 until explicitly requested.
+1. Review and merge the P6 PR.
+2. After merge, P7 — Visual Integration & UX Polish.
+3. Do not start P7 until explicitly requested.
+
+### P7 Backlog (recorded, not implemented)
+
+- Requester-liked list heart: the list shows no liked state, while the detail uses the `#FF8DA1` accent. Review whether list rows should reflect `isLiked` for visual consistency.
+- The `784-412` toast PNG shows a list row layout (author above title) that differs from the audited list frame `755-8831`; decide which is authoritative.
+- Icon shapes, spacing, and color micro-adjustments across all screens; fresh design comparison when available (V-081).
 
 ### Performance Audit Gate Status
 
@@ -99,6 +105,13 @@ This document is the operational state for the assignment. Keep it concise and c
 - A fixed composer creates comments. Own comments (by cookie requester, independent of post owner) show `삭제` with a confirmation dialog. All mutations are server-confirmed and synchronize the comment list, its `total`, the detail `commentCount`, and cached list counts, with in-flight guards against same-tick duplicates.
 - Verified at 375×778 in Chromium (52/52 P5B checks): boundaries 0→1→2→3 and 3→2→1→0, 27→28, expanded create, continuation and cursor-boundary deletes, list sync with list refetch frozen, POST/DELETE failure paths, `/dev-user` cross-user ownership, and backend 403. Regressions: revisit 12/12, P4 48/48, P5A 63/63, keyset traversal/tie. `DETAIL-009`/`DETAIL-010` have UI evidence and `DETAIL-011` is `VERIFIED`.
 - Baseline restored by reseeding: 42/3 posts, 2,076/81 comments, 0 likes.
+
+### P6 Status
+
+- Status: `COMPLETE`
+- Create (`/posts/new`), edit (`/posts/[postId]/edit`, shared form, exact prefill), own-post action sheet, and post delete confirmation are in place. Validation matches the backend (Java `isBlank`, 20 code points). Mutations are server-confirmed and synchronize the list and detail caches. The create toast shows once. Other users' posts show no menu and no edit form.
+- Verified at 375×778 in Chromium (74/74), including cached-list deletes of a middle row and a cursor-boundary row, `/dev-user` cross-user ownership, and every failure path. V-012, V-030, V-031, V-032, V-040, and V-080 are `PASS`. V-081 stays `NOT_RUN`.
+- Deletion Policy Hardening (`4e53dbd`): a confirmed delete now lowers every cached list total even when the post is not loaded. The soft-delete model (dormant children, 404 before 403, repeated DELETE 404, serialized parent/child mutations) was verified without backend change (28/28).
 
 ---
 
@@ -412,7 +425,7 @@ Implement post authoring and ownership-controlled post management.
 
 ### Status
 
-`NOT_STARTED`
+`COMPLETE`
 
 ---
 

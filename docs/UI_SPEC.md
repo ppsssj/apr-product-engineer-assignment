@@ -240,6 +240,25 @@ The composer region (375×86 at y=692), the dialog frame (327×264 at x=24, y=25
 - The title placeholder explicitly includes `(최대 20자)` (`DESIGN_DEFINED`, consistent with `ASSIGNMENT_DEFINED`).
 - Submitting/error visual states are not shown and remain `PRODUCT_DECISION`.
 
+#### P6 Implementation Decisions (SCREEN-003–006)
+
+The regions and copy are `DESIGN_DEFINED`: create action 375×68 + 26 safe area, title placeholder with `(최대 20자)`, disabled/enabled action, sheet 375×224 at y=554, post-delete dialog copy and frame, and toast 181×40 at x=97.5, y=657. The values below were estimated from the local PNG exports `755-14007`, `755-14046`, `830-139`, `755-11707`, and `784-412`. They are not Figma node measurements.
+
+| Detail | P6 choice | Evidence |
+| --- | --- | --- |
+| Shared form | one `PostForm` for create and edit; heading `글작성` / `글수정`, action `작성 완료` / `수정 완료` | Reuse `ASSIGNMENT_DEFINED`; edit copy `PRODUCT_DECISION` |
+| Form layout | label Bold 14/22 at y≈82; underlined title field 10px below (rule light when empty, `#292828` when filled); content textarea 32px below; content placeholder is the two design sentences | Type `DESIGN_DEFINED`; positions PNG-estimated |
+| Action button | 343×56 at y=690, radius 12, Bold 16/24 white; `#292828` enabled, `#DADEE3` disabled | PNG-observed. The disabled fill uses the audited `#DADEE3`, because the PNG button is darker than the `#F3F4F8` surface |
+| Validation | blank = every code point is Java whitespace (`isBlank`); title ≤ 20 Unicode code points (`codePointCount`); over-length hint `제목은 최대 20자까지 입력할 수 있습니다.`; values sent untrimmed; Enter in the title moves to the content | Rules mirror the backend `MutationValidator`; hint `PRODUCT_DECISION` |
+| Errors | `게시글을 등록하지 못했습니다.` / `게시글을 수정하지 못했습니다.` + `다시 시도해 주세요.` above the action; `이 게시글을 수정할 권한이 없습니다.` for another user's edit URL | `PRODUCT_DECISION` |
+| Menu trigger | 24px vertical ellipsis at the right of the 48px navigation, own posts only (`게시글 메뉴`) | Placement PNG-observed; visibility `ASSIGNMENT_DEFINED` |
+| Action sheet | top radius 20; 60px rows with a 24px icon and Regular 16/24 label; divider inset 24px; 343×56 `취소` (radius 12, `#292828`); Escape, scrim, or `취소` closes | PNG-estimated `PRODUCT_DECISION` |
+| Post delete dialog | the P5B `ConfirmDialog` with `삭제한 글은 복구할 수 없습니다.` / `정말 삭제 하시겠습니까?` | Copy `DESIGN_DEFINED`; reuse `PRODUCT_DECISION` |
+| Toast | 2.5 s, no motion, `pointer-events: none`, shown once per create through an in-memory one-shot flash (not after reload) | Duration/motion `PRODUCT_DECISION` |
+| Navigation after success | create → list, edit → detail; returns to the opening screen's history entry when opened in-app, otherwise replaces | `PRODUCT_DECISION` |
+
+The `784-412` toast PNG also shows a list row layout (author above title) that differs from the audited list frame `755-8831`. P6 used that PNG only for the toast; the list layout difference is left for P7 review.
+
 ### SCREEN-004 — Edit Post
 
 - Reuses SCREEN-003 with existing title/content prefilled and identical validation (`ASSIGNMENT_DEFINED`).

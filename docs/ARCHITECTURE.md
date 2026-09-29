@@ -184,6 +184,65 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# Deletion Consistency Model
+
+One model covers posts, comments, and likes. It was verified against the running backend and PostgreSQL without any backend or schema change (`docs/VERIFICATION.md` "Deletion Consistency Evidence").
+
+**1. Physical preservation.** Posts and comments are soft-deleted (`is_deleted = TRUE`); rows are never removed. Deleting a post does not cascade: its comments keep their own `is_deleted` value and its `post_likes` rows stay. A comment is only ever marked deleted by its author's delete.
+
+**2. Visibility.**
+
+```text
+post readable    = NOT post.is_deleted
+comment readable = NOT comment.is_deleted AND parent post readable
+like effective   = parent post readable AND post_likes row exists
+```
+
+The children of a deleted post are dormant: they exist in the database but no product API reaches them.
+
+**3. API semantics.** Readability is checked before ownership:
+
+| State | Result |
+| --- | --- |
+| readable resource + owner | mutation allowed (`204` / `200` / `201`) |
+| readable resource + non-owner | `403` |
+| soft-deleted or never-existing resource | `404` |
+| comment whose parent post is deleted | `404` |
+| repeated DELETE | first `204`, then `404` (not idempotent-204) |
+
+A deleted resource therefore never reveals that it existed through a `403`.
+
+**4. Parent deletion.** After a post is deleted, every route under it returns `404`: GET/PATCH/DELETE, like toggle, comment list, comment create, and delete of an existing comment, for owners and non-owners alike. `PostReadService.getComments` checks `existsReadable` first, and `CommentRepository.findReadableMutationTargetForUpdate` joins the readable parent.
+
+**5. Mutation serialization.** Post edit, delete, and like toggle, and comment create, each lock the readable post (`SELECT … FOR UPDATE`, `is_deleted = FALSE`). Comment delete locks the readable comment together with its readable parent (`FOR UPDATE OF p, c`). A post delete racing a child mutation is therefore serialized. Either the child mutation commits first and becomes dormant, or it runs after the delete, finds no readable parent, and returns `404`. A 15-round concurrent smoke test (delete racing comment create, like toggle, edit, and comment delete) produced only those outcomes, with no 5xx.
+
+**6. Frontend consistency.** Nothing changes before the server confirms. After a `204`:
+- Every cached post-list query (all are the same readable collection, differing only in page size) gets `total − 1`, whether or not the post is among the loaded pages. The row is removed where it is loaded.
+- The deleted post's detail query and its descendant comment queries are evicted after the detail screen unmounts. TanStack partial key matching on `["posts","detail",id]` includes `[…,"comments",…]`.
+- Navigation uses `router.replace("/")`, so Back does not return to the deleted detail.
+- Keyset cursors stay valid because they are `(createdAt, id)` bounds, including when the deleted row was the cursor row.
+
+---
+
+# P6 Post CRUD Update — 2026-09-29
+
+- **Scope:** frontend only (`1f8a21f`). It adds `/posts/new` and `/posts/[postId]/edit` (thin Server Components; `lib/postId.ts` is shared with the detail route), `features/post-form` (`PostForm`, `PostFormScreen`, `usePostFormMutations`), and in `features/post-detail` the `PostActionSheet` and `useDeletePost`. The P2B endpoints are reused unchanged.
+- **Validation parity:** `lib/validation/post.ts` mirrors `MutationValidator`. Blank means every code point is Java whitespace, and the title limit counts Unicode code points (`Array.from`), not UTF-16 units. The submitted values are the typed values.
+- **Server-confirmed caches** (`lib/query/postListCache.ts`), following the P5A/P5B pattern:
+  - Create prepends the returned post to the first cached list page and adds one to every page's `total`, and seeds its detail cache.
+  - Edit replaces the post in the detail cache and in every cached list page. `createdAt` is unchanged, so the order holds.
+  - Delete subtracts one from every cached list's `total` and removes the post from the pages where it is loaded (see Deletion Consistency Model).
+  - Keyset cursors are `(createdAt, id)` bounds, so these edits keep every `nextCursor` valid, including when the deleted row was a page's cursor row.
+  - The deleted post's detail and comment queries are dropped when the detail screen unmounts, so the still-mounted screen does not refetch a missing post.
+- **One-shot messages** (`lib/flash.ts`, `lib/formOrigin.ts`): module memory, not storage, because it survives a client-side navigation but not a reload.
+  - The create toast is taken once by the list.
+  - The form remembers which in-app screen pushed it, so success goes back to that history entry instead of stacking a duplicate. A direct URL load replaces.
+  - No global store or toast framework was added.
+- **Ownership in the UI:** `readCurrentRequester()` (P5B) gates the post menu and the edit form. The backend remains authoritative (403 for another user's PATCH/DELETE).
+- **Single-flight:** the in-flight ref from P5B moved to `lib/hooks/useSingleFlight.ts` and is shared by comment and post mutations. Same-tick double submit, save, and confirm each send one request.
+
+---
+
 # P5B Comment Mutation Update — 2026-09-29
 
 - **Scope:** frontend only (`07c9372`). It adds `CommentComposer`, `ConfirmDialog`, `useCommentMutations.ts` (`useCreateComment`, `useDeleteComment`), and `lib/requester.ts`, wired into `CommentSection`. The P2B endpoints are reused unchanged.

@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api/client";
 import type { Post } from "@/lib/api/types";
 import { avatarFor } from "@/lib/avatar";
+import { rememberFormOrigin } from "@/lib/formOrigin";
+import { readCurrentRequester } from "@/lib/requester";
 import { routes } from "@/lib/routes";
 import { formatShortDate } from "@/lib/time/shortDate";
 import { CommentSection } from "./CommentSection";
-import { BackIcon, HeartIcon } from "./icons";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { BackIcon, HeartIcon, MoreIcon } from "./icons";
+import { PostActionSheet } from "./PostActionSheet";
+import { useDeletePost } from "./useDeletePost";
 import { usePostDetail, useTogglePostLike } from "./usePostDetail";
 import styles from "./PostDetailScreen.module.css";
 
@@ -22,6 +28,28 @@ export function PostDetailScreen({ postId }: Props) {
   const { data: post, status, error, refetch } = usePostDetail(postId);
   const notFound =
     postId === null || (error instanceof ApiError && error.status === 404);
+  // Presentation only: the backend rejects another user's PATCH/DELETE (403).
+  const [requester] = useState(readCurrentRequester);
+  const isOwnPost = post !== undefined && !notFound && post.author === requester;
+  const [menu, setMenu] = useState<"closed" | "sheet" | "confirmDelete">("closed");
+  const removal = useDeletePost(postId ?? 0);
+  const deleted = useRef(false);
+
+  // Dropped only once this screen unmounts; removing the detail query while it
+  // is still observed here would refetch the deleted post.
+  useEffect(
+    () => () => {
+      if (deleted.current) removal.forgetDeletedPost();
+    },
+    [],
+  );
+
+  async function confirmDelete() {
+    if (await removal.remove()) {
+      deleted.current = true;
+      router.replace(routes.home());
+    }
+  }
 
   function goBack() {
     // Direct loads have no in-app history to return to.
@@ -40,6 +68,17 @@ export function PostDetailScreen({ postId }: Props) {
         >
           <BackIcon />
         </button>
+        {isOwnPost && (
+          <button
+            type="button"
+            className={styles.back}
+            onClick={() => setMenu("sheet")}
+            aria-label="게시글 메뉴"
+            aria-haspopup="dialog"
+          >
+            <MoreIcon />
+          </button>
+        )}
       </header>
 
       <main className={styles.main}>
@@ -72,6 +111,33 @@ export function PostDetailScreen({ postId }: Props) {
           </>
         )}
       </main>
+
+      {isOwnPost && menu === "sheet" && (
+        <PostActionSheet
+          onEdit={() => {
+            rememberFormOrigin(routes.postDetail(post.id));
+            router.push(routes.postEdit(post.id));
+          }}
+          onDelete={() => {
+            removal.reset();
+            setMenu("confirmDelete");
+          }}
+          onClose={() => setMenu("closed")}
+        />
+      )}
+      {isOwnPost && menu === "confirmDelete" && (
+        <ConfirmDialog
+          title="삭제하기"
+          body={"삭제한 글은 복구할 수 없습니다.\n정말 삭제 하시겠습니까?"}
+          pending={removal.isPending}
+          error={removal.isError ? "게시글을 삭제하지 못했습니다. 다시 시도해 주세요." : null}
+          onCancel={() => {
+            removal.reset();
+            setMenu("closed");
+          }}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </div>
   );
 }

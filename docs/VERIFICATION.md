@@ -279,6 +279,55 @@ Open frontend at `http://localhost:13000`.
 
 ---
 
+## P6 Post CRUD Evidence — 2026-09-29
+
+- Implementation commit `1f8a21f95fbbc132266e9f3d76f6154504127fd1` (frontend only). Checks: `npm run typecheck` 0 errors, a clean `npm run build` (routes `○ /posts/new`, `ƒ /posts/[postId]/edit`), backend `gradlew clean test` 49/49, and `git diff --check` clean. The production frontend container was rebuilt from this code.
+- A temporary Playwright (Chromium) script at `375 × 778` passed **74/74** checks after a reseed. The script and screenshots stayed in the session scratchpad.
+- **Validation (create and edit):** empty title or content, whitespace-only, U+3000-only, a 21-character ASCII title, and a 21-emoji title (42 UTF-16 units) all kept the button disabled, and a forced `requestSubmit()` sent 0 requests. A 20-character ASCII title, a 20-emoji title (40 UTF-16 units), and a Korean title were accepted. The frontend counts code points like Java `codePointCount` and treats whitespace like Java `isBlank`. Values are sent untrimmed. Enter in the title does not submit.
+- **Create:**
+  - The FAB opens `/posts/new` (`LIST-006`).
+  - POST 500 and network abort both kept the form values and URL, showed `게시글을 등록하지 못했습니다. 다시 시도해 주세요.`, showed no toast, and created nothing.
+  - A same-tick double submit sent exactly 1 POST.
+  - The server post had author `apr_tester`, `likeCount` 0, `commentCount` 0, `isLiked` false, and the exact 20-code-point title and multiline content.
+  - With the list's first-page refetch frozen, the list showed the new post first from the cache update.
+  - A full traversal then matched the server (total 40, unique, new first).
+- **Toast:** `게시글이 등록되었습니다.` appeared once at 181×40, x=97.5, y=657 with `pointer-events: none`. It disappeared after about 2.5 s and did not reappear on a list revisit or reload.
+- **Edit (own post):**
+  - The trigger was visible and the sheet was 375×224 at y=554. Escape, scrim click, and `취소` each closed it.
+  - `수정하기` opened `/posts/{id}/edit` with the same form (`글수정` / `수정 완료`) and exact prefill. An empty title or a 21-code-point title disabled the button.
+  - PATCH 400, 403, 404, 500, and network failure each kept the values and URL, showed an error, allowed retry, and changed nothing on the server.
+  - A same-tick double save sent exactly 1 PATCH.
+  - On success the detail showed the response immediately, and Back returned to the list, which showed the edited title from the cache (first-page refetch frozen). After reload the server title and content matched and `createdAt` was unchanged.
+- **Other users' posts:**
+  - Post 2 (Roidl_08) had no trigger, and `/posts/2/edit` showed `이 게시글을 수정할 권한이 없습니다.` with no form.
+  - `/posts/99999/edit` and `/posts/abc/edit` showed not-found.
+  - PATCH and DELETE as `apr_tester` returned 403, and the post was unchanged.
+- **Delete (own post):**
+  - `삭제하기` closed the sheet and opened a 327×264 dialog at (24, 257) with `삭제한 글은 복구할 수 없습니다.` / `정말 삭제 하시겠습니까?`, so only one overlay was open. `취소` sent 0 DELETEs.
+  - DELETE 403, 404, 500, and network failure each kept the dialog with `게시글을 삭제하지 못했습니다. 다시 시도해 주세요.` and a re-enabled `예`, stayed on the detail, and left the post readable.
+  - A same-tick double confirm sent exactly 1 DELETE and replaced the URL with `/`.
+  - With the list refetch frozen, the post was absent from the cached list. A full traversal matched the server (total 39).
+  - A direct revisit showed not-found, and the DB row remained with `is_deleted = true`.
+- **Cached-list deletes:**
+  - Deleting a middle row (post 5, row 5) removed only that row from the cached page.
+  - A second cached-page delete targeted post 11 as `booster_0`, also removing only that row.
+  - In both cases, scrolling on continued from the cached cursor, the full list equaled the server, and there was no skip or duplicate.
+  - Correction (Deletion Policy Hardening): because post 5 had already been deleted in the same run, post 11 was row 9 at that moment, not the page's cursor row. A true cursor-row delete was then verified separately (scenario C in "Deletion Consistency Evidence"), and the P6 script now picks row 10 at run time (it deleted post 12 at row 10/10 and passed).
+- **`/dev-user` → `mintcream`:**
+  - A created post had author `mintcream`, and mintcream saw the trigger while a fresh `apr_tester` load did not.
+  - `apr_tester` PATCH/DELETE returned 403.
+  - mintcream deleted it through the UI (then 404).
+- **375×778 (V-080):** list, detail, action sheet, post delete dialog, create (with 80 content lines scrolled to the end), and edit all had `scrollWidth` 375. The fixed controls were visible and did not cover content.
+- **Regression found and fixed before commit:** returning with `router.replace` after a successful create or edit stacked a duplicate history entry, so Back from the edited detail showed the same detail again. The form now remembers the in-app screen that opened it (`lib/formOrigin.ts`) and goes back to that entry; direct URL loads still replace.
+- **Regressions after reseeding:**
+  - P4 48/48 and P5A 63/63. The P5A prefetch check now expects the restored FAB prefetch to never 404.
+  - P5A revisit 12/12.
+  - Keyset traversal/tie script passed.
+  - P5B 52/52.
+- **DB baseline:** created and soft-deleted test posts leave physical rows, so the schema was reseeded after each suite. Final state: posts 42 (3 deleted), comments 2,076 (81 deleted), likes 0, `seed_history = assignment-v1`.
+
+---
+
 # Requester / Ownership
 
 ## V-010 — Default Requester
@@ -364,7 +413,11 @@ x-user-id: <known-author>
 
 - Comment ownership now follows the cookie requester in the browser. After `/dev-user` → `mintcream`, created comments are authored by `mintcream` and only mintcream's comments show `삭제`; a default `apr_tester` load does not. The post-owner menu (P6) is still unbuilt, so the combined scenario remains open.
 
-**Result:** `NOT_RUN`
+### P6 Evidence — 2026-09-29
+
+- With the post menu in place, every requester-dependent behavior is now observed in a real browser session after `/dev-user`. Across P4–P6 this covers the credentialed cookie, the requester's like state, comment ownership, and post ownership. `mintcream` sees their own post menu and `apr_tester` does not, and the backend returns 403 for `apr_tester` PATCH/DELETE on mintcream's post.
+
+**Result:** `PASS`
 
 ---
 
@@ -452,7 +505,11 @@ x-user-id: <known-author>
 - Automated tests cover null/blank fields, 20/21 code-point boundaries, and emoji surrogate pairs.
 - The frontend-disabled portion remains unimplemented, so this combined UI/backend scenario is not marked PASS.
 
-**Result:** `NOT_RUN`
+### P6 UI Evidence — 2026-09-29
+
+- UI: invalid title/content (blank, whitespace-only, over 20 code points including emoji) disables `작성 완료` / `수정 완료` and sends no request; 20 ASCII and 20 emoji code points are accepted. See "P6 Post CRUD Evidence".
+
+**Result:** `PASS`
 
 ---
 
@@ -480,7 +537,11 @@ x-user-id: <known-author>
 - PostgreSQL retained the physical row with `base_like_count = 0` and `is_deleted = false`; the next list read placed it first.
 - UI navigation and toast behavior remain for a frontend phase, so the full scenario remains open.
 
-**Result:** `NOT_RUN`
+### P6 UI Evidence — 2026-09-29
+
+- UI: the FAB opens the create screen; success returns to the list with the new post first and a one-time toast; failures keep input and create nothing; same-tick double submit sends one POST. See "P6 Post CRUD Evidence".
+
+**Result:** `PASS`
 
 ---
 
@@ -510,7 +571,11 @@ x-user-id: <known-author>
 - `author` and `createdAt` were unchanged, and PATCH uses the same validator as POST.
 - Action-menu visibility, edit-form reuse, and prefill remain frontend work, so the full scenario remains open.
 
-**Result:** `NOT_RUN`
+### P6 UI Evidence — 2026-09-29
+
+- UI: own-post trigger → sheet → edit form with exact prefill and the same validation; PATCH success updates detail and cached list, reload matches; failures keep values. See "P6 Post CRUD Evidence".
+
+**Result:** `PASS`
 
 ---
 
@@ -533,11 +598,41 @@ x-user-id: <known-author>
 - Requester `p2b_user_b` PATCHed requester `p2b_user_a`'s readable post and received HTTP 403 with the JSON error contract.
 - A direct PostgreSQL query confirmed the title was unchanged; the owner subsequently PATCHed the same row successfully.
 
+### P6 UI Evidence — 2026-09-29
+
+- The post menu is not rendered on other users' posts, `/posts/{other}/edit` shows no form, and direct PATCH/DELETE still returns 403 (checked for `apr_tester` → Roidl_08 and → mintcream).
+
 **Result:** `PASS`
 
 ---
 
 # Soft Delete
+
+## Deletion Consistency Evidence — 2026-09-29
+
+- Fix commit `4e53dbd6fb951015f595ae980da1fe845929b60b` (`frontend/lib/query/postListCache.ts` only; no backend, schema, or API change).
+- **Root cause:** `removePost()` returned early when the deleted post was not among the loaded list pages, so the cached `total` stayed one too high (for example after deleting a post reached without scrolling to it).
+- **Method:** a temporary script ran against the Compose production stack (Chromium 375×778, API, `psql`) after a reseed and passed **28/28**. The page's QueryClient was read through React fiber introspection (test-only), with the list's first-page refetch frozen so that only the cache update was observed.
+- **Browser cache scenarios:**
+  - **B. Unloaded-list delete:** first page loaded (10 rows, total 39). The owner then opened post 18, which was not loaded, through a client-side `router.push` and deleted it. Before any refetch the cached total was 39→38 on every page and equal to the server, and the loaded rows were unchanged. The detail and comment queries for post 18 were evicted (none left under `["posts","detail",18]`). Infinite scroll to the end equaled the server's 38 IDs with no duplicate or skip, and Back did not return to the deleted detail.
+  - **A. Loaded-list delete:** post 5 (row 5). Total 38→37, equal to the server. Only that row was removed from the cache. Queries were evicted, the full scroll equaled the server, and Back did not return to it.
+  - **C. Cursor-row delete:** row 10 at run time was post 12, and the first page's `nextCursor` decoded to `…|12`. Its author (`cos_holic`) deleted it. Total 37→36, equal to the server, and the first 9 rows were kept. The next page was requested with the deleted row's cursor `…|12`, and the full list equaled the server (36) with no duplicate or skip.
+- **Parent delete matrix** (a new post by `apr_tester`, with comments by `apr_tester` and `mintcream` and likes by both):
+  - Before the delete: readable with `commentCount` 2 and `likeCount` 2. DB: post `f`, comments `false,false`, 2 like rows.
+  - While readable, `mintcream` DELETE and PATCH returned 403 and the post stayed readable. The owner DELETE returned 204.
+  - DB after the delete: post `t`, both comments still `false`, 2 like rows kept.
+  - Afterwards every route returned 404 for owner and non-owner: GET post, PATCH, DELETE again, like toggle, GET comments, POST comment, and DELETE of each existing comment (including by its own author).
+  - None of those 404 calls changed the DB. A never-existing post returned 404 for GET, PATCH, DELETE, and toggle.
+- **Comment standalone (post 13 alive):**
+  - Non-owner DELETE returned 403; the comment stayed listed and `is_deleted = f`.
+  - Owner DELETE returned 204, then 404 on a repeat by the owner or a non-owner.
+  - The row was kept with `is_deleted = t` and excluded from the list, and `total` and `commentCount` returned to the base value.
+- **Concurrency smoke** (15 rounds, each firing post DELETE together with comment create, like toggle, edit, and delete of an existing comment on a fresh post):
+  - The post DELETE always returned 204, and the post was unreadable afterwards.
+  - Child operations returned only success-before-delete or 404 (comment create `201`/`404`, like `200`/`404`, edit `200`/`404`, comment delete `204`/`404`), with no 5xx or deadlock.
+- **Backend:** unchanged, since the matrix matched the policy. Existing mock tests already cover the service-level 404 paths (`rejectsCreationForDeletedOrMissingParent`, `treatsDeletedOrMissingCommentAsNotFound`, `treatsDeletedOrMissingPostAsNotFound`, `rejectsLikeToggleForDeletedOrMissingPost`). Parent visibility for comment delete lives in SQL (the readable-parent join), so it is proven by the PostgreSQL matrix rather than by mocks. `gradlew clean test` passed 49/49.
+- **Regressions after reseeding each:** P6 74/74 (with the run-time cursor row), P5B 52/52, P4 48/48, P5A 63/63, revisit 12/12. `npm run typecheck`, a clean `npm run build`, and `git diff --check` were clean.
+- **DB baseline** restored by reseeding: posts 42 (3 deleted), comments 2,076 (81 deleted), likes 0, `seed_history = assignment-v1`.
 
 ## V-040 — Soft Delete Own Post
 
@@ -565,7 +660,11 @@ x-user-id: <known-author>
 - List excluded the post; detail and comments reads returned 404. PATCH, like toggle, repeated DELETE, and comment creation also returned 404.
 - UI return-to-list behavior remains unimplemented, so this combined API/UI scenario is not marked PASS.
 
-**Result:** `NOT_RUN`
+### P6 UI Evidence — 2026-09-29
+
+- UI: sheet → confirmation → one DELETE → list without the post (cache and server), direct URL not found, DB row `is_deleted = true`; cancel and failures leave the post. See "P6 Post CRUD Evidence".
+
+**Result:** `PASS`
 
 ---
 
@@ -587,6 +686,10 @@ x-user-id: <known-author>
 
 - Requester `p2b_user_b` attempted to delete requester `p2b_user_a`'s readable post and received HTTP 403.
 - PostgreSQL still reported `is_deleted = false`; the owner could continue reading and later delete the post.
+
+### P6 UI Evidence — 2026-09-29
+
+- The post menu is not rendered on other users' posts, `/posts/{other}/edit` shows no form, and direct PATCH/DELETE still returns 403 (checked for `apr_tester` → Roidl_08 and → mintcream).
 
 **Result:** `PASS`
 
@@ -876,7 +979,11 @@ Inspect required screens at 375px viewport:
 
 - Detail with the fixed 375×86 composer at y=692 and the 327×264 delete dialog at (24, 257): no horizontal overflow, including with a long unbroken comment. Create, edit, and action-sheet screens are still missing.
 
-**Result:** `NOT_RUN`
+### P6 Evidence — 2026-09-29
+
+- All required screens now exist and were checked at `375 × 778`: list, detail, own-post action sheet, post delete dialog, create (long content scrolled to the fixed action), and edit. Each had document `scrollWidth` 375 (no horizontal scroll), with usable fixed controls that do not cover content. Earlier partial evidence covered the list (P4), the detail (P5A), and the composer and comment dialog (P5B).
+
+**Result:** `PASS`
 
 ---
 
@@ -918,6 +1025,10 @@ Implementation matches official design as closely as practical, with any intenti
 ### P5B Partial Evidence — 2026-09-29
 
 - Composer region, dialog geometry, and dialog copy follow `docs/UI_SPEC.md`. Internal spacing, colors, and the `등록` control are PNG-estimated `PRODUCT_DECISION` values (local exports `755-12175`, `755-13104`, `755-12645`), not Figma node measurements. The result remains `NOT_RUN`.
+
+### P6 Partial Evidence — 2026-09-29
+
+- Create/edit fixed action (343×56 at y=690 in the 68 + 26 region), the action sheet (375×224 at y=554), the post delete dialog (327×264 at 24, 257), and the toast (181×40 at 97.5, 657) match `docs/UI_SPEC.md`. Other values are PNG-estimated `PRODUCT_DECISION`s. No fresh Figma comparison was run, so the result remains `NOT_RUN`.
 
 **Result:** `NOT_RUN`
 

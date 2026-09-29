@@ -1,10 +1,5 @@
 import { PostDetailScreen } from "@/features/post-detail/PostDetailScreen";
-
-function parsePostId(segment: string): number | null {
-  return /^[1-9]\d*$/.test(segment) && Number.isSafeInteger(Number(segment))
-    ? Number(segment)
-    : null;
-}
+import { parsePostId } from "@/lib/postId";
 
 export default async function PostDetailPage({
   params,
