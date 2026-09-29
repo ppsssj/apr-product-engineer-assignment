@@ -87,13 +87,12 @@ public class CommentRepository {
             long postId,
             CursorPosition cursor,
             int fetchSize) {
+        // Row-value comparison is equivalent to "created_at < t OR (created_at = t AND id < i)"
+        // for these NOT NULL columns, and PostgreSQL can use it as an index bound.
         String cursorPredicate = cursor == null
                 ? ""
                 : """
-                        AND (
-                            c.created_at < :cursorCreatedAt
-                            OR (c.created_at = :cursorCreatedAt AND c.id < :cursorId)
-                        )
+                        AND (c.created_at, c.id) < (:cursorCreatedAt, :cursorId)
                         """;
 
         var statement = jdbcClient.sql("""
