@@ -1050,6 +1050,43 @@ Implementation matches official design as closely as practical, with any intenti
   their existing right-aligned/fixed rules. This is not fresh Figma MCP
   comparison evidence; V-081 remains `NOT_RUN`.
 
+### P7-B Cross-screen Runtime Regression — 2026-09-30
+
+- Chrome DevTools device metrics in one continuous browser session provided
+  `innerWidth=375`, `clientWidth=375`, `devicePixelRatio=1`, and document
+  `scrollWidth=375`. The previous `--window-size=375,778` headless launch
+  instead reported `innerWidth=500`; this is a tooling minimum-window
+  limitation, not a product layout defect. Product CSS was not changed for it.
+- List: rows remained 118px at y=56/174/292; the first row preserved the
+  SVG-backed author/title/preview/metadata order, x=16 18px avatar, right
+  aligned time ending at x=359, 343px metadata region, filled neutral glyphs,
+  pink liked heart only, 50px FAB at (310,679), sentinel, and no overflow.
+  Existing long title/preview rows clipped to one line without row drift. The
+  seeded data has no long-author fixture; its existing truncation rule was
+  inspected without inventing test data.
+- Detail: own liked/unliked state, nav, byline, post body, fixed composer
+  (0,692,375x86), action sheet (0,554,375x224), and post/comment dialogs
+  (24,257,327x264) rendered without overflow. Escape and scrim close worked.
+  Other-user posts had no owner menu; 1,411/1/0-comment states rendered 2/1/0
+  initial comments with More only for the many-comment state.
+- Create/edit: empty create kept its bottom action disabled; a valid create
+  showed a one-shot 181x40 toast at (97,657), clear of the 50px FAB, which
+  expired. The test post was opened, prefilled in edit, saved back to detail,
+  and then deleted through its UI dialog; it was absent from the list.
+- Functional smoke: post 43 like changed true/1 -> false/0, showed neutral in
+  the list, then restored true/1; list sentinel loaded 10 -> 20 unique rows;
+  comment create/delete changed 0 -> 1 -> 0 through the UI; `/dev-user`
+  switched to `Roidl_08` (post 2 menu shown) and back to `apr_tester` (same
+  menu hidden). Compose services were healthy and `/health` returned
+  `{"status":"ok","db":"up"}`. The first attempted comment automation
+  addressed a nonexistent textarea and made no request; the corrected input
+  run above passed.
+- Finding classification: all inspected items `NO_CHANGE`, except the raw
+  headless window-size behavior, which is `TOOLING_LIMITATION`. No clear
+  `FUNCTIONAL_BUG`, `DESIGN_MISMATCH`, or `P7_A_REGRESSION` justified a product
+  code change. This remains local PNG/SVG/runtime evidence only; V-081 stays
+  `NOT_RUN`.
+
 **Result:** `NOT_RUN`
 
 ---

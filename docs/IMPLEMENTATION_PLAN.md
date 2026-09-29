@@ -5,8 +5,8 @@ This document is the operational state for the assignment. Keep it concise and c
 ## Current State
 
 - Current Phase: `P7 — Visual Integration & UX Polish`
-- Status: P6 `COMPLETE`; P7 `IN_PROGRESS`; P7-A list state polish is implemented and verified locally, pending code review.
-- Last Verified Commit: `4e53dbd6fb951015f595ae980da1fe845929b60b` (P6 + Deletion Policy Hardening: deletion consistency 28/28, P6 74/74, P5B 52/52, P4 48/48, P5A 63/63, revisit 12/12, backend 49/49; P6 implementation `1f8a21f`).
+- Status: P6 `COMPLETE`; P7 `COMPLETE`. P7-A was merged by PR #14 and P7-B found no presentation or functional regression requiring product-code changes.
+- Last Verified Commit: `3f54f85ab775bb64f08dd6c3bbebc011b89b185b` (P7-A merge; P7-B runtime evidence is recorded in `docs/VERIFICATION.md`).
 - Last Updated: `2026-09-30`
 - Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
 
@@ -18,15 +18,14 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review P7-A list state polish on `feat/p7-visual-polish`.
-2. Keep P7-B as a separate manual-regression/polish scope.
-3. Do not expand P7-A into backend/API work.
+1. Review P7-B visual regression documentation on `feat/p7b-visual-regression`.
+2. P8 acceptance remains a separate phase and has not started.
 
 ### P7 Backlog (recorded, not implemented)
 
 - P7-A completed: SVG-backed list hierarchy and neutral icons; `post.isLiked` now uses the existing `#FF8DA1` accent on the heart only as `UX_CONSISTENCY`.
 - Requester-commented list accent remains deferred because the list API has no requester-specific comment-participation state.
-- P7-B: manual regression and remaining cross-screen micro-polish; fresh design comparison remains V-081 `NOT_RUN`.
+- P7-B completed: 375px browser inspection found no clear HIGH/MEDIUM mismatch or P7-A regression. V-081 remains `NOT_RUN`; local PNG/SVG evidence is not a fresh Figma comparison.
 
 ### Performance Audit Gate Status
 
@@ -457,9 +456,11 @@ Align the implemented flows with the official design and resolve UX edge cases w
 
 ### Status
 
-`IN_PROGRESS` — P7-A corrected the list hierarchy from local SVG evidence,
+`COMPLETE` — P7-A corrected the list hierarchy from local SVG evidence,
 aligned neutral list glyphs to `#DADEE3`, and added a `post.isLiked` heart-only
-accent as `UX_CONSISTENCY`. P7-B remains separate and has not started.
+accent as `UX_CONSISTENCY`. P7-B then inspected the full required screen matrix
+and functional smoke at a real 375 CSS-px emulation without finding a
+presentation-only fix justified by concrete evidence. P8 has not started.
 
 ---
 
