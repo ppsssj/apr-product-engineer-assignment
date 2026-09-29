@@ -198,6 +198,20 @@ Open frontend at `http://localhost:13000`.
 
 ---
 
+## P4 Post List Evidence — 2026-09-29
+
+- `npm run typecheck` exited 0. A clean `npm run build` (after removing a stale local `.next`) succeeded with `/` now a client list screen.
+- `docker compose up -d --build frontend` rebuilt the frontend against the running healthy `db`/`backend`; frontend `/` returned HTTP 200.
+- A temporary Playwright (Chromium) script ran at a `375 × 778` viewport against that runtime and passed 48/48 checks; the script and its screenshots stayed in the session scratchpad and are not committed.
+- Pagination: before scrolling exactly one request, `GET /api/posts?limit=10` (no cursor). Scrolling produced exactly four requests, all `limit=10`, each later cursor equal to the previous `nextCursor`; page sizes `10/10/10/9`, `total: 39` on every page, final `nextCursor: null`, and no further request after additional scrolling.
+- Rendering: 39 rows, no duplicate post ID, DOM order identical to the API newest-first traversal; every row shows a relative time such as `29일 전` / `1개월 전`.
+- Avatars: every row uses one of the three provided assets, one author maps to one avatar across rows, and the mapping is identical after reload.
+- Navigation: clicking a row opened `/posts/1`; the write FAB opened `/posts/new`. Both pages are 404 until P5/P6, and the 60 observed 404s were only production `Link` prefetches/navigation to `/posts/{id}` and `/posts/new`.
+- States (forced with Playwright route interception): initial loading (`게시글을 불러오는 중입니다.`), empty (`아직 작성된 게시글이 없습니다.`), initial error after TanStack's default retries (4 attempts) with a working `다시 시도`, next-page loading (`게시글을 더 불러오는 중입니다.`), and next-page error that keeps the 10 loaded rows, does not auto-retry on further scrolling, and recovers via its own `다시 시도`.
+- Regression found and fixed during this run: TanStack Query v5 sets `status: "error"` when only `fetchNextPage` fails, so the first build also rendered the initial-error block (two `다시 시도` buttons). The initial-error block now requires `data === undefined`; the rerun confirmed a single retry control.
+
+---
+
 # Requester / Ownership
 
 ## V-010 — Default Requester
@@ -270,6 +284,11 @@ x-user-id: <known-author>
 - The shared browser client `frontend/lib/api/client.ts` applies `credentials: "include"` to every request; this was checked by direct invocation, not by a browser session.
 - No product screen performs a browser request yet. The full `/dev-user` → product request → requester reflection flow is deferred to P4/P5 or P8.
 
+### P4 Evidence — 2026-09-29
+
+- A temporary like on the newest post was created for `mintcream` through the API. In Chromium, selecting `mintcream` on the unchanged `/dev-user` page redirected to `/`; the list request carried `Cookie: x-user-id=mintcream` and returned that post with `isLiked: true`. The like was toggled back afterwards (`isLiked: false`, `likeCount` restored to `1796`).
+- This verifies the credentialed browser request and requester-specific like evaluation. Ownership reflected in the browser (own-post menu, own-comment delete) is not yet rendered and remains for P5/P6.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -298,6 +317,10 @@ x-user-id: <known-author>
 
 - Limit-7 traversal covered 39 readable posts in 6 pages, exactly matching PostgreSQL order and IDs with stable `total: 39`, bounded pages, no duplicate/skip, and final `nextCursor: null`.
 - This passes the P2A backend pagination scenario. Frontend infinite scrolling (`LIST-004`, UI portion of `LIST-005`) remains `TODO`.
+
+### P4 Frontend Evidence — 2026-09-29
+
+- The browser list loaded 39 posts as 10/10/10/9 through `IntersectionObserver`-triggered `fetchNextPage`, with no duplicate, no skip, API-identical order, and no request after the last page. See "P4 Post List Evidence".
 
 **Result:** `PASS`
 
@@ -739,6 +762,11 @@ Inspect required screens at 375px viewport:
 - Required functionality fits and remains usable at 375px.
 - No desktop-specific layout is required.
 
+### P4 Partial Evidence — 2026-09-29
+
+- Post list only, at `375 × 778`: document `scrollWidth` 375 (no horizontal scroll), 48px header, list at y=56, 118px rows with a 343×93 content region at x=16, and the 50×50 FAB at x=310, y=679 not blocking the last row (120px bottom padding).
+- Detail, create, edit, and action-sheet screens do not exist yet, so this scenario is not complete.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -766,6 +794,13 @@ Official design source is available at Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page
 ### Expected
 
 Implementation matches official design as closely as practical, with any intentional deviations documented.
+
+### P4 Partial Evidence — 2026-09-29
+
+- Limitation: Official Figma node had been previously audited into docs/UI_SPEC.md, but a fresh MCP comparison was unavailable because the Starter-plan tool-call limit was exhausted.
+- Measured in Chromium against the `docs/UI_SPEC.md` `DESIGN_DEFINED` values for node `755:8831`: frame regions (header 48, list y=56, row 118, content 343×93 at x=16/y=+12, divider 343×1), avatar 18×18 circular, FAB 50×50 at x=310/y=679, app title Bold 20/28 `#292828`, post title Medium 16/24 `#292828`, preview Regular 14/18 `#979EA9`, metadata Regular 12/16 with author `#5E5E5E` and counts/time `#979EA9`, Pretendard loaded.
+- This proves conformance to the recorded spec values, not to the Figma frame. Title/preview clamps, metadata gaps, icon paths/sizes, FAB red/shadow, and inner spacing are `PRODUCT_DECISION` values recorded in `docs/UI_SPEC.md` and were not compared with Figma. The divider uses the existing `--color-border-light` token as an implementation choice, not a Figma-exact mapping.
+- Only the list screen exists. The result remains `NOT_RUN`.
 
 **Result:** `NOT_RUN`
 

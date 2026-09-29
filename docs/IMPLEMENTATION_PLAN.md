@@ -4,20 +4,21 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P3 — Frontend Foundation`
-- Status: `COMPLETE`
-- Last Verified Commit: `9029f143990d3ed413fc854cfe103f6c59638c89` (P3 implementation and acceptance).
+- Current Phase: `P4 — Post List`
+- Status: `COMPLETE` (PR open for review, not merged)
+- Last Verified Commit: see the P4 PR head commit (P4 implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- No blocker remains for P3 review.
+- No blocker remains for P4 review.
+- A fresh Figma MCP comparison is unavailable (Starter-plan tool-call limit exhausted); P4 used the `DESIGN_DEFINED` values already in `docs/UI_SPEC.md`. This does not block P4 but keeps V-081 `NOT_RUN`.
 
 ### Next Action
 
-- Merge the reviewed P3 PR.
-- After merge, P4 — Post List is the next implementation phase.
-- Do not start P4 until explicitly requested.
+- Review and merge the P4 PR when approved.
+- After merge, P5 — Post Detail, Comments & Likes is the next implementation phase.
+- Do not start P5 until explicitly requested.
 
 ### P0 Completion Update
 
@@ -39,7 +40,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
 - `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
 - Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
-- P1, P2, and P3 are complete. P4 remains not started.
+- P1, P2, P3, and P4 are complete. P5 remains not started.
 
 ### Figma Design Audit Status
 
@@ -67,6 +68,12 @@ This document is the operational state for the assignment. Keep it concise and c
 - Added TanStack Query v5 provider boundary, shared credentialed API client, transport types, nine endpoint functions, query-key factory, route contract, relative-time utility, and `DESIGN_DEFINED` CSS tokens.
 - No product screen, feature hook, or P4 code was added; `app/page.tsx` remains the starter placeholder and `/dev-user` is unchanged.
 - Verified with `npm ci`, `tsc --noEmit`, `next build`, healthy Compose runtime, and P2 read smoke. The browser cookie flow (`START-003`, `V-012`) remains for P4/P5 or P8 acceptance.
+
+### P4 Status
+
+- Status: `COMPLETE`
+- `/` renders the post list through `useInfiniteQuery` (page size 10, cursor as `pageParam`) and an `IntersectionObserver` sentinel, with relative time, deterministic avatars, detail links, the write FAB, and loading/empty/error/next-page loading/next-page error states in CSS Modules.
+- Verified at 375×778 in Chromium (48/48 checks): 10/10/10/9 pagination over all 39 readable posts, no duplicate, API order, no request after the end, `/dev-user` cookie flow, and `UI_SPEC.md` geometry/typography. Detail and create routes are linked but built in P5/P6. V-080/V-081 remain `NOT_RUN`.
 
 ---
 
@@ -305,7 +312,7 @@ Implement the 375px post-list experience with newest-first infinite scrolling.
 
 ### Status
 
-`NOT_STARTED`
+`COMPLETE`
 
 ---
 
