@@ -5,7 +5,7 @@ This document is the operational state for the assignment. Keep it concise and c
 ## Current State
 
 - Current Phase: `Figma Design Audit`
-- Status: `COMPLETE_AWAITING_REVIEW`
+- Status: `COMPLETE`
 - Last Verified Commit: `8215b3e` (P1 merge); official Figma Page 1 audit completed on `2026-09-29`.
 - Last Updated: `2026-09-29`
 
@@ -16,8 +16,9 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Review the Figma design-audit PR only.
-- Do not start P2 until the audit PR has been reviewed and the user explicitly requests P2.
+- Merge the reviewed Figma design-audit PR.
+- After merge, P2 — Backend Domain & API is the next implementation phase.
+- Do not start P2 until explicitly requested.
 
 ### P0 Completion Update
 
@@ -43,7 +44,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Figma Design Audit Status
 
-- Status: `COMPLETE_AWAITING_REVIEW`
+- Status: `COMPLETE`
 - The official Figma source is `AVAILABLE`; the repository-local `.fig` file remains absent but no longer blocks design inspection.
 - No backend, frontend, schema, dependency, Compose, seed, or assignment-source change is part of this audit.
 - P2-impact review found no new endpoint or response-field requirement.
