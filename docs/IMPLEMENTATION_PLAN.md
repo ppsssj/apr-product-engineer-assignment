@@ -4,20 +4,20 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P2 — Backend Domain & API`
+- Current Phase: `P3 — Frontend Foundation`
 - Status: `COMPLETE`
-- Last Verified Commit: `8b8d1006dce64074991b6af56c884a67cab1ae22` (P2B implementation and acceptance).
+- Last Verified Commit: `9029f143990d3ed413fc854cfe103f6c59638c89` (P3 implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- No blocker remains for P2B review.
+- No blocker remains for P3 review.
 
 ### Next Action
 
-- Merge the reviewed P2B PR.
-- After merge, P3 — Frontend Foundation is the next implementation phase.
-- Do not start P3 until explicitly requested.
+- Merge the reviewed P3 PR.
+- After merge, P4 — Post List is the next implementation phase.
+- Do not start P4 until explicitly requested.
 
 ### P0 Completion Update
 
@@ -39,7 +39,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
 - `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
 - Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
-- P1, P2A, and P2B are complete; P2 is complete. P3 remains not started.
+- P1, P2, and P3 are complete. P4 remains not started.
 
 ### Figma Design Audit Status
 
@@ -60,6 +60,13 @@ This document is the operational state for the assignment. Keep it concise and c
 - Status: `COMPLETE`
 - Implemented post create/update/soft-delete, requester-specific like toggle, comment create/soft-delete, explicit Unicode-aware validation, and consistent JSON error handling.
 - Real PostgreSQL acceptance covered ownership isolation, derived counts, retained soft-deleted rows, deleted-resource rejection, P2A read regression, and clean seed-baseline restoration.
+
+### P3 Status
+
+- Status: `COMPLETE`
+- Added TanStack Query v5 provider boundary, shared credentialed API client, transport types, nine endpoint functions, query-key factory, route contract, relative-time utility, and `DESIGN_DEFINED` CSS tokens.
+- No product screen, feature hook, or P4 code was added; `app/page.tsx` remains the starter placeholder and `/dev-user` is unchanged.
+- Verified with `npm ci`, `tsc --noEmit`, `next build`, healthy Compose runtime, and P2 read smoke. The browser cookie flow (`START-003`, `V-012`) remains for P4/P5 or P8 acceptance.
 
 ---
 
@@ -263,7 +270,7 @@ Establish a simple frontend structure for API communication, server state, routi
 
 ### Status
 
-`NOT_STARTED`
+`COMPLETE`
 
 ---
 
