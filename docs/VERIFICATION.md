@@ -88,7 +88,9 @@ Open frontend at `http://localhost:13000`.
 
 ## V-003 — Seed Idempotency
 
-**Requirements:** `SEED-001` through `SEED-012`
+**Requirements fully verified by this scenario:** `SEED-001`, `SEED-002`, `SEED-005`, `SEED-006`, `SEED-007`, `SEED-011`, `SEED-012`
+
+**Persistence evidence only:** `SEED-003`, `SEED-004`, `SEED-008`, `SEED-009`, `SEED-010`
 
 ### Steps
 
@@ -107,8 +109,8 @@ Open frontend at `http://localhost:13000`.
 - IDs match seed IDs.
 - Already-deleted seed IDs remain persisted as deleted.
 - Second startup does not duplicate seed rows.
-- Readable totals remain stable.
-- Every requester begins with `isLiked: false` for seeded posts.
+- Database counts of non-deleted comments remain stable.
+- The initial `post_likes` persistence state is empty.
 - Every seeded post begins with its supplied `likeCount`.
 - Database deleted-ID sets exactly match `deletedPostIds` and `deletedCommentIds`.
 - Per-post readable comment counts exclude every ID in `deletedCommentIds`.
@@ -126,6 +128,13 @@ Open frontend at `http://localhost:13000`.
   - All 42 `seed.posts[].likeCount` values equaled their corresponding `posts.base_like_count` values (42 of 42 rows).
   - For all 42 posts, the count of seed comments excluding `deletedCommentIds` equaled the database count where `comments.is_deleted = FALSE` (42 of 42 posts).
 - `backend/gradlew.bat test --no-daemon` completed with `BUILD SUCCESSFUL`.
+
+### Acceptance Boundary
+
+- This `PASS` records the completed P1 persistence/seed verification; it is not final API acceptance for every composite `SEED-*` requirement.
+- `SEED-003` remains `IMPLEMENTED` until V-021 verifies that deleted seed posts are absent from normal post list/detail reads after P2.
+- `SEED-004`, `SEED-008`, and `SEED-009` remain `IMPLEMENTED` until V-065 verifies comment-read exclusion and API `commentCount` behavior after P2.
+- `SEED-010` remains `IMPLEMENTED` until V-050 verifies requester-specific API `isLiked: false` before the first toggle after P2.
 
 **Result:** `PASS`
 
@@ -233,7 +242,7 @@ x-user-id: <known-author>
 
 ## V-021 — Deleted Posts Excluded
 
-**Requirements:** `DEL-003`, `DEL-004`, `API-035`
+**Requirements:** `SEED-003`, `DEL-003`, `DEL-004`, `API-035`
 
 ### Steps
 
@@ -386,11 +395,11 @@ x-user-id: <known-author>
 
 ## V-050 — Requester-Specific Like Toggle
 
-**Requirements:** `DETAIL-001`, `DETAIL-002`, `DETAIL-003`, `API-006`, `API-027`, `API-028`, `API-030`
+**Requirements:** `SEED-010`, `DETAIL-001`, `DETAIL-002`, `DETAIL-003`, `API-006`, `API-027`, `API-028`, `API-030`
 
 ### Steps
 
-1. Fetch a post as requester A and record `isLiked`, `likeCount`.
+1. Before any like toggle, fetch a seeded post as requester A and record `isLiked`, `likeCount`.
 2. Toggle like once.
 3. Fetch again as requester A.
 4. Fetch same post as requester B.
@@ -398,6 +407,7 @@ x-user-id: <known-author>
 
 ### Expected
 
+- Before the first toggle, requester A receives `isLiked: false`.
 - First toggle flips requester A's `isLiked` and adjusts `likeCount` by one.
 - Requester B's `isLiked` is independently evaluated.
 - Second toggle for requester A reverses the state/count change.
@@ -514,7 +524,7 @@ Test posts with:
 
 ## V-065 — Seed-Deleted Comments Do Not Count
 
-**Requirements:** `SEED-003`, `SEED-004`, `SEED-008`, `SEED-009`, `DEL-006`
+**Requirements:** `SEED-004`, `SEED-008`, `SEED-009`, `DEL-006`
 
 ### Steps
 
