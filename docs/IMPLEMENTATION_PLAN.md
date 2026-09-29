@@ -5,8 +5,8 @@ This document is the operational state for the assignment. Keep it concise and c
 ## Current State
 
 - Current Phase: `P4 — Post List`
-- Status: `COMPLETE` (PR open for review, not merged)
-- Last Verified Commit: see the P4 PR head commit (P4 implementation and acceptance).
+- Status: `COMPLETE`
+- Last Verified Commit: `471952cab9d82c6ba4aeaa859db44adb56bc6be6` (P4 implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -16,7 +16,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Review and merge the P4 PR when approved.
+- Merge the reviewed P4 PR.
 - After merge, P5 — Post Detail, Comments & Likes is the next implementation phase.
 - Do not start P5 until explicitly requested.
 

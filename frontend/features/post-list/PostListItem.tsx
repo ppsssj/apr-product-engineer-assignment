@@ -16,7 +16,12 @@ export function PostListItem({ post, now }: Props) {
 
   return (
     <li className={styles.row}>
-      <Link href={routes.postDetail(post.id)} className={styles.link}>
+      <Link
+        href={routes.postDetail(post.id)}
+        className={styles.link}
+        // Detail route arrives in P5; skip prefetching a 404 until then.
+        prefetch={false}
+      >
         <div className={styles.text}>
           <h2 className={styles.title}>{post.title}</h2>
           <p className={styles.preview}>{post.content}</p>

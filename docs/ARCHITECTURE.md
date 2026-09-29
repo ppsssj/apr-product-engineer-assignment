@@ -192,7 +192,7 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 - **Next-page error:** TanStack Query v5 also sets `status: "error"` when only `fetchNextPage` fails. The screen therefore shows the full-screen error only while `data === undefined` and reports next-page failures below the loaded rows.
 - **Relative time (ADR-011):** list data is fetched only in the browser, so the server render contains no timestamp and `Date.now()` is read at client render time; no hydration mismatch arises.
 - **Avatar:** `frontend/lib/avatar.ts` `avatarFor()` maps `FNV-1a(author) % 3` to the three provided assets.
-- **Known side effect:** production `next/link` prefetches `/posts/{id}` and `/posts/new`, which return 404 until P5/P6 add those routes.
+- **Prefetch:** the detail row and write FAB `Link`s set `prefetch={false}` because `/posts/{id}` and `/posts/new` do not exist until P5/P6; production prefetch otherwise requested those 404 routes in the background. Remove it when the routes land.
 
 ---
 
