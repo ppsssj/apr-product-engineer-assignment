@@ -4,20 +4,21 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P1 — Database & Seed Foundation`
+- Current Phase: `Figma Design Audit`
 - Status: `COMPLETE`
-- Last Verified Commit: `47bb4a2` (P1 implementation); runtime and supplemental seed-data verification completed on `2026-09-29`.
+- Last Verified Commit: `8215b3e` (P1 merge); official Figma Page 1 audit completed on `2026-09-29`.
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- Official design asset expected at `design/메디큐브톡.fig` was not present in the reviewed package.
-- Exact visual-token extraction is blocked until the official design asset or equivalent source is available.
+- No design-source availability blocker remains. The official Figma file is accessible and audited.
+- Loading, error, pending, and animation treatments not represented in the static design remain later product decisions, not blockers.
 
 ### Next Action
 
-- Review PR #3 only.
-- Do not start P2 and do not merge PR #3 without explicit approval.
+- Merge the reviewed Figma design-audit PR.
+- After merge, P2 — Backend Domain & API is the next implementation phase.
+- Do not start P2 until explicitly requested.
 
 ### P0 Completion Update
 
@@ -35,10 +36,18 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### UI Specification Status
 
-- Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
-- `docs/UI_SPEC.md` defines the required screens, functional flows, states, ownership behavior, validation, API dependencies, and requirement traceability without inventing visual values.
-- Exact visual fidelity remains blocked because the official Figma file and reference images are `MISSING` from the empty `design/` directory.
-- P1 is complete. The visual-fidelity blocker remains limited to later visual work.
+- Status: `COMPLETE_FUNCTIONAL`, `DESIGN_AUDITED`
+- Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
+- `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
+- Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
+- P1 remains complete; P2 remains not started.
+
+### Figma Design Audit Status
+
+- Status: `COMPLETE`
+- The official Figma source is `AVAILABLE`; the repository-local `.fig` file remains absent but no longer blocks design inspection.
+- No backend, frontend, schema, dependency, Compose, seed, or assignment-source change is part of this audit.
+- P2-impact review found no new endpoint or response-field requirement.
 
 ---
 
@@ -384,7 +393,7 @@ Align the implemented flows with the official design and resolve UX edge cases w
 
 ### Status
 
-`BLOCKED_BY_DESIGN_SOURCE`
+`NOT_STARTED`
 
 ---
 

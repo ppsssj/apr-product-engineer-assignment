@@ -95,13 +95,13 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | UI-001 | Product is implemented as mobile web. | §4 | TODO |
 | UI-002 | Primary target viewport is 375px. | §4 | TODO |
 | UI-003 | Desktop-specific adaptation is not required. | §4 | TODO |
-| UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | BLOCKED |
+| UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | TODO |
 | UI-005 | Undefined design/flow details may be completed reasonably. | §4 | TODO |
 | UI-006 | Avatar uses one of the three provided avatar assets. | §4 | TODO |
 | UI-007 | Avatar selection policy may be implementation-defined. | §4 | TODO |
 | UI-008 | Any intentional UI/UX improvement is documented in README with rationale. | §4 | TODO |
 
-> `UI-004` is currently blocked because the expected `design/메디큐브톡.fig` asset was not present in the reviewed package. Change this status if the official asset is later provided.
+> The official Figma source is now available and audited in `docs/UI_SPEC.md`. `UI-004` remains `TODO` because acquiring/auditing the design is not the same as implementing or acceptance-verifying visual fidelity.
 
 ---
 

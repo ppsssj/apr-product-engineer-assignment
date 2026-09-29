@@ -52,7 +52,7 @@ This section supersedes the earlier “not yet repository-verified” boundary b
 - `docker-compose.yml` defines `db`, `backend`, and `frontend`. DB is `postgres:16-alpine`, uses named volume `dbdata`, and maps `${DB_PORT:-15432}`. Backend waits for DB health, mounts `./seed:/seed:ro`, uses `APP_SEED_PATH=/seed/seed.json`, maps `${BACKEND_PORT:-8080}`, and has a `/health` healthcheck. Frontend waits for backend health, maps `${FRONTEND_PORT:-3000}`, receives build-time `NEXT_PUBLIC_API_BASE_URL`, and uses container-only `API_BASE_URL=http://backend:8080/api`.
 - `seed/seed.json` is valid JSON with top-level keys `posts`, `comments`, `deletedPostIds`, and `deletedCommentIds`. It contains 42 unique post IDs (1–42), 2,076 unique comment IDs (1–2,076), 3 deleted-post IDs, and 81 deleted-comment IDs. Every deleted ID refers to a corresponding seed record.
 - Post fields are `id`, `title`, `content`, `likeCount`, `author`, and `createdAt`; comment fields are `id`, `postId`, `content`, `author`, and `createdAt`. All observed fields are non-null. IDs and `likeCount` are numbers; remaining fields are strings. `commentCount` is absent. Timestamps are ISO UTC strings. Every comment references an existing post; posts 10 and 23 have no comments.
-- `design/` exists but contains no files. The expected Figma asset and any screenshot/reference image are therefore `MISSING`.
+- `design/` exists but contains no files. The expected repository-local Figma asset and any screenshot/reference image were therefore `MISSING` during P0. A later official Figma URL became available and is recorded in the Figma Design Audit Update below.
 
 ## Starter Contracts Confirmed
 
@@ -131,8 +131,19 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 ## Follow-up Risks
 
 - The current `/health` endpoint confirms DB reachability, not seed completion. P1 must verify that Compose startup does not expose an unseeded application to the frontend.
-- The official design source is still `MISSING`; this blocks visual token extraction and any design-fidelity sign-off, but not the architecture choices above.
+- The official Figma source is now `AVAILABLE` and audited in `docs/UI_SPEC.md`; visual implementation and fidelity sign-off remain future work, not architecture blockers.
 - Flyway/TanStack Query/any validation dependency are approved architecture choices, not changes made by this review. Their exact resolved versions must be taken from the applicable ecosystem BOM/package metadata during implementation.
+
+---
+
+# Figma Design Audit Update — 2026-09-29
+
+- Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`).
+- Twelve 375×778 top-level frames were audited for list, toast, own/other detail, liked/unliked, 0/1/many comments, own-post actions, post/comment delete confirmation, and disabled/enabled create-form states.
+- `ASSIGNMENT.md` remains authoritative. Design-only comment editing, replies, reports, per-comment likes, badges, and popular-content sections do not expand product or API scope.
+- The audit introduces no new P2 endpoint or response field. Existing ownership, `isLiked`/`likeCount`, `commentCount`, comments `total`, pagination, and delete contracts cover the assignment-defined behavior shown by the design.
+- Loading/error/pending visuals and a distinct edit mockup are not present; those remain product decisions while edit-form reuse remains assignment-defined.
+- Detailed frame mapping, exact observed values, and evidence taxonomy are recorded in `docs/UI_SPEC.md`.
 
 ---
 
@@ -811,7 +822,7 @@ Principles:
 - one shared API client owns base URL, JSON handling, and `credentials: "include"`;
 - TanStack Query owns remote state;
 - local component state owns ephemeral presentation state;
-- exact component breakdown waits for the official design inspection.
+- exact component breakdown is informed by the audited screen/state inventory in `docs/UI_SPEC.md` and will be finalized during frontend implementation.
 
 ---
 
@@ -825,10 +836,10 @@ The following may not be finalized from documentation alone:
 | exact seed startup hook | must align with starter lifecycle/healthcheck | actual backend + compose |
 | exact Flyway dependencies | depends on current Gradle file and dependency management | actual build file |
 | final styling choice | should not fight an already-installed starter system | actual `package.json` / styles |
-| exact frontend route/component tree | must reflect official visual/navigation design | official Figma / equivalent |
+| exact frontend route/component tree | design evidence is available; final decomposition belongs to P3 implementation | audited `docs/UI_SPEC.md` plus implemented route/component code |
 | automated DB integration-test mechanism | should fit existing test/build environment | actual Gradle/CI setup |
 
-These are not permission for an agent to guess. Resolve them during P0 or when the missing official design is supplied.
+These are not permission for an agent to guess. Resolve them in the applicable implementation phase using the audited design and repository evidence.
 
 ---
 
