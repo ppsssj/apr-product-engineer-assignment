@@ -6,7 +6,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 - Current Phase: `P3 — Frontend Foundation`
 - Status: `COMPLETE`
-- Last Verified Baseline: `c043f616714a8b02c2d1fc3223ce25aa11cd88f5` (main after P2B merge); P3 acceptance targets the `feat/p3-frontend-foundation` implementation.
+- Last Verified Commit: `9029f143990d3ed413fc854cfe103f6c59638c89` (P3 implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -15,8 +15,9 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Review P3 PR only.
-- Do not start P4 until the P3 PR is reviewed and merged.
+- Merge the reviewed P3 PR.
+- After merge, P4 — Post List is the next implementation phase.
+- Do not start P4 until explicitly requested.
 
 ### P0 Completion Update
 
