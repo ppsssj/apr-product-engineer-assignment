@@ -4,9 +4,9 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `UI Specification`
-- Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
-- Last Verified Commit: `ef5f825`
+- Current Phase: `P1 — Database & Seed Foundation`
+- Status: `COMPLETE`
+- Last Verified Commit: `47bb4a2` (P1 implementation); runtime and supplemental seed-data verification completed on `2026-09-29`.
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -16,8 +16,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- P1 — Database & Seed Foundation remains `NOT_STARTED`.
-- The missing design source blocks visual-fidelity work only; it does not block P1.
+- Review PR #3 only.
+- Do not start P2 and do not merge PR #3 without explicit approval.
 
 ### P0 Completion Update
 
@@ -38,7 +38,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
 - `docs/UI_SPEC.md` defines the required screens, functional flows, states, ownership behavior, validation, API dependencies, and requirement traceability without inventing visual values.
 - Exact visual fidelity remains blocked because the official Figma file and reference images are `MISSING` from the empty `design/` directory.
-- Next Action: P1 — Database & Seed Foundation remains `NOT_STARTED`; do not start it in this documentation task.
+- P1 is complete. The visual-fidelity blocker remains limited to later visual work.
 
 ---
 
@@ -146,7 +146,6 @@ Create a durable persistence model and idempotent seed initialization.
 
 ### Tasks
 
-- Finalize persistence/ORM decision.
 - Finalize DB schema.
 - Implement post persistence.
 - Implement comment persistence.
@@ -168,7 +167,7 @@ Create a durable persistence model and idempotent seed initialization.
 
 ### Status
 
-`NOT_STARTED`
+`COMPLETE`
 
 ---
 
