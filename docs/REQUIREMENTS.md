@@ -51,9 +51,11 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 |---|---|---|---|
 | START-001 | `frontend/app/dev-user/` remains unchanged. | §3 | TODO |
 | START-002 | Existing CORS behavior remains compatible with credentialed browser requests. | §3 | TODO |
-| START-003 | Frontend browser requests that rely on the cookie send credentials. | §3 | IMPLEMENTED |
+| START-003 | Frontend browser requests that rely on the cookie send credentials. | §3 | VERIFIED |
 
 > P3: `ENV-003`/`ENV-004` are verified by strict `tsc --noEmit` and `next build` over the `app/` router with Next.js 15.4.6. `START-003` is `IMPLEMENTED` because the shared client in `frontend/lib/api/client.ts` always sends `credentials: "include"`; it becomes `VERIFIED` only after a real browser `/dev-user` → product request flow in P4/P5 or P8. `START-001`, `START-002`, and `USER-004` are unchanged by P3 and remain for final acceptance.
+
+> P4: `START-003` is `VERIFIED` by a real Chromium session that selected `mintcream` on the unchanged `/dev-user` page and was redirected to `/`; the list request `GET /api/posts?limit=10` carried `Cookie: x-user-id=mintcream`, and the response reported that user's temporary like as `isLiked: true` (V-012 P4 evidence).
 
 ---
 
@@ -99,11 +101,13 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | UI-003 | Desktop-specific adaptation is not required. | §4 | TODO |
 | UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | TODO |
 | UI-005 | Undefined design/flow details may be completed reasonably. | §4 | TODO |
-| UI-006 | Avatar uses one of the three provided avatar assets. | §4 | TODO |
-| UI-007 | Avatar selection policy may be implementation-defined. | §4 | TODO |
+| UI-006 | Avatar uses one of the three provided avatar assets. | §4 | VERIFIED |
+| UI-007 | Avatar selection policy may be implementation-defined. | §4 | VERIFIED |
 | UI-008 | Any intentional UI/UX improvement is documented in README with rationale. | §4 | TODO |
 
 > The official Figma source is now available and audited in `docs/UI_SPEC.md`. `UI-004` remains `TODO` because acquiring/auditing the design is not the same as implementing or acceptance-verifying visual fidelity.
+>
+> P4: `UI-006`/`UI-007` are `VERIFIED` — every list avatar is one of `/avatar-1.png`–`/avatar-3.png`, chosen by `frontend/lib/avatar.ts` `avatarFor()` (`stableHash(author) % 3`), identical for one author across rows and reloads. `UI-001`, `UI-002`, and `UI-004` stay `TODO`: only the list screen exists, V-080 needs every required screen, and V-081 was not run (no fresh Figma MCP comparison; see `docs/VERIFICATION.md`).
 
 ---
 
@@ -125,12 +129,14 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| LIST-001 | Post timestamps are shown as relative time. | §4 | TODO |
-| LIST-002 | Relative time is calculated against current time. | §4 | TODO |
+| LIST-001 | Post timestamps are shown as relative time. | §4 | VERIFIED |
+| LIST-002 | Relative time is calculated against current time. | §4 | VERIFIED |
 | LIST-003 | Posts are ordered newest first. | §4 | VERIFIED |
-| LIST-004 | Post list uses infinite scroll. | §4 | TODO |
-| LIST-005 | Reaching the end loads the next page rather than all posts at once. | §4, §5 | TODO |
-| LIST-006 | Floating/right-bottom write action navigates to the post creation screen. | §4 | TODO |
+| LIST-004 | Post list uses infinite scroll. | §4 | VERIFIED |
+| LIST-005 | Reaching the end loads the next page rather than all posts at once. | §4, §5 | VERIFIED |
+| LIST-006 | Floating/right-bottom write action navigates to the post creation screen. | §4 | IMPLEMENTED |
+
+> P4: `LIST-001`/`LIST-002` render `frontend/lib/time/relativeTime.ts` output against `Date.now()` for every row. `LIST-004`/`LIST-005` were verified in the browser: 10/10/10/9 pages fetched only as the `IntersectionObserver` sentinel approached, all 39 readable posts rendered once in API order, and no request followed the final `nextCursor: null`. `LIST-006` is `IMPLEMENTED`: the FAB navigates to `/posts/new`, but that creation screen is built in P6, so the requirement is verified there. `DEL-007` stays `TODO` until detail/comment UI exists, although the list already renders only the 39 readable posts (seed-deleted `9`, `30`, `31` absent).
 
 ---
 

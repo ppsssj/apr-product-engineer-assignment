@@ -161,6 +161,22 @@ The audit does not assign every radius to a semantic token where the node eviden
 - Figma illustrates populated content only. Empty/loading/error/end-of-list presentations remain `PRODUCT_DECISION`.
 - Stable avatar mapping remains `stableHash(author) % 3` (`PRODUCT_DECISION`); the assignment permits any of the supplied assets and does not score avatar fidelity.
 
+#### P4 Implementation Decisions
+
+A fresh Figma MCP comparison of node `755:8831` was not possible during P4 (Starter-plan tool-call limit exhausted). P4 therefore implements the `DESIGN_DEFINED` values above as recorded and completes the rest with minimal `PRODUCT_DECISION` values. None of the values below is a Figma-exact claim.
+
+| Detail | P4 choice | Evidence |
+| --- | --- | --- |
+| Divider color | existing `--color-border-light` (`#DDE0E4`) | Implementation choice among the audited light-border colors, not a Figma-exact mapping |
+| Title | single line, ellipsis | `PRODUCT_DECISION` |
+| Preview | up to 2 lines, ellipsis; 4px below the title | `PRODUCT_DECISION` |
+| Metadata row | pinned to the bottom of the 343×93 region; avatar→name 4px, item gap 8px, icon→count 2px | `PRODUCT_DECISION` |
+| Metadata colors | author `#5E5E5E`; comment/like counts and time `#979EA9` | Both colors are `DESIGN_DEFINED`; the assignment of each is `PRODUCT_DECISION` |
+| Comment/like/pencil icons | inline SVG approximations (14px metadata, 24px pencil), `currentColor` | `PRODUCT_DECISION`; Figma paths not extracted |
+| Header | sticky, left-aligned title at the 16px inset | `PRODUCT_DECISION` |
+| FAB | fixed `right: 15px; bottom: 49px` (derived from x=310, y=679 in 375×778); red `#F5364F`, shadow `0 2px 8px rgba(0,0,0,.16)` kept local to the CSS Module | Geometry `DESIGN_DEFINED`; color and shadow `PRODUCT_DECISION`, not global tokens |
+| Loading / empty / error / next-page loading / next-page error | centered secondary-color text; errors add a `다시 시도` button | `PRODUCT_DECISION` |
+
 ### SCREEN-002 — Post Detail
 
 #### Functional Contract

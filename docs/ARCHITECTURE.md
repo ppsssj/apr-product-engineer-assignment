@@ -184,6 +184,18 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# P4 Post List Update — 2026-09-29
+
+- **Feature boundary:** `frontend/features/post-list/` holds the only P4 client code: `usePostList.ts` (query hook), `PostListScreen.tsx` (states, sentinel, FAB), `PostListItem.tsx` (row), their CSS Modules, and `icons.tsx`. `app/page.tsx` stays a Server Component that renders `PostListScreen`.
+- **Infinite query (ADR-007):** `usePostList()` uses `useInfiniteQuery` with key `postKeys.list({ limit: 10 })`, `initialPageParam: undefined`, the backend `nextCursor` as the next `pageParam`, and `POST_LIST_PAGE_SIZE = 10`. 10 is a client choice within the backend's 1–50 range; the backend default of 20 is unchanged.
+- **Sentinel (ADR-010):** `frontend/lib/hooks/useInfiniteScrollTrigger.ts` disconnects after one intersection and is re-armed only when `enabled` becomes true again (`data` loaded, `hasNextPage`, not fetching, no next-page error). A new observer reports the current intersection, so a still-visible sentinel continues without another scroll, and a failed page waits for an explicit retry instead of looping. P5 comment continuation can reuse the same hook.
+- **Next-page error:** TanStack Query v5 also sets `status: "error"` when only `fetchNextPage` fails. The screen therefore shows the full-screen error only while `data === undefined` and reports next-page failures below the loaded rows.
+- **Relative time (ADR-011):** list data is fetched only in the browser, so the server render contains no timestamp and `Date.now()` is read at client render time; no hydration mismatch arises.
+- **Avatar:** `frontend/lib/avatar.ts` `avatarFor()` maps `FNV-1a(author) % 3` to the three provided assets.
+- **Prefetch:** the detail row and write FAB `Link`s set `prefetch={false}` because `/posts/{id}` and `/posts/new` do not exist until P5/P6; production prefetch otherwise requested those 404 routes in the background. Remove it when the routes land.
+
+---
+
 # 1. Current Evidence Boundary
 
 ## Verified from assignment / provided README
