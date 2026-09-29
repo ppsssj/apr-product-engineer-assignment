@@ -41,11 +41,12 @@ export function replacePost(queryClient: QueryClient, post: Post) {
   }));
 }
 
+// Called once per server-confirmed delete (204). Every cached list is the same
+// readable-post collection (lists differ only by page size), so its `total`
+// drops by one even when the deleted post is not among the loaded pages;
+// the row itself is removed only where it is loaded.
 export function removePost(queryClient: QueryClient, postId: number) {
   updateLists(queryClient, (data) => {
-    if (!data.pages.some((page) => page.items.some((item) => item.id === postId))) {
-      return data;
-    }
     const total = data.pages[0].total - 1;
     return {
       ...data,
