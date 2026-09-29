@@ -172,7 +172,7 @@ During a clean start, `GET /health` returned 200 while `GET /api/posts` still re
 
 | Candidate | Class | Expected gain (measured basis) | Complexity / risk |
 | --- | --- | --- | --- |
-| Row-value keyset predicate `(created_at, id) < (:t, :id)` in both `findReadablePage` queries | **SELECTED** | Deep comment page 42 → 3–4 buffers, 0.29 → ≈0.11 ms SQL; makes pagination a true index seek, so cost stays constant with depth. No measurable API-level gain today. | Two SQL predicate edits; same ordering and results (verified on post 2). Needs a repository/API regression over full traversals. Relies on both columns having the same (DESC) direction in the index. |
+| Row-value keyset predicate `(created_at, id) < (:t, :id)` in both `findReadablePage` queries | **SELECTED → COMPLETE** (§12) | Deep comment page 42 → 3–4 buffers, 0.29 → ≈0.11 ms SQL; makes pagination a true index seek, so cost stays constant with depth. No measurable API-level gain today. | Two SQL predicate edits; same ordering and results (verified on post 2). Needs a repository/API regression over full traversals. Relies on both columns having the same (DESC) direction in the index. |
 | JDBC batch (or multi-row) seed INSERT | **DEFERRED** (low-risk, one-time gain) | ≈0.3–0.6 s once per fresh volume. | Small change inside the existing transaction; idempotency and sequence sync unchanged. The gain is one-time and inside startup noise. |
 | Merge `existsReadable` + `COUNT` (e.g. one statement returning existence and count) | **DEFERRED** | Saves one round trip per comment page, roughly ≈1–2 ms (inferred from 1-statement vs 3-statement endpoints, not a controlled test). | Must keep the 404 for a deleted/missing post with zero comments; a slightly less obvious query. |
 | Denormalized `posts.comment_count` / cached totals | **REJECTED** (higher complexity) | Removes 0.4 ms COUNTs and subplans (≈0.3 ms per list page). | Must be maintained on comment create/soft-delete and post delete, set correctly at seed time (69 comments on deleted posts, 81 deleted IDs), kept transactionally consistent under concurrent writes, and backfilled for drift. High risk to `DEL-006`/`SEED-008`/`SEED-009` for a sub-millisecond gain. |
@@ -185,8 +185,92 @@ During a clean start, `GET /health` returned 200 while `GET /api/posts` still re
 
 ## 11. Decision and Next Steps
 
-1. **Selected:** the row-value keyset predicate, implemented in a separate small PR after this audit is merged. The PR must re-measure before and after with `EXPLAIN (ANALYZE, BUFFERS)` and API timing, and prove identical results over full traversals.
+1. **Selected → COMPLETE:** the row-value keyset predicate (§12), implemented in a separate PR after this audit merged, with before/after re-measurement and identical results over full traversals.
 2. **Deferred:** seed batching and the EXISTS + COUNT merge. Both are low-risk, but their measured gain is one-time or within noise.
 3. **Rejected:** denormalized `comment_count`, cached totals, partial index, omitting `total`.
 4. **Separate decision:** the first-boot readiness window (§9) is a correctness/UX topic, not performance.
 5. P5B follows the optimization PR.
+
+
+## 12. Selected Optimization — Row-value Keyset
+
+Implemented in `b86f668` (`perf/row-value-keyset`). Measured on 2026-09-29 ≈11:25–11:40 UTC in the same Compose PostgreSQL 16.15 / WSL2 environment as §3.
+
+### Problem
+
+The cursor predicate `created_at < :t OR (created_at = :t AND id < :id)` is a correct keyset boundary, but PostgreSQL evaluated it as a `Filter` after `Index Cond: (post_id = …)`.
+
+### Why it matters
+
+Each page re-read the post's index range from the newest row and discarded every row before the cursor. Scan work grew linearly with page depth, which is exactly the OFFSET behavior keyset pagination was chosen to avoid.
+
+### Root cause
+
+The planner does not turn the OR-shaped predicate into a composite `(created_at, id)` range bound on the `(post_id, created_at DESC, id DESC)` / `(created_at DESC, id DESC)` indexes. A row-value comparison is a single composite bound that the btree can seek to.
+
+### Change
+
+Only the cursor predicate in `PostRepository.findReadablePage` and `CommentRepository.findReadablePage` changed:
+
+```sql
+AND (p.created_at, p.id) < (:cursorCreatedAt, :cursorId)
+AND (c.created_at, c.id) < (:cursorCreatedAt, :cursorId)
+```
+
+Preconditions checked before the change:
+
+- both queries order by `created_at DESC, id DESC` (same direction);
+- `created_at` is `NOT NULL` and `id` is the primary key;
+- the cursor is exactly `(Instant createdAt, long id)` (`CursorPosition`).
+
+PostgreSQL compares row constructors left to right and decides at the first unequal pair ("Row Constructor Comparison", PostgreSQL docs, functions-comparisons). For non-null values, `(a, b) < (x, y)` is therefore exactly `a < x OR (a = x AND b < y)`. No other SQL, schema, index, or API field changed.
+
+### Before / After — execution plans
+
+`EXPLAIN (ANALYZE, BUFFERS)`, both forms measured in the same session, warm median of 5 runs after a DB restart. Rows removed are those removed by the scan node's filter; buffers are the scan node's (comments) or the whole statement's (posts, where per-row subplans dominate).
+
+| Query | Before (OR) | After (row-value) |
+| --- | --- | --- |
+| Comments #2, shallow (after row 2) | `Index Cond: post_id` + cursor `Filter`; removed 3; buffers 6; 0.084 ms | `Index Cond: post_id AND ROW(created_at, id) < ROW(…)`; removed 1 (a soft-deleted row); buffers 3; 0.126 ms |
+| Comments #2, middle (after row 702) | cursor `Filter`; removed **728**; buffers **23**; 0.194 ms | row-value `Index Cond`; removed 0; buffers **4**; 0.117 ms |
+| Comments #2, deepest (after row 1,402) | cursor `Filter`; removed **1,459**; buffers **42**; 0.285 ms | row-value `Index Cond`; removed 1 (soft-deleted); buffers **3**; 0.112 ms |
+| Posts page 2 (after row 10) | Index Scan, cursor `Filter`, removed 11; 50 buffers; 0.346 ms | Index Scan, row-value `Index Cond`, removed 0; 50 buffers; 0.497 ms |
+| Posts page 4 (after row 30) | Seq Scan + Sort, removed 33; 0.482 ms | Seq Scan + Sort, removed 33; 0.475 ms |
+
+- Every pair returned identical row IDs.
+- Comments: scan work no longer depends on depth. Buffers stay at 3–4 from the first continuation to the last page, where they were 6 → 23 → 42 before.
+- Posts: the table has 42 rows (2 heap pages). On page 4 the planner (with statistics collected at 11:28) chooses a Seq Scan + Sort for both forms, so the predicate form is irrelevant there; on page 2 the row-value bound is used as an `Index Cond`. Post-list cost is dominated by the per-row count subplans in both forms, so no gain is claimed for posts.
+- Sub-0.2 ms differences between warm medians are within run-to-run variation. Cold-run numbers are not compared, because the row-value runs followed the OR runs in the same warmed cache.
+
+### Correctness
+
+Real PostgreSQL + provided seed, through the API, before and after the change (identical ID sequences for all 11 traversals):
+
+- Posts: 39 readable posts with `limit=10` (4 pages) and `limit=3` (13 pages). Each post appeared exactly once, newest-first, equal to the DB order, final `nextCursor: null`, `total: 39`.
+- Comments with the UI page sizes (2, then 20): posts 10 (0), 24 (1), 1 (2), 3 (3), 4 (27), 8 (58), and 2 (1,411 in 72 pages). All were complete, unique, newest-first, equal to the DB order, page counts as expected, and final cursor `null`.
+- Same-timestamp ties: the seed has no equal timestamps, so a temporary fixture was used. It added five posts sharing one timestamp plus an older and a deleted post, and a post with six readable comments sharing one timestamp plus a deleted one and two older ones. Traversed with `limit=2` so page boundaries fall inside the tie group: ID DESC within the tie, no duplicate or skip across boundaries, deleted rows excluded, final cursor `null`. At the SQL level the OR and row-value forms returned identical rows for cursors inside the tie. The fixture (IDs ≥ 900000) was removed afterwards, restoring 42 posts / 2,076 comments / 0 likes.
+- PostgreSQL statement logging showed the rebuilt backend issuing `AND (p.created_at, p.id) < ($2, $3)` and `AND (c.created_at, c.id) < ($2, $3)`.
+- The API contract is unchanged: the P4 (48/48), P5A (63/63), and P5A revisit (12/12) browser suites passed against the rebuilt backend.
+
+### SQL statement count
+
+Unchanged by design. A full traversal of post #2 is still 72 requests = 72 `EXISTS` + 72 page `SELECT` + 72 `COUNT` = 216 statements (marker-delimited `log_statement` capture). The optimization changes how each page `SELECT` seeks, not how many statements run.
+
+### API effect
+
+Same script as §5 (5 warm-up + 50 sequential requests; full traversal ×10). Medians in ms:
+
+| Operation | Before | After |
+| --- | --- | --- |
+| `GET /posts?limit=10` | 4.96 | 4.58 |
+| `GET /posts/2/comments?limit=2` (no cursor, unaffected) | 7.10 | 8.37 |
+| `… limit=20` first continuation | 7.68 | 7.46 |
+| `… limit=20` middle (page 36) | 6.98 | 6.73 |
+| `… limit=20` last page | 6.89 | 7.17 |
+| Post #2 full traversal (72 requests) | 473 | 587 |
+
+The first run right after the backend restart was slower on every endpoint, including ones without a cursor, and was treated as JVM warm-up; the table uses the second run. Endpoints the change cannot affect moved just as much (for example `GET /posts/2` 6.28 → 8.68 ms). **The API latency change is not material at this dataset size, but index work no longer grows with cursor depth.**
+
+### Decision
+
+The selected optimization is `COMPLETE`. Everything else stays as decided in §10: seed batching and the EXISTS + COUNT merge remain `DEFERRED`; denormalized `comment_count`, cached totals, the partial index, and omitting `total` remain `REJECTED`. COUNT is cheap (≈0.39 ms), the seed cost is one-time, denormalization adds consistency risk, and the partial index showed no measured benefit.

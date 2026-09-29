@@ -103,13 +103,12 @@ public class PostRepository {
             String requester,
             CursorPosition cursor,
             int fetchSize) {
+        // Row-value comparison is equivalent to "created_at < t OR (created_at = t AND id < i)"
+        // for these NOT NULL columns, and PostgreSQL can use it as an index bound.
         String cursorPredicate = cursor == null
                 ? ""
                 : """
-                        AND (
-                            p.created_at < :cursorCreatedAt
-                            OR (p.created_at = :cursorCreatedAt AND p.id < :cursorId)
-                        )
+                        AND (p.created_at, p.id) < (:cursorCreatedAt, :cursorId)
                         """;
 
         var statement = jdbcClient.sql("""

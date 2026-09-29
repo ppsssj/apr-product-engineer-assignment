@@ -286,7 +286,7 @@ Measured and kept:
 
 Each costs sub-millisecond SQL or is not a meaningful part of API latency on the provided seed. Denormalized counters, caches, or extra indexes would add consistency risk and code for no measured benefit.
 
-## 7. The one change the audit justified
+## 7. The one change the audit justified — applied
 
 The cursor predicate was written as:
 
@@ -305,7 +305,9 @@ In a read-only experiment, the row-value form
 
 became part of the `Index Cond`. The deepest page dropped to 3–4 buffers and ≈0.11 ms (from ≈0.29 ms), with an identical result set.
 
-This change is selected for a separate, small optimization PR. The reason is not the ≈0.18 ms saved. It turns scan work that grows with page depth into a near-constant-cost index seek, which is what keyset pagination was chosen for, with the API contract and ordering unchanged.
+This change was applied in `b86f668` to `PostRepository.findReadablePage` and `CommentRepository.findReadablePage`, and nothing else changed. It is valid because both columns are `NOT NULL`, both orderings are `created_at DESC, id DESC`, and the cursor is exactly `(createdAt, id)`. The reason is not the fraction of a millisecond saved: scan work that grew with page depth becomes a near-constant-cost index seek, which is what keyset pagination was chosen for.
+
+Re-measured after the change: the row-value bound appears in `Index Cond` on post #2, and buffers stay at 3–4 from the first continuation to the last page (before: 6 → 23 → 42, with up to 1,459 rows filtered). All traversals returned identical results before and after, including a same-timestamp tie fixture with page boundaries inside the tie. API latency did not change measurably at this size, and the statement count per request is unchanged (`docs/PERFORMANCE.md` §12).
 
 ---
 
