@@ -207,6 +207,108 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# Data Read Architecture — Decision Rationale
+
+This section explains why the read path is shaped the way it is: the conditions it was built under, what the performance audit (`docs/PERFORMANCE.md`) measured, and the one change the measurements justified.
+
+## 1. Starting conditions
+
+The provided seed shaped the model more than any general scaling concern:
+
+- 42 posts (3 soft-deleted) and 2,076 comments (81 soft-deleted); deletion flags come as `deletedPostIds` / `deletedCommentIds`.
+- Posts carry `likeCount`, but there is **no per-user like history**.
+- There is **no `commentCount` field**; the assignment requires it to be derived from comments, excluding deleted ones.
+- Every post and comment has an ISO `createdAt` and a unique `id`, so `(createdAt, id)` gives a total, stable order. The seed contains no equal-timestamp ties, but the order does not depend on that.
+
+The goals for the first implementation were:
+
+- keep the database the single source of truth, with no second copy of any derived number;
+- make drift between counts and rows impossible after create/delete;
+- apply soft delete identically in list, detail, counts, and mutations;
+- make infinite scroll a bounded read per request;
+- avoid denormalization or caching layers the assignment's scale does not need.
+
+## 2. Why `commentCount` is computed, not stored
+
+`commentCount` and the comment `total` are computed at read time:
+
+```sql
+SELECT COUNT(*) FROM comments WHERE post_id = ? AND is_deleted = FALSE
+```
+
+There is no `posts.comment_count` column.
+
+- The seed has no source value for such a column, so it would have to be derived anyway.
+- A stored counter must be kept in step with comment create, soft delete, and post delete inside every mutation transaction. Any missed path causes drift, which would break `DEL-006`, `SEED-008`, and `SEED-009`.
+- With a computed count, the comments table stays the only canonical source and mutation transactions stay simple.
+
+The audit confirmed this choice. For the worst-case post #2 (1,411 readable comments), the COUNT takes ≈0.39 ms warm. At the API level, a comment page for a 2-comment post and for post #2 had the same latency (6.61 vs 7.28 ms median). **The normalized model is kept; `posts.comment_count` will not be added.**
+
+## 3. Why likes are `base_like_count` + `post_likes`
+
+The seed says how many likes a post has, but not who gave them. The model keeps both facts without inventing data:
+
+- The seed number is stored as `posts.base_like_count` and never changes.
+- Likes made while the application runs are rows in `post_likes (post_id, user_id)`. The primary key makes a duplicate like impossible.
+- `likeCount = base_like_count + COUNT(post_likes rows)`, and `isLiked` is `EXISTS` for the requester.
+
+This preserves the seed values exactly, supports requester-specific `isLiked`, and avoids fabricating per-user seed history (see ADR-005).
+
+## 4. Why keyset instead of OFFSET pagination
+
+Both collections are ordered `ORDER BY created_at DESC, id DESC` and continue from a cursor holding the last `(createdAt, id)` (ADR-006). The intent was:
+
+- stable ordering, with `id` breaking equal timestamps;
+- no shifted pages when new rows arrive during scrolling;
+- no OFFSET-style work growing with depth, which suits comment infinite scroll.
+
+The keyset contract was implemented correctly at the logical level. **Whether the cursor predicate actually bounded the index scan was not checked against PostgreSQL execution plans until the performance audit.**
+
+## 5. Why a performance audit was run
+
+Recomputing the seed distribution showed an extreme skew:
+
+- 1,926 readable comments on readable posts; per post median 7, mean ≈49.4, max 1,411;
+- post #2 alone holds ≈73.3 % of readable comments, and the top 5 posts hold ≈83.2 %.
+
+The provided seed therefore includes a large, skewed workload, and it was used as a stress fixture. Rather than optimizing on intuition, the audit measured clean seed cost, API latency, SQL statement counts per request, `EXPLAIN (ANALYZE, BUFFERS)` at shallow and deep cursors, and a full traversal of post #2 (`docs/PERFORMANCE.md`).
+
+## 6. What stays as it is
+
+Measured and kept:
+
+- query-time comment `COUNT` and per-page `total`;
+- derived like count and requester `EXISTS`;
+- the soft-delete model;
+- the current composite indexes;
+- single-transaction seed initialization;
+- the normalized comments model.
+
+Each costs sub-millisecond SQL or is not a meaningful part of API latency on the provided seed. Denormalized counters, caches, or extra indexes would add consistency risk and code for no measured benefit.
+
+## 7. The one change the audit justified
+
+The cursor predicate was written as:
+
+```sql
+created_at < :cursorCreatedAt
+OR (created_at = :cursorCreatedAt AND id < :cursorId)
+```
+
+It is semantically correct, but PostgreSQL applied it as a `Filter` after `Index Cond: post_id = …`. Each page walked the post's index range from the newest row. On post #2 the rows removed by the filter grew from 3 (first continuation) to 728 (middle) to 1,459 (deepest page), and buffers grew from 6 to 23 to 42. The pagination was keyset by contract but behaved like OFFSET in execution.
+
+In a read-only experiment, the row-value form
+
+```sql
+(created_at, id) < (:cursorCreatedAt, :cursorId)
+```
+
+became part of the `Index Cond`. The deepest page dropped to 3–4 buffers and ≈0.11 ms (from ≈0.29 ms), with an identical result set.
+
+This change is selected for a separate, small optimization PR. The reason is not the ≈0.18 ms saved. It turns scan work that grows with page depth into a near-constant-cost index seek, which is what keyset pagination was chosen for, with the API contract and ordering unchanged.
+
+---
+
 # 1. Current Evidence Boundary
 
 ## Verified from assignment / provided README

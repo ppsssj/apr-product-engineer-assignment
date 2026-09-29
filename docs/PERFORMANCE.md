@@ -2,7 +2,23 @@
 
 Audit/measurement only. No product code, schema, migration, dependency, or API change was made. Measured on 2026-09-29 (≈10:40–11:06 UTC) against `main` at `e521fd8` (P5A merged).
 
-Verdict: **`NO_OPTIMIZATION_NEEDED`** for the provided seed and the evaluator-facing workload. One low-risk query-shape correction and one seed-batching change are recorded as optional candidates. A non-performance readiness finding (§9) is recorded for a separate decision.
+Verdict: **`OPTIMIZATION_RECOMMENDED`** — for one specific change only.
+
+- No user-visible performance bottleneck was found on the provided seed and the evaluator-facing workload. The service is not slow, and nothing needs fixing for the assignment to work.
+- The measurements did reveal a structural inefficiency: the keyset cursor predicate is not used as a PostgreSQL index bound, so deep pages re-scan every earlier row linearly.
+- A very small change (a row-value comparison) makes it a true index seek with the same API contract and ordering. That single change is selected; every other candidate is kept as is, deferred, or rejected with its reason.
+
+A non-performance readiness finding (§9) is recorded for a separate decision.
+
+## 0. Audit Narrative
+
+| Stage | Content |
+| --- | --- |
+| **Before audit — concerns** | 2,118 row-by-row seed INSERTs; a 1,411-comment COUNT; the same COUNT/EXISTS repeated on every comment page; deep-page cost of keyset pagination; soft-delete filtering |
+| **Measurement** | Idle-host clean/seeded startup runs, `psql` INSERT replay, `EXPLAIN (ANALYZE, BUFFERS)` cold/warm at shallow, middle, and deep cursors, API latency (50 samples), full traversal of post #2, SQL statement counts from `log_statement` |
+| **Not bottlenecks** | Seed import (≈0.9 s once), COUNT (≈0.39 ms), soft-delete filtering (3.9 % of rows); therefore no need for a partial index, a denormalized `comment_count`, or cached totals |
+| **Confirmed inefficiencies** | (1) The OR-shaped cursor predicate is evaluated as a `Filter`, so deep pages scan linearly. (2) EXISTS + COUNT repeat on every comment page; this exists but is not a bottleneck on this workload |
+| **Decision** | Implement **only the row-value keyset predicate**. Several candidates were measured; one was changed |
 
 ---
 
@@ -156,10 +172,10 @@ During a clean start, `GET /health` returned 200 while `GET /api/posts` still re
 
 | Candidate | Class | Expected gain (measured basis) | Complexity / risk |
 | --- | --- | --- | --- |
-| Row-value keyset predicate `(created_at, id) < (:t, :id)` in both `findReadablePage` queries | **LOW-RISK CANDIDATE** (optional) | Deep comment page 42 → 3–4 buffers, 0.29 → ≈0.11 ms SQL; makes pagination a true index seek, so cost stays constant with depth. No measurable API-level gain today. | Two SQL predicate edits; same ordering and results (verified on post 2). Needs a repository/API regression over full traversals. Relies on both columns having the same (DESC) direction in the index. |
-| JDBC batch (or multi-row) seed INSERT | **LOW-RISK CANDIDATE** (low priority) | ≈0.3–0.6 s once per fresh volume. | Small change inside the existing transaction; idempotency and sequence sync unchanged. The gain is one-time and inside startup noise. |
-| Merge `existsReadable` + `COUNT` (e.g. one statement returning existence and count) | **LOW-RISK CANDIDATE** (not recommended now) | Saves one round trip per comment page, roughly ≈1–2 ms (inferred from 1-statement vs 3-statement endpoints, not a controlled test). | Must keep the 404 for a deleted/missing post with zero comments; a slightly less obvious query. |
-| Denormalized `posts.comment_count` / cached totals | **HIGHER-COMPLEXITY** | Removes 0.4 ms COUNTs and subplans (≈0.3 ms per list page). | Must be maintained on comment create/soft-delete and post delete, set correctly at seed time (69 comments on deleted posts, 81 deleted IDs), kept transactionally consistent under concurrent writes, and backfilled for drift. High risk to `DEL-006`/`SEED-008`/`SEED-009` for a sub-millisecond gain. |
+| Row-value keyset predicate `(created_at, id) < (:t, :id)` in both `findReadablePage` queries | **SELECTED** | Deep comment page 42 → 3–4 buffers, 0.29 → ≈0.11 ms SQL; makes pagination a true index seek, so cost stays constant with depth. No measurable API-level gain today. | Two SQL predicate edits; same ordering and results (verified on post 2). Needs a repository/API regression over full traversals. Relies on both columns having the same (DESC) direction in the index. |
+| JDBC batch (or multi-row) seed INSERT | **DEFERRED** (low-risk, one-time gain) | ≈0.3–0.6 s once per fresh volume. | Small change inside the existing transaction; idempotency and sequence sync unchanged. The gain is one-time and inside startup noise. |
+| Merge `existsReadable` + `COUNT` (e.g. one statement returning existence and count) | **DEFERRED** | Saves one round trip per comment page, roughly ≈1–2 ms (inferred from 1-statement vs 3-statement endpoints, not a controlled test). | Must keep the 404 for a deleted/missing post with zero comments; a slightly less obvious query. |
+| Denormalized `posts.comment_count` / cached totals | **REJECTED** (higher complexity) | Removes 0.4 ms COUNTs and subplans (≈0.3 ms per list page). | Must be maintained on comment create/soft-delete and post delete, set correctly at seed time (69 comments on deleted posts, 81 deleted IDs), kept transactionally consistent under concurrent writes, and backfilled for drift. High risk to `DEL-006`/`SEED-008`/`SEED-009` for a sub-millisecond gain. |
 | Partial index `… WHERE is_deleted = FALSE` on comments | **REJECT** | Deleted rows are 3.9 % of comments (57 of 1,468 for post 2); the COUNT already prefers a 34-page Seq Scan. | Extra index to maintain for no measured benefit. |
 | Omit `total` on continuation pages | **REJECT** | Would remove 71 COUNTs per traversal. | Violates the required `{ items, total }` envelope (`ASSIGNMENT.md` §5) and weakens count consistency after P5B mutations. |
 | Response caching of comment totals | **REJECT** | Same as above. | Invalidation on create/delete; unnecessary at < 1 ms. |
@@ -167,9 +183,10 @@ During a clean start, `GET /health` returned 200 while `GET /api/posts` still re
 
 **KEEP:** correlated-subquery derived counts in list/detail (≤0.7 ms per list page), per-page `total`, requester `EXISTS`, current indexes, single-transaction seed.
 
-## 11. Next Recommendation
+## 11. Decision and Next Steps
 
-1. No optimization is required before P5B for performance reasons. Proceed with P5B when approved.
-2. If a small pre-submission hardening pass is wanted, the only candidate with a clear mechanism is the **row-value keyset predicate**, gated by full-traversal regression tests. Its value is algorithmic (constant-cost deep pages), not a present latency win.
-3. Decide separately whether the **readiness window** in §9 should be addressed; it is user-visible on a first boot, unlike any measured query cost.
-4. Leave seed batching, denormalized counts, partial indexes, and COUNT elimination out unless a later workload shows a real cost.
+1. **Selected:** the row-value keyset predicate, implemented in a separate small PR after this audit is merged. The PR must re-measure before and after with `EXPLAIN (ANALYZE, BUFFERS)` and API timing, and prove identical results over full traversals.
+2. **Deferred:** seed batching and the EXISTS + COUNT merge. Both are low-risk, but their measured gain is one-time or within noise.
+3. **Rejected:** denormalized `comment_count`, cached totals, partial index, omitting `total`.
+4. **Separate decision:** the first-boot readiness window (§9) is a correctness/UX topic, not performance.
+5. P5B follows the optimization PR.
