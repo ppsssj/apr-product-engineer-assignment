@@ -1,0 +1,84 @@
+/*
+ * DESIGN_DEFINED (docs/UI_SPEC.md §6.1): fixed 375×86 composer/safe-area
+ * region at y=692; placeholder "댓글을 입력하세요." (local PNG exports).
+ * PRODUCT_DECISION (estimated from the local PNG exports, not Figma node
+ * values): 1px top divider, 343×40 pill field with a 1px --color-border-light
+ * border starting at y=702, 14/18 text, and the "등록" submit text button
+ * inside the field (the design shows no submit control). An error line, when
+ * shown, grows the region upward.
+ */
+
+.composer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  min-height: 86px;
+  /* 1px border + 9px + 40px field + 36px = 86px; the field starts at y=702. */
+  padding: 9px var(--space-page-inset) 36px;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-surface);
+}
+
+.error {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-support);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 8px 0 20px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.field:focus-within {
+  border-color: var(--color-text-secondary);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.submit {
+  flex: none;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.submit:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}

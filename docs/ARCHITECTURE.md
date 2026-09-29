@@ -184,6 +184,19 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# P5B Comment Mutation Update — 2026-09-29
+
+- **Scope:** frontend only (`07c9372`). It adds `CommentComposer`, `ConfirmDialog`, `useCommentMutations.ts` (`useCreateComment`, `useDeleteComment`), and `lib/requester.ts`, wired into `CommentSection`. The P2B endpoints are reused unchanged.
+- **Ownership in the UI:** `readCurrentRequester()` mirrors `RequesterResolver` for what this app sends: the first non-blank `x-user-id` cookie, trimmed, else `apr_tester`. `삭제` renders only when `comment.author` equals it, independent of post ownership. `/dev-user` switches users with a full page load, so no cross-user cache survives. This check is presentation only; the backend still returns 403 for any other user's comment.
+- **Server-confirmed mutations:** nothing in any cache changes before the request succeeds. Failures leave comments, counts, and the input untouched, and are shown inline.
+- **Create cache update:** the server's comment is the newest row, so it is prepended to the first page of `postKeys.commentList(id)`, and every page's `total` goes up by one. Existing `nextCursor` values stay correct because the keyset cursor is a `(createdAt, id)` bound, not a position. The collapsed view keeps showing the first page's first two items, and More appears once `total >= 3`.
+- **Delete cache update:** the comment is removed from whichever page holds it, and `total` goes down by one. A cursor that pointed at the deleted row still bounds the next page correctly, because the row-value predicate needs no live row. If only the first page is loaded (the collapsed view), that page is refetched once (`limit=2`) so two comments stay visible.
+- **One count everywhere:** the resulting `total` is written as an absolute value into `postKeys.detail(id).commentCount` and into every cached `postKeys.lists()` page containing the post, following the P5A like pattern. If the comment list has not loaded, the counts move from the detail value and the comment list is refetched.
+- **Duplicate prevention:** as with likes, `isPending` renders a tick late, so both mutations use an in-flight ref. Two submits or confirms in the same tick send one request.
+- **Kept:** `gcTime: 0` on the comment query. The per-visit More gate still holds after mutations; the revisit regression passed.
+
+---
+
 # P5A Post Detail Update — 2026-09-29
 
 - **Route boundary:** `app/posts/[postId]/page.tsx` is a thin Server Component that validates the segment (positive safe integer, else `null`) and renders `features/post-detail/PostDetailScreen`. All requester-sensitive data is fetched in the browser, consistent with ADR-008.

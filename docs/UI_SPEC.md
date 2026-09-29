@@ -195,7 +195,7 @@ A fresh Figma MCP comparison of node `755:8831` was not possible during P4 (Star
 
 #### P5A Implementation Decisions
 
-P5A implements detail read, like toggle, and comment read/continuation only. The comment composer and own-comment delete (P5B) and the own-post `⋯` menu, edit, and delete (P6) are intentionally not rendered yet; no non-functional placeholder controls were added. Values below were estimated from the local PNG exports of `755:10420`, `755:10774`, `755:12645`, `755:13104`, and `769:142` (375×778 at 3×). They are not Figma node measurements.
+P5A implemented detail read, like toggle, and comment read/continuation. P5B added the composer and own-comment delete (below). The own-post `⋯` menu, edit, and delete (P6) are still not rendered. Values below were estimated from the local PNG exports of `755:10420`, `755:10774`, `755:12645`, `755:13104`, and `769:142` (375×778 at 3×). They are not Figma node measurements.
 
 | Detail | P5A choice | Evidence |
 | --- | --- | --- |
@@ -209,6 +209,22 @@ P5A implements detail read, like toggle, and comment read/continuation only. The
 | Comment item | 30px avatar, author Bold 15/22 `#292828`, relative time 12/16 `#979EA9`, content Regular 15/22 `#292828` | PNG-estimated `PRODUCT_DECISION` (the PNG mixes relative and absolute comment dates; P5A uses relative time throughout) |
 | More | `댓글 더보기` + chevron, 343×40, 1px `--color-border-light`, 12px radius, 14/18 `#979EA9` | Presence `DESIGN_DEFINED`; geometry PNG-estimated |
 | Loading / not-found / error | centered secondary text; `목록으로` for not-found, `다시 시도` for errors; continuation errors below loaded comments | `PRODUCT_DECISION` |
+
+#### P5B Implementation Decisions
+
+The composer region (375×86 at y=692), the dialog frame (327×264 at x=24, y=257, full-screen 60 % black scrim), and the dialog copy are `DESIGN_DEFINED`. The values below were estimated from the local PNG exports `755:12175`, `755:13104`, and `755:12645`. They are not Figma node measurements.
+
+| Detail | P5B choice | Evidence |
+| --- | --- | --- |
+| Composer layout | 1px `--color-border-light` top divider; 343×40 pill field (radius 20, 1px border) starting at y=702; 36px below the field | Region `DESIGN_DEFINED`; split PNG-estimated |
+| Composer text | `댓글을 입력하세요.` placeholder, 14/18, `#979EA9` | Placeholder `DESIGN_DEFINED`; size `PRODUCT_DECISION` |
+| Submit control | `등록` text button inside the field, Bold 14/18; `#979EA9` while disabled, `#292828` when enabled | `PRODUCT_DECISION` — the design shows no submit control |
+| Submit rules | disabled for whitespace-only input (the backend `isBlank` rule); content sent unchanged; Enter submits except during IME composition; single-line input | `PRODUCT_DECISION` |
+| Create error | `댓글을 등록하지 못했습니다. 다시 시도해 주세요.` 12/16 `#5E5E5E` above the field; the region grows upward | `PRODUCT_DECISION` |
+| Delete affordance | `삭제` text button 12/16 `#979EA9`, 6px below the content, only when `comment.author` equals the requester | Placement PNG-observed; visibility rule `ASSIGNMENT_DEFINED` |
+| Dialog | radius 20; title Bold 18/26 `#292828`; body 15/22 `#979EA9` on two lines; 130×56 buttons (radius 12, 15px gap, 40px bottom inset); `취소` on `#EAECEE` in `#979EA9`, `예` on `#292828` in white, both Bold 16/24 | Copy/frame `DESIGN_DEFINED`; sizes and colors PNG-estimated. Radii are within the audited set; `#EAECEE` is one of the audited border colors |
+| Dialog behavior | `alertdialog`, focus on `취소` when opened; Escape or scrim click cancels unless a request is pending; errors keep the dialog open (`댓글을 삭제하지 못했습니다. 다시 시도해 주세요.`) | `PRODUCT_DECISION` |
+| Requester for visibility | `x-user-id` cookie (first non-blank value), else `apr_tester`, mirroring `RequesterResolver` for cookie-only requests | `PRODUCT_DECISION`; the backend remains authoritative |
 
 ### SCREEN-003 — Create Post
 

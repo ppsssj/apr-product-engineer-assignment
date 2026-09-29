@@ -1,0 +1,99 @@
+/*
+ * DESIGN_DEFINED (docs/UI_SPEC.md §6.1, §6.3, Delete Confirmations): 327×264
+ * dialog at x=24, y=257 over a full-screen black 60% scrim; title "삭제하기";
+ * actions "취소" / "예".
+ * PRODUCT_DECISION (estimated from the local PNG export 755-12175, not Figma
+ * node values): 20px dialog radius and 12px button radius (both within the
+ * audited radius set), title Bold 18/26, body 15/22 #979EA9, 130×56 buttons
+ * with a 15px gap, cancel on #EAECEE, confirm on #292828.
+ */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  background: var(--color-scrim);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 327px;
+  max-width: 100%;
+  min-height: 264px;
+  padding: 51px 26px 40px;
+  border-radius: 20px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--color-text-primary);
+}
+
+.body {
+  margin: 16px 0 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-text-secondary);
+  white-space: pre-line;
+}
+
+.error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-support);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.cancel,
+.confirm {
+  height: 56px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.cancel {
+  background: #eaecee;
+  color: var(--color-text-secondary);
+}
+
+.confirm {
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+}
+
+.cancel:disabled,
+.confirm:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.cancel:focus-visible,
+.confirm:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}

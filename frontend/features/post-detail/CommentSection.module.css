@@ -8,8 +8,9 @@
  * button. Divider/border colors reuse --color-border-light.
  */
 
+/* 40px below the last item plus the fixed 86px composer region. */
 .section {
-  padding-bottom: 40px;
+  padding-bottom: 126px;
 }
 
 .heading {
@@ -78,6 +79,25 @@
   color: var(--color-text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* PRODUCT_DECISION (PNG-estimated): "삭제" 12/16 #979EA9 text below the
+   content, shown only for the requester's own comments. */
+.delete {
+  margin-top: 6px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.delete:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
 }
 
 .more {

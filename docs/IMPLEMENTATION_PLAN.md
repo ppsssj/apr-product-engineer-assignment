@@ -4,14 +4,11 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Gate: `Performance Audit Gate — before P5B`
-- Performance Audit: `COMPLETE`
-- Audit Verdict: `OPTIMIZATION_RECOMMENDED` (structural inefficiency only; no user-visible bottleneck)
-- Selected Optimization: `Row-value keyset predicate` — `COMPLETE`
-- Other Optimization Candidates: `REJECTED / DEFERRED` (unchanged; see `docs/PERFORMANCE.md` §10)
-- P5B: `NOT_STARTED`
-- Last Verified Commit: `b86f668128f71a7e0646649318389a670da43cf1` (row-value keyset predicate; real-PostgreSQL traversal/tie regression, before/after EXPLAIN and API benchmark, backend tests, P4/P5A browser suites).
+- Current Phase: `P5B — Comment Create / Own-Comment Delete / Mutation Cache Sync`
+- Status: P5A `COMPLETE`; P5B `COMPLETE`; P5 overall `COMPLETE`; P6 `NOT_STARTED`.
+- Last Verified Commit: `07c93724df195b2158d459d98eddd399797faa9b` (P5B implementation and acceptance: 52/52 P5B browser checks, P5A revisit 12/12, P4 48/48, P5A 63/63, keyset traversal/tie regression, backend 49/49).
 - Last Updated: `2026-09-29`
+- Performance Audit gate: closed. The audit and the selected row-value keyset optimization are `COMPLETE`; other candidates remain `DEFERRED` / `REJECTED`.
 
 ### Known Blockers
 
@@ -21,8 +18,9 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review and merge the keyset optimization PR (`perf/row-value-keyset`).
-2. Then start P5B — Comment Create / Own-Comment Delete, only when explicitly requested.
+1. Review and merge the P5B PR.
+2. After merge, P6 — Post Create / Edit / Delete is the next implementation phase.
+3. Do not start P6 until explicitly requested.
 
 ### Performance Audit Gate Status
 
@@ -94,6 +92,13 @@ This document is the operational state for the assignment. Keep it concise and c
 - Verified at 375×778 in Chromium (63/63 checks), the same-session revisit regression (12/12), and the P4 regression suite (48/48). `DETAIL-001`–`DETAIL-008` are `VERIFIED`; V-060/V-061 `PASS`.
 - Review fix: the comment query uses `gcTime: 0` so a revisit without full reload restarts at the initial two comments; cached continuation pages can no longer be refetched before More or exposed at once on More.
 - Out of scope and not rendered: comment composer, own-comment delete, and its confirmation (P5B); own-post menu, edit, delete, and create (P6).
+
+### P5B Status
+
+- Status: `COMPLETE`
+- A fixed composer creates comments. Own comments (by cookie requester, independent of post owner) show `삭제` with a confirmation dialog. All mutations are server-confirmed and synchronize the comment list, its `total`, the detail `commentCount`, and cached list counts, with in-flight guards against same-tick duplicates.
+- Verified at 375×778 in Chromium (52/52 P5B checks): boundaries 0→1→2→3 and 3→2→1→0, 27→28, expanded create, continuation and cursor-boundary deletes, list sync with list refetch frozen, POST/DELETE failure paths, `/dev-user` cross-user ownership, and backend 403. Regressions: revisit 12/12, P4 48/48, P5A 63/63, keyset traversal/tie. `DETAIL-009`/`DETAIL-010` have UI evidence and `DETAIL-011` is `VERIFIED`.
+- Baseline restored by reseeding: 42/3 posts, 2,076/81 comments, 0 likes.
 
 ---
 
@@ -368,7 +373,7 @@ Implement post detail, requester-specific likes, initial-two-comments behavior, 
 
 ### Status
 
-`IN_PROGRESS` — P5A (`DETAIL-001`–`DETAIL-008`) `COMPLETE`; P5B (comment create, own-comment delete, `DETAIL-009`–`DETAIL-011` UI, mutation cache sync) `NOT_STARTED`.
+`COMPLETE` — P5A (`DETAIL-001`–`DETAIL-008`) and P5B (`DETAIL-009`–`DETAIL-011` UI, mutation cache sync) are complete.
 
 ---
 
