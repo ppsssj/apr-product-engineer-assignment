@@ -1,0 +1,170 @@
+/*
+ * DESIGN_DEFINED (docs/UI_SPEC.md §6.1–6.3, SCREEN-002): 375×48 fixed top
+ * navigation, content from y=56, 16px inset, title Bold 18/26 #292828,
+ * author Bold 15/22 #292828, body Regular 14/18 #292828, liked accent
+ * #FF8DA1 only in the liked state.
+ * PRODUCT_DECISION (estimated from the local 375×778 PNG exports, not Figma
+ * node values): 24px title offset, 36px author avatar, byline/body/like-row
+ * spacing, 14/18 secondary date and like label, 24px heart, and the 8px
+ * section band, which reuses --color-disabled-surface.
+ */
+
+.screen {
+  min-height: 100dvh;
+  background: var(--color-surface);
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 8px;
+  background: var(--color-surface);
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.main {
+  padding-top: 8px;
+}
+
+.post {
+  padding: 24px var(--space-page-inset) 12px;
+  border-bottom: 8px solid var(--color-disabled-surface);
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.author {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-text-primary);
+}
+
+.date {
+  display: block;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.content {
+  margin: 24px 0 0;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.likeRow {
+  margin-top: 32px;
+}
+
+.like {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.like:disabled {
+  cursor: progress;
+}
+
+.like:focus-visible,
+.back:focus-visible,
+.action:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.heart {
+  display: flex;
+  color: var(--color-text-secondary);
+}
+
+.like[data-liked="true"] .heart {
+  color: var(--color-liked);
+}
+
+.likeError {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-support);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 120px var(--space-page-inset) 0;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.noticeText {
+  margin: 0;
+}
+
+.action {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 5px;
+  background: var(--color-surface);
+  font: inherit;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}

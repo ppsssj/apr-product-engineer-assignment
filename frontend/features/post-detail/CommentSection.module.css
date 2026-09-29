@@ -1,0 +1,136 @@
+/*
+ * DESIGN_DEFINED (docs/UI_SPEC.md SCREEN-002): comment heading "댓글 (n)" as
+ * Pretendard Bold 16/24 #292828, comment list, conditional "댓글 더보기", and
+ * no separate empty message for 0 comments.
+ * PRODUCT_DECISION (estimated from the local 375×778 PNG exports, not Figma
+ * node values): 48px heading row with a full-width divider, 30px avatars,
+ * comment author/content/time type sizes, spacing, and the 343×40 More
+ * button. Divider/border colors reuse --color-border-light.
+ */
+
+.section {
+  padding-bottom: 40px;
+}
+
+.heading {
+  margin: 0;
+  padding: 16px var(--space-page-inset) 8px;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--color-text-primary);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  display: flex;
+  gap: 10px;
+  padding: 16px var(--space-page-inset) 8px;
+}
+
+.avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.author {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.time {
+  flex: none;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+}
+
+.content {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: calc(100% - 2 * var(--space-page-inset));
+  height: 40px;
+  margin: 24px var(--space-page-inset) 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.more:focus-visible,
+.retry:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 16px var(--space-page-inset);
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.statusText {
+  margin: 0;
+}
+
+.retry {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 5px;
+  background: var(--color-surface);
+  font: inherit;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.sentinel {
+  height: 1px;
+}
