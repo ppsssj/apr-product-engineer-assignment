@@ -6,7 +6,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 - Current Phase: `P6 — Post Create / Edit / Delete`
 - Status: P6 `COMPLETE`; core feature implementation `COMPLETE` (P1–P6); P7 `NOT_STARTED`.
-- Last Verified Commit: `1f8a21f95fbbc132266e9f3d76f6154504127fd1` (P6 implementation and acceptance: 74/74 P6 browser checks; P4 48/48, P5A 63/63, P5A revisit 12/12, P5B 52/52, keyset traversal/tie, backend 49/49).
+- Last Verified Commit: `4e53dbd6fb951015f595ae980da1fe845929b60b` (P6 + Deletion Policy Hardening: deletion consistency 28/28, P6 74/74, P5B 52/52, P4 48/48, P5A 63/63, revisit 12/12, backend 49/49; P6 implementation `1f8a21f`).
 - Last Updated: `2026-09-29`
 - Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
 
@@ -111,6 +111,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Status: `COMPLETE`
 - Create (`/posts/new`), edit (`/posts/[postId]/edit`, shared form, exact prefill), own-post action sheet, and post delete confirmation are in place. Validation matches the backend (Java `isBlank`, 20 code points). Mutations are server-confirmed and synchronize the list and detail caches. The create toast shows once. Other users' posts show no menu and no edit form.
 - Verified at 375×778 in Chromium (74/74), including cached-list deletes of a middle row and a cursor-boundary row, `/dev-user` cross-user ownership, and every failure path. V-012, V-030, V-031, V-032, V-040, and V-080 are `PASS`. V-081 stays `NOT_RUN`.
+- Deletion Policy Hardening (`4e53dbd`): a confirmed delete now lowers every cached list total even when the post is not loaded. The soft-delete model (dormant children, 404 before 403, repeated DELETE 404, serialized parent/child mutations) was verified without backend change (28/28).
 
 ---
 

@@ -310,8 +310,9 @@ Open frontend at `http://localhost:13000`.
   - A direct revisit showed not-found, and the DB row remained with `is_deleted = true`.
 - **Cached-list deletes:**
   - Deleting a middle row (post 5, row 5) removed only that row from the cached page.
-  - Deleting the first page's cursor-boundary row (post 11, row 10, as `booster_0`) also removed only that row.
+  - A second cached-page delete targeted post 11 as `booster_0`, also removing only that row.
   - In both cases, scrolling on continued from the cached cursor, the full list equaled the server, and there was no skip or duplicate.
+  - Correction (Deletion Policy Hardening): because post 5 had already been deleted in the same run, post 11 was row 9 at that moment, not the page's cursor row. A true cursor-row delete was then verified separately (scenario C in "Deletion Consistency Evidence"), and the P6 script now picks row 10 at run time (it deleted post 12 at row 10/10 and passed).
 - **`/dev-user` → `mintcream`:**
   - A created post had author `mintcream`, and mintcream saw the trigger while a fresh `apr_tester` load did not.
   - `apr_tester` PATCH/DELETE returned 403.
@@ -606,6 +607,32 @@ x-user-id: <known-author>
 ---
 
 # Soft Delete
+
+## Deletion Consistency Evidence — 2026-09-29
+
+- Fix commit `4e53dbd6fb951015f595ae980da1fe845929b60b` (`frontend/lib/query/postListCache.ts` only; no backend, schema, or API change).
+- **Root cause:** `removePost()` returned early when the deleted post was not among the loaded list pages, so the cached `total` stayed one too high (for example after deleting a post reached without scrolling to it).
+- **Method:** a temporary script ran against the Compose production stack (Chromium 375×778, API, `psql`) after a reseed and passed **28/28**. The page's QueryClient was read through React fiber introspection (test-only), with the list's first-page refetch frozen so that only the cache update was observed.
+- **Browser cache scenarios:**
+  - **B. Unloaded-list delete:** first page loaded (10 rows, total 39). The owner then opened post 18, which was not loaded, through a client-side `router.push` and deleted it. Before any refetch the cached total was 39→38 on every page and equal to the server, and the loaded rows were unchanged. The detail and comment queries for post 18 were evicted (none left under `["posts","detail",18]`). Infinite scroll to the end equaled the server's 38 IDs with no duplicate or skip, and Back did not return to the deleted detail.
+  - **A. Loaded-list delete:** post 5 (row 5). Total 38→37, equal to the server. Only that row was removed from the cache. Queries were evicted, the full scroll equaled the server, and Back did not return to it.
+  - **C. Cursor-row delete:** row 10 at run time was post 12, and the first page's `nextCursor` decoded to `…|12`. Its author (`cos_holic`) deleted it. Total 37→36, equal to the server, and the first 9 rows were kept. The next page was requested with the deleted row's cursor `…|12`, and the full list equaled the server (36) with no duplicate or skip.
+- **Parent delete matrix** (a new post by `apr_tester`, with comments by `apr_tester` and `mintcream` and likes by both):
+  - Before the delete: readable with `commentCount` 2 and `likeCount` 2. DB: post `f`, comments `false,false`, 2 like rows.
+  - While readable, `mintcream` DELETE and PATCH returned 403 and the post stayed readable. The owner DELETE returned 204.
+  - DB after the delete: post `t`, both comments still `false`, 2 like rows kept.
+  - Afterwards every route returned 404 for owner and non-owner: GET post, PATCH, DELETE again, like toggle, GET comments, POST comment, and DELETE of each existing comment (including by its own author).
+  - None of those 404 calls changed the DB. A never-existing post returned 404 for GET, PATCH, DELETE, and toggle.
+- **Comment standalone (post 13 alive):**
+  - Non-owner DELETE returned 403; the comment stayed listed and `is_deleted = f`.
+  - Owner DELETE returned 204, then 404 on a repeat by the owner or a non-owner.
+  - The row was kept with `is_deleted = t` and excluded from the list, and `total` and `commentCount` returned to the base value.
+- **Concurrency smoke** (15 rounds, each firing post DELETE together with comment create, like toggle, edit, and delete of an existing comment on a fresh post):
+  - The post DELETE always returned 204, and the post was unreadable afterwards.
+  - Child operations returned only success-before-delete or 404 (comment create `201`/`404`, like `200`/`404`, edit `200`/`404`, comment delete `204`/`404`), with no 5xx or deadlock.
+- **Backend:** unchanged, since the matrix matched the policy. Existing mock tests already cover the service-level 404 paths (`rejectsCreationForDeletedOrMissingParent`, `treatsDeletedOrMissingCommentAsNotFound`, `treatsDeletedOrMissingPostAsNotFound`, `rejectsLikeToggleForDeletedOrMissingPost`). Parent visibility for comment delete lives in SQL (the readable-parent join), so it is proven by the PostgreSQL matrix rather than by mocks. `gradlew clean test` passed 49/49.
+- **Regressions after reseeding each:** P6 74/74 (with the run-time cursor row), P5B 52/52, P4 48/48, P5A 63/63, revisit 12/12. `npm run typecheck`, a clean `npm run build`, and `git diff --check` were clean.
+- **DB baseline** restored by reseeding: posts 42 (3 deleted), comments 2,076 (81 deleted), likes 0, `seed_history = assignment-v1`.
 
 ## V-040 — Soft Delete Own Post
 

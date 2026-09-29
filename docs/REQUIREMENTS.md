@@ -123,6 +123,13 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DEL-006 | Deleted comments are excluded from `commentCount`. | §4 | VERIFIED |
 | DEL-007 | UI behaves as if deleted resources no longer exist. | §4 | VERIFIED |
 
+> Deletion Policy Hardening (`4e53dbd`): the DEL requirements follow one model (`docs/ARCHITECTURE.md` "Deletion Consistency Model"):
+> - Children of a deleted post stay physically unchanged but unreachable.
+> - Unreadable resources return 404 before any ownership check, and a repeated DELETE returns 404.
+> - A confirmed post delete lowers every cached list total, including for posts outside the loaded pages.
+>
+> Evidence is in `docs/VERIFICATION.md` "Deletion Consistency Evidence" (28/28).
+
 ---
 
 ## 8. Post List
