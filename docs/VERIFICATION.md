@@ -604,7 +604,7 @@ Inspect required screens at 375px viewport:
 
 ### Prerequisite
 
-Official design source must be available.
+Official design source is available at Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`). The design audit and frame mapping are recorded in `docs/UI_SPEC.md`.
 
 ### Verify
 
@@ -622,7 +622,7 @@ Official design source must be available.
 
 Implementation matches official design as closely as practical, with any intentional deviations documented.
 
-**Result:** `BLOCKED`
+**Result:** `NOT_RUN`
 
 ---
 
@@ -657,5 +657,5 @@ Do not sign off until:
 - `V-001`, `V-002`, `V-003`, `V-004` pass.
 - All applicable behavior scenarios pass.
 - All mandatory requirements are `VERIFIED`.
-- `V-081` is no longer blocked if the official design source becomes available.
+- `V-081` passes after visual implementation is compared with the now-available official design source.
 - README accurately reflects the final implementation.
