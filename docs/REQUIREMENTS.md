@@ -59,18 +59,18 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| SEED-001 | Posts from `seed/seed.json` are persisted and queryable after startup. | §3 | IMPLEMENTED |
-| SEED-002 | Comments from `seed/seed.json` are persisted and queryable after startup. | §3 | IMPLEMENTED |
-| SEED-003 | `deletedPostIds` entries are persisted as deleted and excluded from normal reads. | §3 | IMPLEMENTED |
-| SEED-004 | `deletedCommentIds` entries are persisted as deleted and excluded from normal reads. | §3 | IMPLEMENTED |
-| SEED-005 | IDs from the seed are preserved exactly. | §3 | IMPLEMENTED |
-| SEED-006 | Newly created post IDs may be generated independently without conflicting with preserved seed IDs. | §3 | IMPLEMENTED |
-| SEED-007 | Newly created comment IDs may be generated independently without conflicting with preserved seed IDs. | §3 | IMPLEMENTED |
-| SEED-008 | `commentCount` is derived from comments rather than read from the seed. | §3 | IMPLEMENTED |
-| SEED-009 | Deleted comments are excluded from `commentCount`. | §3, §4 | IMPLEMENTED |
-| SEED-010 | Initial `isLiked` is false for every requester because the seed contains no like history. | §3 | IMPLEMENTED |
-| SEED-011 | Initial `likeCount` starts from the seed value. | §3 | IMPLEMENTED |
-| SEED-012 | Repeated application startup does not duplicate seed rows. | §3 | IMPLEMENTED |
+| SEED-001 | Posts from `seed/seed.json` are persisted and queryable after startup. | §3 | VERIFIED |
+| SEED-002 | Comments from `seed/seed.json` are persisted and queryable after startup. | §3 | VERIFIED |
+| SEED-003 | `deletedPostIds` entries are persisted as deleted and excluded from normal reads. | §3 | VERIFIED |
+| SEED-004 | `deletedCommentIds` entries are persisted as deleted and excluded from normal reads. | §3 | VERIFIED |
+| SEED-005 | IDs from the seed are preserved exactly. | §3 | VERIFIED |
+| SEED-006 | Newly created post IDs may be generated independently without conflicting with preserved seed IDs. | §3 | VERIFIED |
+| SEED-007 | Newly created comment IDs may be generated independently without conflicting with preserved seed IDs. | §3 | VERIFIED |
+| SEED-008 | `commentCount` is derived from comments rather than read from the seed. | §3 | VERIFIED |
+| SEED-009 | Deleted comments are excluded from `commentCount`. | §3, §4 | VERIFIED |
+| SEED-010 | Initial `isLiked` is false for every requester because the seed contains no like history. | §3 | VERIFIED |
+| SEED-011 | Initial `likeCount` starts from the seed value. | §3 | VERIFIED |
+| SEED-012 | Repeated application startup does not duplicate seed rows. | §3 | VERIFIED |
 
 ---
 

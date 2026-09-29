@@ -5,8 +5,8 @@ This document is the operational state for the assignment. Keep it concise and c
 ## Current State
 
 - Current Phase: `P1 — Database & Seed Foundation`
-- Status: `IN_PROGRESS`
-- Last Verified Commit: `82a6609` (documentation baseline); P1 runtime verification is pending.
+- Status: `COMPLETE`
+- Last Verified Commit: `47bb4a2` (P1 implementation); runtime and supplemental seed-data verification completed on `2026-09-29`.
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -16,8 +16,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Complete the P1 runtime acceptance checks with Java 17 and Docker PostgreSQL: clean-volume boot, seeded row/deletion/like/sequence inspection, and persistent-volume restart.
-- The missing design source blocks visual-fidelity work only; it does not block P1.
+- Review PR #3 only.
+- Do not start P2 and do not merge PR #3 without explicit approval.
 
 ### P0 Completion Update
 
@@ -38,7 +38,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Status: `COMPLETE_FUNCTIONAL`, `BLOCKED_VISUAL`
 - `docs/UI_SPEC.md` defines the required screens, functional flows, states, ownership behavior, validation, API dependencies, and requirement traceability without inventing visual values.
 - Exact visual fidelity remains blocked because the official Figma file and reference images are `MISSING` from the empty `design/` directory.
-- P1 is active. The visual-fidelity blocker remains limited to later visual work.
+- P1 is complete. The visual-fidelity blocker remains limited to later visual work.
 
 ---
 
@@ -167,7 +167,7 @@ Create a durable persistence model and idempotent seed initialization.
 
 ### Status
 
-`IN_PROGRESS`
+`COMPLETE`
 
 ---
 

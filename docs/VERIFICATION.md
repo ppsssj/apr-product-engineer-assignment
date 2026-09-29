@@ -46,7 +46,14 @@ curl -i http://localhost:8080/health
 - `/health` responds HTTP 200.
 - Frontend is reachable.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Clean-volume `docker compose up --build` completed successfully.
+- `db`, `backend`, and `frontend` reached `healthy`.
+- `GET /health` returned HTTP 200.
+- Flyway migration `V1` completed successfully.
+
+**Result:** `PASS`
 
 ---
 
@@ -90,8 +97,9 @@ Open frontend at `http://localhost:13000`.
 3. Stop application without deleting DB volume.
 4. Start application again.
 5. Record row counts again.
-6. Before any like toggle, request a readable seeded post as each requester available through the supplied `/dev-user` selector and confirm `isLiked` is `false`.
-7. Before any like toggle, compare every readable seeded post’s API `likeCount` with its `seed/seed.json` `likeCount`.
+6. Before any like toggle, confirm `post_likes` is empty, so no requester has an initial like relation.
+7. Parse `seed/seed.json` as UTF-8 with Node.js and compare every seeded post’s `likeCount` with `posts.base_like_count`.
+8. Compare the full deleted post/comment ID sets and every post's non-deleted comment count between the parsed seed and the database.
 
 ### Expected
 
@@ -101,9 +109,25 @@ Open frontend at `http://localhost:13000`.
 - Second startup does not duplicate seed rows.
 - Readable totals remain stable.
 - Every requester begins with `isLiked: false` for seeded posts.
-- Every readable seeded post begins with its supplied `likeCount`.
+- Every seeded post begins with its supplied `likeCount`.
+- Database deleted-ID sets exactly match `deletedPostIds` and `deletedCommentIds`.
+- Per-post readable comment counts exclude every ID in `deletedCommentIds`.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Initial clean-volume state: 42 posts, 2,076 comments, 3 deleted posts, 81 deleted comments, 0 `post_likes`, and one `seed_history` row for `assignment-v1`.
+- Preserved ranges: post IDs `1..42`; comment IDs `1..2076`.
+- Generated identity checks produced post ID `43` and comment ID `2077`, without conflicting with preserved seed IDs.
+- Persistent-volume backend restart retained 42 posts, 2,076 comments, 0 `post_likes`, and one `assignment-v1` seed-history row.
+- A modified existing seed row retained its modified value across the backend restart, proving startup did not overwrite existing data; the value was restored after verification.
+- Node.js parsed the actual `seed/seed.json` as UTF-8 (`JSON.parse`: 42 posts, 2,076 comments). It compared complete, ordered PostgreSQL results rather than samples:
+  - `seed.deletedPostIds` exactly equaled `SELECT id FROM posts WHERE is_deleted = TRUE ORDER BY id` (3 of 3 IDs).
+  - `seed.deletedCommentIds` exactly equaled `SELECT id FROM comments WHERE is_deleted = TRUE ORDER BY id` (81 of 81 IDs).
+  - All 42 `seed.posts[].likeCount` values equaled their corresponding `posts.base_like_count` values (42 of 42 rows).
+  - For all 42 posts, the count of seed comments excluding `deletedCommentIds` equaled the database count where `comments.is_deleted = FALSE` (42 of 42 posts).
+- `backend/gradlew.bat test --no-daemon` completed with `BUILD SUCCESSFUL`.
+
+**Result:** `PASS`
 
 ---
 
