@@ -184,6 +184,16 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# P5A Post Detail Update — 2026-09-29
+
+- **Route boundary:** `app/posts/[postId]/page.tsx` is a thin Server Component that validates the segment (positive safe integer, else `null`) and renders `features/post-detail/PostDetailScreen`. All requester-sensitive data is fetched in the browser, consistent with ADR-008.
+- **Detail query:** `usePostDetail()` uses `postKeys.detail(id)` and does not retry an `ApiError` 404, so a missing or soft-deleted post resolves immediately to the not-found state. `CommentSection` mounts only after the post loads, so a deleted post triggers no comment request.
+- **Like synchronization:** `useTogglePostLike()` is deliberately non-optimistic. The server's `{ isLiked, likeCount }` is written with `setQueryData` into the detail cache and with `setQueriesData` into every cached `postKeys.lists()` infinite page containing the post, so returning to the list shows the same values without waiting for a refetch. A failed toggle changes no cache. An in-flight `useRef` guard blocks a second toggle in the tick before `isPending` renders. Requester isolation needs no cache partitioning because `/dev-user` switches users with a full page load, which creates a new `QueryClient`.
+- **Comment pagination:** `useComments()` is one `useInfiniteQuery` on `postKeys.commentList(id)` whose `pageParam` is `{ cursor?, limit }`: the first page is `{ limit: 2 }` and later pages are `{ cursor: nextCursor, limit: 20 }`. The keyset cursor encodes `(createdAt, id)`, so changing the page size between pages neither skips nor duplicates rows. No backend change was needed.
+- **More / continuation gate:** `CommentSection` keeps a per-visit `expanded` flag. Collapsed, it renders at most the first page's two items and shows More only when `total >= 3`. More sets `expanded` and calls `fetchNextPage()` once; the shared `useInfiniteScrollTrigger` (ADR-010) is enabled only while `expanded && hasNextPage && !isFetchingNextPage && !isFetchNextPageError`, so a visible sentinel never fetches before More. As in P4, the initial-error block requires `data === undefined` because a failed continuation also sets `status: "error"`.
+
+---
+
 # P4 Post List Update — 2026-09-29
 
 - **Feature boundary:** `frontend/features/post-list/` holds the only P4 client code: `usePostList.ts` (query hook), `PostListScreen.tsx` (states, sentinel, FAB), `PostListItem.tsx` (row), their CSS Modules, and `icons.tsx`. `app/page.tsx` stays a Server Component that renders `PostListScreen`.
@@ -192,7 +202,7 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 - **Next-page error:** TanStack Query v5 also sets `status: "error"` when only `fetchNextPage` fails. The screen therefore shows the full-screen error only while `data === undefined` and reports next-page failures below the loaded rows.
 - **Relative time (ADR-011):** list data is fetched only in the browser, so the server render contains no timestamp and `Date.now()` is read at client render time; no hydration mismatch arises.
 - **Avatar:** `frontend/lib/avatar.ts` `avatarFor()` maps `FNV-1a(author) % 3` to the three provided assets.
-- **Prefetch:** the detail row and write FAB `Link`s set `prefetch={false}` because `/posts/{id}` and `/posts/new` do not exist until P5/P6; production prefetch otherwise requested those 404 routes in the background. Remove it when the routes land.
+- **Prefetch:** P4 set `prefetch={false}` on both list `Link`s while their routes were missing. P5A added `/posts/[postId]` and restored default prefetch on the detail row. The write FAB keeps `prefetch={false}` until P6 adds `/posts/new`; until then that path falls through to the `[postId]` segment and renders the not-found state.
 
 ---
 
