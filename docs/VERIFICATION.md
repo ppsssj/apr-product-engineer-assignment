@@ -53,6 +53,21 @@ curl -i http://localhost:8080/health
 - `GET /health` returned HTTP 200.
 - Flyway migration `V1` completed successfully.
 
+### P8-A Current-Main Evidence — 2026-09-30
+
+- The final default-port `docker compose up --build -d` build completed and
+  started `db` before `backend`, with frontend gated on backend health. All
+  three services became healthy; `/health` returned HTTP 200 with
+  `{"status":"ok","db":"up"}`, `/api/posts?limit=1` returned total 39,
+  and the frontend root returned HTTP 200.
+- Three fresh-volume observations before the readiness fix showed health 200
+  before seed-backed data was reliably ready. The first directly observed
+  `/api/posts` total 0 after health 200; see the dedicated investigation below.
+- After the fix, three additional fresh-volume starts kept `/health` at 503
+  until seed readiness had committed. Every first API response observed after
+  health 200 had total 39. Docker therefore could not report a healthy backend
+  while the readable seed was absent.
+
 **Result:** `PASS`
 
 ---
@@ -82,7 +97,18 @@ Open frontend at `http://localhost:13000`.
 - All services start successfully on the supplied ports.
 - Frontend communicates with backend successfully.
 
-**Result:** `NOT_RUN`
+### P8-A Current-Main Evidence — 2026-09-30
+
+- With PowerShell-scoped `FRONTEND_PORT=13000`, `BACKEND_PORT=18080`, and
+  `DB_PORT=25432`, `docker compose up --build -d` produced three healthy
+  services bound to exactly those host ports. `GET http://localhost:18080/health`
+  returned 200 and the alternate API returned total 39.
+- Chromium loaded `http://localhost:13000/` with 10 list rows. Its actual
+  browser resource was `http://localhost:18080/api/posts?limit=10`; no request
+  used `localhost:8080`. The temporary PowerShell port variables were removed
+  after the run and a default-port stack was rebuilt successfully.
+
+**Result:** `PASS`
 
 ---
 
@@ -129,6 +155,18 @@ Open frontend at `http://localhost:13000`.
   - For all 42 posts, the count of seed comments excluding `deletedCommentIds` equaled the database count where `comments.is_deleted = FALSE` (42 of 42 posts).
 - `backend/gradlew.bat test --no-daemon` completed with `BUILD SUCCESSFUL`.
 
+### P8-A Current-Main Evidence — 2026-09-30
+
+- On a fresh P8-A volume, Node.js parsed the actual UTF-8 `seed/seed.json` and
+  compared full database results: 42 posts, 2,076 comments, 3 deleted posts,
+  81 deleted comments, 0 likes, and exactly one `assignment-v1` history row.
+  All post IDs and comment IDs, both complete deleted-ID sets, all 42 base
+  like counts, and all 42 per-post readable-comment counts matched the source;
+  the readable post API total was 39.
+- After `docker compose stop` then `docker compose up -d` without deleting the
+  volume, the state remained `42|2076|3|81|0|1` and the readable total remained
+  39. No seed row, deleted marker, like row, or seed-history marker duplicated.
+
 ### Acceptance Boundary
 
 - This `PASS` records the completed P1 persistence/seed verification; it is not final API acceptance for every composite `SEED-*` requirement.
@@ -155,7 +193,59 @@ Open frontend at `http://localhost:13000`.
 - `/health` still returns 200.
 - User switch behavior still works.
 
-**Result:** `NOT_RUN`
+### P8-A Current-Main Evidence — 2026-09-30
+
+- `git rev-list --max-parents=0 HEAD` identified starter commit
+  `38a975520f5086fe6a6be98058e7d659bfcca8c9`; its diff to current HEAD for
+  `frontend/app/dev-user/page.tsx` is empty, and its file history contains only
+  that starter commit.
+- `/health` remains the same path and returned HTTP 200 only after readiness.
+  In Chromium, `/dev-user` selected `mintcream`, set
+  `x-user-id=mintcream`, and the actual frontend API requests carried that
+  cookie. Post 1 was liked as `mintcream`, read unliked as `apr_tester`, then
+  read liked again as `mintcream`; the relation was toggled off and the cookie
+  restored to `apr_tester`, leaving `post_likes` at zero.
+
+**Result:** `PASS`
+
+---
+
+## P8-A First-Boot Readiness Investigation — 2026-09-30
+
+`T1` is first TCP acceptance on backend port 8080; `T2` is first `/health`
+HTTP 200; `T3` is first successful list API response; `T4` is first observed
+list total 39; `T5` is the matching DB confirmation of
+`42|2076|3|81|0|1`. Timings are seconds from the start of each close polling
+window; the initial image-build time is intentionally outside those values.
+
+- Before the fix, three clean volumes showed T2 before T4: run 1
+  `65.380/71.748/72.016/72.860/72.860`, including an actual API total 0 at T3;
+  run 2 `.032/.235/.371/.371/.371`; run 3 `.033/.229/.359/.359/.359`.
+  `HealthController` checked only a DB connection while transactional
+  `SeedInitializer` ran as an `ApplicationRunner`, so the first run proved a
+  release blocker rather than timing noise.
+- The fix adds `SeedReadiness`: `SeedInitializer` registers readiness with the
+  current transaction's `afterCommit`, and `/health` returns 503 until that
+  flag is true. It does not change the path, eventual 200 response, seed data,
+  or Docker healthcheck contract.
+- After the fix, three more clean volumes observed no health-200/empty-seed
+  combination: run 1 `10.099/17.071/16.112/17.104/17.104` (the internal API
+  was still reachable with total 0 before health; the first post-health API
+  had total 39); run 2 `.033/.233/.366/.366/.366`; run 3
+  `.031/.231/.377/.377/.377`. Docker health could only become healthy after
+  seed availability.
+
+**Classification:** `BENIGN_INTERNAL_GAP`
+
+### P8-A Static Check Note
+
+- `backend/gradlew.bat clean test --no-daemon`, `npm run typecheck`,
+  `npm run build`, and `git diff --check` passed. The local
+  `frontend/.next` target was resolved but its explicit recursive removal was
+  blocked by this execution environment's safety policy, so the local npm
+  build is not claimed as clean. The frontend Docker build context excludes
+  `.next` via `frontend/.dockerignore` and successfully performed the
+  production build used for the runtime images.
 
 ---
 

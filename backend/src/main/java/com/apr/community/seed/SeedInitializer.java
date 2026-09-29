@@ -26,6 +26,7 @@ public class SeedInitializer implements ApplicationRunner {
     private final CommentRepository commentRepository;
     private final IdentitySequenceRepository identitySequenceRepository;
     private final SeedHistoryRepository seedHistoryRepository;
+    private final SeedReadiness seedReadiness;
     private final Path seedPath;
 
     public SeedInitializer(
@@ -34,12 +35,14 @@ public class SeedInitializer implements ApplicationRunner {
             CommentRepository commentRepository,
             IdentitySequenceRepository identitySequenceRepository,
             SeedHistoryRepository seedHistoryRepository,
+            SeedReadiness seedReadiness,
             @Value("${app.seed-path}") String seedPath) {
         this.seedDataReader = seedDataReader;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.identitySequenceRepository = identitySequenceRepository;
         this.seedHistoryRepository = seedHistoryRepository;
+        this.seedReadiness = seedReadiness;
         this.seedPath = Path.of(seedPath);
     }
 
@@ -47,6 +50,7 @@ public class SeedInitializer implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) throws IOException {
         if (seedHistoryRepository.hasImported(SEED_KEY)) {
+            seedReadiness.markReadyAfterCommit();
             return;
         }
 
@@ -63,5 +67,6 @@ public class SeedInitializer implements ApplicationRunner {
 
         identitySequenceRepository.synchronizeWithSeededRows();
         seedHistoryRepository.markImported(SEED_KEY, OffsetDateTime.now(ZoneOffset.UTC));
+        seedReadiness.markReadyAfterCommit();
     }
 }

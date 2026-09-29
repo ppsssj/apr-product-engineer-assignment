@@ -4,22 +4,21 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P7 — Visual Integration & UX Polish`
-- Status: P6 `COMPLETE`; P7 `COMPLETE`. P7-A was merged by PR #14 and P7-B found no presentation or functional regression requiring product-code changes.
-- Last Verified Commit: `3f54f85ab775bb64f08dd6c3bbebc011b89b185b` (P7-A merge; P7-B runtime evidence is recorded in `docs/VERIFICATION.md`).
+- Current Phase: `P8 — Full Integration & Acceptance Verification`
+- Status: P7 `COMPLETE`; P8 `IN_PROGRESS`. P8-A fixed the seed-readiness health gate and verified startup, alternate ports, idempotency, and starter contracts; P8-B has not started.
+- Last Verified Commit: `d51d9ec45827aca5f4395b4e5de7be5beaa434d6` (P7-B merge base; P8-A candidate evidence is recorded in `docs/VERIFICATION.md`).
 - Last Updated: `2026-09-30`
 - Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
 
 ### Known Blockers
 
-- No blocker.
-- Open separate decision: first-boot readiness window (`/health` 200 before the seed commits).
+- P8-A resolved the first-boot readiness release blocker: `/health` is now 503 until the seed transaction commits.
 - A fresh Figma MCP comparison remains unavailable; V-081 stays `NOT_RUN`.
 
 ### Next Action
 
-1. Review P7-B visual regression documentation on `feat/p7b-visual-regression`.
-2. P8 acceptance remains a separate phase and has not started.
+1. Review P8-A release-environment evidence and readiness fix on `feat/p8a-release-environment`.
+2. P8-B remains the next acceptance scope and has not started.
 
 ### P7 Backlog (recorded, not implemented)
 
@@ -497,7 +496,10 @@ Verify the application the way an evaluator is likely to run it.
 
 ### Status
 
-`NOT_STARTED`
+`IN_PROGRESS` — P8-A is complete and ready for review: it reproduced the
+first-boot readiness gap, changed health readiness to follow seed transaction
+commit, and verified clean-volume boot, alternate ports, idempotency, and
+starter contracts. P8-B and P9 have not started.
 
 ---
 
