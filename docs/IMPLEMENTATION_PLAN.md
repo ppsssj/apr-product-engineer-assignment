@@ -6,7 +6,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 - Current Phase: `P2 — Backend Domain & API`
 - Status: `IN_PROGRESS`
-- Last Verified Commit: `7df1ce3` (P1 and Figma audit merged); P2A read API acceptance completed on `2026-09-29`.
+- Last Verified Commit: `01e8743089c33a88c9b84a2af490bab8d0e0b28c` (P2A implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -16,7 +16,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Review the P2A PR only.
+- Merge the reviewed P2A PR.
+- After merge, P2B mutation implementation is the next P2 subphase.
 - Do not start P2B until explicitly requested.
 
 ### P0 Completion Update

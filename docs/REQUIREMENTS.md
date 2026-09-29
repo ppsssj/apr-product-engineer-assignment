@@ -195,7 +195,7 @@ Base path: `http://localhost:8080/api`
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| API-010 | Request/response bodies are JSON. | §5 | VERIFIED |
+| API-010 | Request/response bodies are JSON. | §5 | IMPLEMENTED |
 | API-011 | `GET /posts` response contains `items`. | §5 | VERIFIED |
 | API-012 | `GET /posts` response contains `total`. | §5 | VERIFIED |
 | API-013 | `GET /posts` `total` means total matching readable rows, not current page size. | §5 | VERIFIED |

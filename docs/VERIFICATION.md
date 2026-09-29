@@ -610,6 +610,7 @@ Test posts with:
 - List responses were JSON envelopes with `items`, full readable `total`, and the implemented `nextCursor` extension.
 - Every traversed post item contained exactly `id`, `title`, `content`, `likeCount`, `commentCount`, `isLiked`, `author`, and ISO-8601 `createdAt`.
 - Detail returned the same fields as a single object without an `items` envelope.
+- `API-010` final verification remains pending until P2B mutation request bodies and responses exist.
 - PATCH is intentionally deferred to P2B, so V-070 remains open rather than claiming a complete pass.
 
 **Result:** `NOT_RUN`
