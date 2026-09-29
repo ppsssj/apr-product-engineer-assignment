@@ -227,6 +227,13 @@ Open frontend at `http://localhost:13000`.
 - Regression found and fixed during this run: a same-tick double click sent two toggles because TanStack's `isPending` renders one scheduler tick after `mutate`; `useTogglePostLike` now guards with an in-flight ref. A leftover test like from the failed run was reverted before the passing run.
 - P4 regression: the P4 script passed 48/48 (39 posts as 10/10/10/9, no duplicate, FAB → `/posts/new`) with zero 404 responses; list detail-link prefetch now issues background requests that succeed, and no `/posts/new` prefetch occurs.
 
+### P5A Review Fix — Same-Session Revisit — 2026-09-29
+
+- Defect (PR #9 review): comment pages survived in the shared `QueryClient` after leaving the detail screen. A temporary Playwright revisit script at `375 × 778` reproduced it against the unfixed production build (`14ab5a0`): on re-entering post 4 without a full reload, the mount refetch sent the two cached `limit=20` continuation requests before More, and More showed all 27 comments within 50 ms (6/12 checks failed).
+- Fix commit `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (`useComments` `gcTime: 0`). `npm run typecheck` exited 0, a clean `npm run build` succeeded, `git diff --check` was clean, and the production frontend container was rebuilt.
+- Revisit script against the fixed build, 12/12: visit 1 made one `limit=2` request, then More and scrolling loaded two continuation pages (27 shown). Going back with the in-app back button and clicking the same row (no full reload, verified by a window marker) produced exactly one fresh `limit=2` request and 0 continuation requests before More, even after scrolling; at most 2 comments were visible. 50 ms after More only 2 were shown. The first continuation was `limit=20` with the revisit's first-page `nextCursor` and rendered 22. Scrolling completed the cursor chain to 27 in API newest-first order with no duplicate, the final `nextCursor` was `null`, and no request followed it.
+- Re-run on the same build: the P5A script passed 63/63 and the P4 script passed 48/48 (zero 404 responses). Post 13 like state was confirmed restored (`856`, unliked for `apr_tester` and `mintcream`).
+
 ---
 
 # Requester / Ownership
@@ -598,6 +605,7 @@ Test posts with:
 ### Execution Evidence — 2026-09-29
 
 - Posts 10 (0), 24 (1), 1 (2), 3 (3), and 4 (27) in Chromium at 375×778: at most 2 comments before More, newest-first matching the API, More only for 3 and 27, and exactly one initial `limit=2` comment request per post. The 0-comment state shows only `댓글 (0)`.
+- After the review fix, a same-session revisit of post 4 again showed at most 2 comments and made one fresh `limit=2` request (see "P5A Review Fix — Same-Session Revisit").
 
 **Result:** `PASS`
 
@@ -624,6 +632,7 @@ Test posts with:
 ### Execution Evidence — 2026-09-29
 
 - No comment request beyond the initial `limit=2` page before More, even after scrolling the sentinel into view. After More, bounded `limit=20` pages chained by `nextCursor` loaded through the sentinel until `nextCursor: null`, with newest-first order, no duplicate, and no request after the end (posts 3, 4; incremental loading on post 2 with 1,411 comments).
+- The same gate holds on a same-session revisit after previously loading continuation pages: 0 continuation requests before More and no bulk exposure of cached comments on More (fix `ddc1a9d`).
 
 **Result:** `PASS`
 

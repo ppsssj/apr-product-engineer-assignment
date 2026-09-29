@@ -6,7 +6,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 - Current Phase: `P5A — Post Detail Read / Like / Comment Read & Continuation`
 - Status: `P5A COMPLETE`; `P5B NOT_STARTED`; P5 as a whole is not complete.
-- Last Verified Commit: `2af23aab5cf1009c6e39a359be5abb01a7c34566` (P5A implementation and acceptance).
+- Last Verified Commit: `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (P5A per-visit comment cache fix and full P5A/P4 re-acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -79,7 +79,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 - Status: `COMPLETE`
 - `/posts/[postId]` renders post detail, a non-optimistic like toggle synchronized into detail and list caches, and newest-first comments: at most 2 initially (`limit=2`), `댓글 더보기` only when total >= 3, and sentinel continuation (`limit=20`) only after More. Loading/not-found/error and continuation states are handled.
-- Verified at 375×778 in Chromium (63/63 checks), plus the P4 regression suite (48/48). `DETAIL-001`–`DETAIL-008` are `VERIFIED`; V-060/V-061 `PASS`.
+- Verified at 375×778 in Chromium (63/63 checks), the same-session revisit regression (12/12), and the P4 regression suite (48/48). `DETAIL-001`–`DETAIL-008` are `VERIFIED`; V-060/V-061 `PASS`.
+- Review fix: the comment query uses `gcTime: 0` so a revisit without full reload restarts at the initial two comments; cached continuation pages can no longer be refetched before More or exposed at once on More.
 - Out of scope and not rendered: comment composer, own-comment delete, and its confirmation (P5B); own-post menu, edit, delete, and create (P6).
 
 ---
