@@ -7,10 +7,10 @@ This document is the operational state for the assignment. Keep it concise and c
 - Current Gate: `Performance Audit Gate — before P5B`
 - Performance Audit: `COMPLETE`
 - Audit Verdict: `OPTIMIZATION_RECOMMENDED` (structural inefficiency only; no user-visible bottleneck)
-- Selected Optimization: `Row-value keyset predicate` — `NOT_STARTED` (separate PR after the audit merges)
-- Other Optimization Candidates: `REJECTED / DEFERRED` (see `docs/PERFORMANCE.md` §10)
+- Selected Optimization: `Row-value keyset predicate` — `COMPLETE`
+- Other Optimization Candidates: `REJECTED / DEFERRED` (unchanged; see `docs/PERFORMANCE.md` §10)
 - P5B: `NOT_STARTED`
-- Last Verified Commit: `ddc1a9da6e4c91eb0d8dfe3b1a4c9c886dbf3c1c` (P5A per-visit comment cache fix and full P5A/P4 re-acceptance; merged in `e521fd8`). The audit changes documentation only.
+- Last Verified Commit: `b86f668128f71a7e0646649318389a670da43cf1` (row-value keyset predicate; real-PostgreSQL traversal/tie regression, before/after EXPLAIN and API benchmark, backend tests, P4/P5A browser suites).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -21,10 +21,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review and merge the performance audit PR (#10).
-2. Implement the row-value keyset predicate in a separate PR (`perf/row-value-keyset`) with before/after evidence.
-3. Review and merge the optimization PR.
-4. Then start P5B — Comment Create / Own-Comment Delete, only when explicitly requested.
+1. Review and merge the keyset optimization PR (`perf/row-value-keyset`).
+2. Then start P5B — Comment Create / Own-Comment Delete, only when explicitly requested.
 
 ### Performance Audit Gate Status
 
@@ -32,6 +30,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Seed: 39 readable posts; readable comments per post median 7, max 1,411 (post #2 ≈73.3 %).
 - Clean seed segment median 911 ms, once per fresh volume. Read endpoints median 3.5–8.5 ms. A full 1,411-comment traversal takes 72 requests / 216 statements / median 523 ms.
 - Structural inefficiency selected for fixing: the keyset cursor is a `Filter`, not an index bound (deep pages scan linearly). Repeated EXISTS + COUNT per page exists but is not a bottleneck and stays.
+- Selected optimization `COMPLETE`: the row-value predicate is now an `Index Cond`; deep-page buffers on post #2 went from 42 to 3 with identical results. API latency is unchanged within noise.
 
 ### P0 Completion Update
 
