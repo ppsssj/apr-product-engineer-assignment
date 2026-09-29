@@ -75,7 +75,7 @@ This section supersedes the earlier “not yet repository-verified” boundary b
 | ADR-009 CSS Modules | `PROVISIONAL` | No competing styling system is installed, but no component styling structure exists yet. |
 | ADR-010 infinite-scroll trigger | `PROVISIONAL` | The browser primitive needs no dependency, but its integration depends on the unresolved pagination/server-state approach. |
 | ADR-011 relative time | `DECIDED` | The native formatter needs no dependency and seed timestamps are UTC ISO strings. |
-| ADR-012 validation / ownership / errors | `PROVISIONAL` | Ownership is assigned, but no API layer exists and a validation starter is not explicitly declared. |
+| ADR-012 validation / ownership / errors | `DECIDED` | P2B implements explicit dependency-free validation, service-layer ownership/transactions, and consistent JSON errors. |
 | ADR-013 seed initialization | `OPEN` | Seed path/mount and persistent DB volume are verified, but the chosen migration mechanism and startup hook do not exist. |
 
 ## External Evidence Checked
@@ -154,7 +154,19 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 - The canonical order is `(created_at DESC, id DESC)`. The next-page predicate compares the same timestamp and ID pair, and repositories fetch `limit + 1` rows to decide whether `nextCursor` exists without using `OFFSET`.
 - The opaque cursor payload is the exact `Instant` text plus the numeric ID, separated by `|`, encoded as URL-safe Base64 without padding. Decoding rejects non-canonical Base64, invalid timestamps, non-positive/invalid IDs, and malformed payload structure.
 - `GET /api/posts`, `GET /api/posts/{postId}`, and `GET /api/posts/{postId}/comments` are the only P2A endpoints. Post page rows derive `likeCount`, requester-specific `isLiked`, and readable `commentCount` in one bounded SQL query; a separate count query supplies full `total`.
-- Missing and soft-deleted posts both return the same 404 JSON contract. Comment reads first require a readable parent post. P2B mutation validation and ownership enforcement remain intentionally unimplemented.
+- Missing and soft-deleted posts both return the same 404 JSON contract. Comment reads first require a readable parent post. At the P2A cutoff, mutation validation and ownership enforcement were intentionally deferred to P2B.
+
+---
+
+# P2B Mutation API Implementation Update — 2026-09-29
+
+- The six required mutation routes use focused request/response records and keep the P2A read contract unchanged. Post create/update share one explicit validator; title length is measured with `String.codePointCount`, blank checks do not trim the stored value, and comment content has no invented maximum length.
+- Rejecting blank comment content is a `PRODUCT_DECISION`: the assignment requires comment creation but gives no explicit blank rule. A nonblank requirement prevents empty persisted comments without introducing a length cap.
+- `PostMutationService` and `CommentMutationService` are the authoritative ownership and transaction boundaries. Repositories expose SQL primitives and do not encode HTTP status semantics.
+- Every mutation method is service-level `@Transactional`. Readable target rows are locked before ownership checks or multi-step changes; like toggle serializes on the readable post row and relies on the existing `(post_id, user_id)` primary key.
+- Post and comment deletion only set `is_deleted = TRUE`. Comment deletion checks comment authorship independently from post ownership, and a deleted parent makes comment reads and mutations unavailable without cascading child deletion.
+- The JSON error contract is `400` for validation or unreadable JSON, `403` for a readable resource owned by another requester, and `404` for missing or soft-deleted targets. Success statuses are `201` create, `200` update/toggle, and `204` delete.
+- Clean-volume PostgreSQL acceptance verified post/comment identity generation, requester ownership, Unicode title validation, requester-isolated likes, derived counts, retained soft-deleted rows, P2A read regression, and restoration to the seed baseline.
 
 ---
 
@@ -666,17 +678,19 @@ We still own threshold selection (seconds vs minutes vs hours vs days), but avoi
 
 # ADR-012 — Backend Validation, Ownership, Transactions, and Error Handling
 
-**Status:** `PROVISIONAL`
+**Status:** `DECIDED`
 
 ## Decision
 
 ### Validation
 
-Backend request DTOs enforce product constraints with Bean Validation where appropriate:
+Backend request DTOs use a small explicit validator without adding a validation dependency:
 
-- title: `@NotBlank`, `@Size(max = 20)`
-- post content: `@NotBlank`
-- comment content: `@NotBlank`
+- title: non-null, nonblank, and at most 20 Unicode code points via `codePointCount`
+- post content: non-null and nonblank
+- comment content: non-null and nonblank, with no maximum length added
+
+Blank checks are validation-only; accepted values are stored without automatic trimming.
 
 Frontend validation mirrors these rules for UX, but backend validation is authoritative.
 
@@ -694,13 +708,13 @@ Ownership checks live in the service/application layer, not only in UI visibilit
 
 ### Transactions
 
-Use service-level `@Transactional` around multi-step mutations where atomicity matters, especially like toggle and seed import.
+Use service-level `@Transactional` around mutation methods. Readable targets are locked before ownership-sensitive changes, and like toggles serialize on the post row while the existing composite primary key preserves requester uniqueness.
 
 ### Errors
 
 Use `@RestControllerAdvice` for consistent JSON errors.
 
-Proposed status semantics:
+Implemented status semantics:
 
 ```text
 400 validation / malformed input
@@ -715,8 +729,7 @@ The assignment explicitly allows status-code selection as long as behavior is co
 
 ## Evidence
 
-- Spring MVC 6.2 documents Bean Validation support for `@RequestBody` and validation annotations.
-  - https://docs.spring.io/spring-framework/reference/6.2/web/webmvc/mvc-controller/ann-validation.html
+- Repository evidence: `MutationValidator` performs dependency-free null/blank and Unicode code-point validation, while `ApiExceptionHandler` maps unreadable JSON to the shared error body.
 - Spring Framework documents declarative `@Transactional` support.
   - https://docs.spring.io/spring-framework/reference/6.2/data-access/transaction/declarative/annotations.html
 - Spring MVC documents `@RestControllerAdvice` as controller-wide exception handling that renders response bodies.

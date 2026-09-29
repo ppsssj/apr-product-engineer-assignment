@@ -5,20 +5,18 @@ This document is the operational state for the assignment. Keep it concise and c
 ## Current State
 
 - Current Phase: `P2 — Backend Domain & API`
-- Status: `IN_PROGRESS`
-- Last Verified Commit: `01e8743089c33a88c9b84a2af490bab8d0e0b28c` (P2A implementation and acceptance).
+- Status: `COMPLETE`
+- Last Verified Baseline: `8d38b1697c00e9eba02deaffddbea8a594414620`; P2B acceptance targets this branch's implementation worktree.
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
 
-- No blocker remains for P2A review.
-- P2B mutation work is intentionally deferred and is not a blocker for the scoped P2A PR.
+- No blocker remains for P2B review.
 
 ### Next Action
 
-- Merge the reviewed P2A PR.
-- After merge, P2B mutation implementation is the next P2 subphase.
-- Do not start P2B until explicitly requested.
+- Review the P2B PR only.
+- Do not start P3 until the P2B PR is reviewed and merged.
 
 ### P0 Completion Update
 
@@ -40,7 +38,7 @@ This document is the operational state for the assignment. Keep it concise and c
 - Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
 - `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
 - Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
-- P1 remains complete; P2A is complete and P2 remains in progress until P2B is implemented and verified.
+- P1, P2A, and P2B are complete; P2 is complete. P3 remains not started.
 
 ### Figma Design Audit Status
 
@@ -54,7 +52,13 @@ This document is the operational state for the assignment. Keep it concise and c
 - Status: `COMPLETE`
 - Implemented only `GET /api/posts`, `GET /api/posts/{postId}`, and `GET /api/posts/{postId}/comments`, plus requester resolution, strict cursor pagination, read DTO/error contracts, and focused tests.
 - Real PostgreSQL acceptance covered all 39 readable posts, all readable-comment pages, seed-deleted resource exclusion, requester-specific `isLiked`, and invalid pagination inputs.
-- P2B Status: `NOT_STARTED`; no mutation endpoint, mutation validation, or ownership mutation enforcement is included.
+- P2B Status: `COMPLETE`; all required mutation routes, manual validation, service-layer ownership, transactions, soft deletion, and JSON errors passed automated and real PostgreSQL acceptance.
+
+### P2B Status
+
+- Status: `COMPLETE`
+- Implemented post create/update/soft-delete, requester-specific like toggle, comment create/soft-delete, explicit Unicode-aware validation, and consistent JSON error handling.
+- Real PostgreSQL acceptance covered ownership isolation, derived counts, retained soft-deleted rows, deleted-resource rejection, P2A read regression, and clean seed-baseline restoration.
 
 ---
 
@@ -223,7 +227,7 @@ Implement the assignment API with ownership, validation, pagination, and consist
 
 ### Status
 
-`IN_PROGRESS`
+`COMPLETE`
 
 ---
 

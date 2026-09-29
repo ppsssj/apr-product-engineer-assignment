@@ -133,7 +133,7 @@ Open frontend at `http://localhost:13000`.
 
 - This `PASS` records the completed P1 persistence/seed verification; it is not final API acceptance for every composite `SEED-*` requirement.
 - P2A subsequently verified `SEED-003` through V-021 and `SEED-004`, `SEED-008`, and `SEED-009` through V-065.
-- P2A also verified the initial-read portion of `SEED-010`: `post_likes` was empty and every readable seeded post returned `isLiked: false`. Full like-toggle scenario V-050 remains deferred to P2B.
+- P2A verified the initial-read portion of `SEED-010`; P2B subsequently completed the requester-specific toggle evidence in V-050.
 
 **Result:** `PASS`
 
@@ -170,6 +170,21 @@ Open frontend at `http://localhost:13000`.
 - A unique temporary `post_likes` row proved header and cookie requester matching, default `apr_tester`, and header-over-cookie precedence. The row was removed in cleanup and `post_likes` returned to zero rows.
 - Malformed post/comment cursors returned HTTP 400 `INVALID_CURSOR`; limits 0 and 51 returned HTTP 400 `INVALID_LIMIT`.
 - The runtime verifier parsed JSON with Node.js and was removed after execution; it is not a repository artifact.
+
+---
+
+## P2B Mutation API Runtime Acceptance — 2026-09-29
+
+- A project-scoped clean-volume `docker compose up -d --build` made `db`, `backend`, and `frontend` healthy; `/health` returned HTTP 200 with database status `up`.
+- The baseline contained 42 physical/39 readable posts, 2,076 physical/1,995 readable comments, zero `post_likes`, and one `assignment-v1` seed-history row.
+- Post ID `43` was created for `p2b_user_a` with zero derived counts and false requester-like state, appeared first in the list, rejected requester B's PATCH/DELETE with 403, accepted owner PATCH/DELETE, and remained physically stored after soft deletion.
+- Validation returned JSON 400 errors for missing/blank title or content, a 21-code-point title, blank comment, and malformed JSON. A title containing exactly 20 emoji code points returned 201.
+- Two requesters independently toggled one post through count sequence `0 → 1 → 2 → 1 → 0`; each requester saw only their own `isLiked`, and the final database like-row count was zero.
+- Comment ID `2077` was created by requester B. Post owner A could not delete it (403), requester B could (204), the row remained with `is_deleted = true`, the derived count returned from one to zero, and a repeated delete returned 404.
+- After post deletion, list exclusion and 404 behavior were verified for detail, comments read/create, PATCH, like toggle, and repeated DELETE. The original 42 posts, 2,076 comments, seed-history marker, and seed-deleted read exclusions remained intact.
+- Cleanup used only this APR Compose project's `down -v` followed by `up -d`. The restored baseline is 42/39 posts, 2,076/1,995 comments, zero likes, one seed-history row, and `/health` HTTP 200. The Node.js verifier was removed.
+
+---
 
 ---
 
@@ -317,6 +332,13 @@ x-user-id: <known-author>
 - Backend rejects invalid payloads even if called directly.
 - Valid payload succeeds.
 
+### P2B Backend Evidence — 2026-09-29
+
+- Direct POST requests returned HTTP 400 JSON errors for missing/blank title, a 21-code-point title, missing/blank content, and malformed JSON.
+- A title containing exactly 20 emoji code points returned HTTP 201, confirming code-point rather than UTF-16-unit validation.
+- Automated tests cover null/blank fields, 20/21 code-point boundaries, and emoji surrogate pairs.
+- The frontend-disabled portion remains unimplemented, so this combined UI/backend scenario is not marked PASS.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -338,6 +360,12 @@ x-user-id: <known-author>
 - UI returns to list.
 - Completion toast is shown.
 - New post is visible in the correct order.
+
+### P2B Backend Evidence — 2026-09-29
+
+- `POST /api/posts` returned HTTP 201 with generated ID `43`, requester author `p2b_user_a`, and `likeCount: 0`, `commentCount: 0`, `isLiked: false`.
+- PostgreSQL retained the physical row with `base_like_count = 0` and `is_deleted = false`; the next list read placed it first.
+- UI navigation and toast behavior remain for a frontend phase, so the full scenario remains open.
 
 **Result:** `NOT_RUN`
 
@@ -363,6 +391,12 @@ x-user-id: <known-author>
 - Same validation rules as create apply.
 - Updated values persist.
 
+### P2B Backend Evidence — 2026-09-29
+
+- The owner PATCH returned HTTP 200 with the updated post object; a following detail read and PostgreSQL query confirmed persistence.
+- `author` and `createdAt` were unchanged, and PATCH uses the same validator as POST.
+- Action-menu visibility, edit-form reuse, and prefill remain frontend work, so the full scenario remains open.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -381,7 +415,12 @@ x-user-id: <known-author>
 - Mutation is rejected.
 - Post remains unchanged.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Requester `p2b_user_b` PATCHed requester `p2b_user_a`'s readable post and received HTTP 403 with the JSON error contract.
+- A direct PostgreSQL query confirmed the title was unchanged; the owner subsequently PATCHed the same row successfully.
+
+**Result:** `PASS`
 
 ---
 
@@ -407,6 +446,12 @@ x-user-id: <known-author>
 - Resource is not readable through normal detail API.
 - UI returns to list after own-post deletion.
 
+### P2B Backend Evidence — 2026-09-29
+
+- Owner DELETE returned HTTP 204. PostgreSQL still contained exactly one row for ID `43` with `is_deleted = true`.
+- List excluded the post; detail and comments reads returned 404. PATCH, like toggle, repeated DELETE, and comment creation also returned 404.
+- UI return-to-list behavior remains unimplemented, so this combined API/UI scenario is not marked PASS.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -425,7 +470,12 @@ x-user-id: <known-author>
 - Deletion is rejected.
 - Post remains readable for normal users.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Requester `p2b_user_b` attempted to delete requester `p2b_user_a`'s readable post and received HTTP 403.
+- PostgreSQL still reported `is_deleted = false`; the owner could continue reading and later delete the post.
+
+**Result:** `PASS`
 
 ---
 
@@ -450,13 +500,14 @@ x-user-id: <known-author>
 - Requester B's `isLiked` is independently evaluated.
 - Second toggle for requester A reverses the state/count change.
 
-### P2A Partial Evidence — 2026-09-29
+### Execution Evidence — 2026-09-29
 
-- With an empty `post_likes` table, all 39 readable posts and the sampled detail returned `isLiked: false` and the database-derived base `likeCount`.
-- A unique temporary like row made `isLiked` true only for the matching header/cookie requester and raised the derived count by one; cleanup restored `post_likes` to zero.
-- The toggle endpoint is intentionally deferred to P2B, so the complete scenario has not passed.
+- With zero application like rows, requester A read `isLiked: false` and count `0` on the verification post.
+- Requester A toggled on, requester B independently read false and toggled on, then A and B each toggled off. Responses and detail reads showed counts `0 → 1 → 2 → 1 → 0` with independent requester state.
+- PostgreSQL ended with zero `post_likes` rows for the verification post. The response contained both `isLiked` and derived `likeCount`.
+- This passes the backend/API scenario. Visual icon behavior remains a frontend requirement and is not promoted by this evidence.
 
-**Result:** `NOT_RUN`
+**Result:** `PASS`
 
 ---
 
@@ -522,7 +573,13 @@ Test posts with:
 - Comment appears according to newest-first ordering.
 - `commentCount` increases by one.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Requester `p2b_user_b` created comment ID `2077` and received HTTP 201 with the requester as author.
+- The next comments read returned it first, PostgreSQL retained it as readable, and the parent post's derived `commentCount` changed from `0` to `1`.
+- Blank comment content returned HTTP 400 `INVALID_CONTENT`.
+
+**Result:** `PASS`
 
 ---
 
@@ -544,7 +601,13 @@ Test posts with:
 - Comment disappears from comment list.
 - Post `commentCount` decreases by one.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- The comment author deleted comment ID `2077` and received HTTP 204.
+- PostgreSQL retained the row with `is_deleted = true`; comments `total` and the parent post's derived `commentCount` both changed from `1` to `0`.
+- A repeated delete returned HTTP 404.
+
+**Result:** `PASS`
 
 ---
 
@@ -562,7 +625,12 @@ Test posts with:
 - Deletion is rejected.
 - Comment remains readable.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-09-29
+
+- Post owner `p2b_user_a` attempted to delete `p2b_user_b`'s comment and received HTTP 403, proving post ownership does not imply comment ownership.
+- PostgreSQL still reported the comment as readable; requester B then deleted their own comment successfully.
+
+**Result:** `PASS`
 
 ---
 
@@ -605,15 +673,15 @@ Test posts with:
 - detail includes `isLiked`, `commentCount`
 - patch returns updated post object
 
-### P2A Partial Evidence — 2026-09-29
+### Execution Evidence — 2026-09-29
 
 - List responses were JSON envelopes with `items`, full readable `total`, and the implemented `nextCursor` extension.
 - Every traversed post item contained exactly `id`, `title`, `content`, `likeCount`, `commentCount`, `isLiked`, `author`, and ISO-8601 `createdAt`.
 - Detail returned the same fields as a single object without an `items` envelope.
-- `API-010` final verification remains pending until P2B mutation request bodies and responses exist.
-- PATCH is intentionally deferred to P2B, so V-070 remains open rather than claiming a complete pass.
+- P2B mutation requests and responses used JSON. Malformed JSON returned HTTP 400 with `{ "code": "INVALID_REQUEST", "message": "Request body is invalid." }`.
+- PATCH returned the same complete single-post object shape with updated content, requester-specific `isLiked`, and derived `commentCount`.
 
-**Result:** `NOT_RUN`
+**Result:** `PASS`
 
 ---
 

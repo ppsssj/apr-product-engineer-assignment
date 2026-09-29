@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import com.apr.community.common.pagination.CursorPosition;
 import com.apr.community.seed.SeedData.SeedComment;
@@ -38,6 +39,48 @@ public class CommentRepository {
                 .param("postId", postId)
                 .query(Long.class)
                 .single();
+    }
+
+    public long insertComment(long postId, String content, String author, Instant createdAt) {
+        return jdbcClient.sql("""
+                        INSERT INTO comments (post_id, content, author, created_at, is_deleted)
+                        VALUES (:postId, :content, :author, :createdAt, FALSE)
+                        RETURNING id
+                        """)
+                .param("postId", postId)
+                .param("content", content)
+                .param("author", author)
+                .param("createdAt", createdAt.atOffset(ZoneOffset.UTC))
+                .query(Long.class)
+                .single();
+    }
+
+    public Optional<CommentMutationTarget> findReadableMutationTargetForUpdate(long commentId) {
+        return jdbcClient.sql("""
+                        SELECT c.id, c.post_id, c.author
+                        FROM comments c
+                        JOIN posts p ON p.id = c.post_id
+                        WHERE c.id = :commentId
+                          AND c.is_deleted = FALSE
+                          AND p.is_deleted = FALSE
+                        FOR UPDATE OF p, c
+                        """)
+                .param("commentId", commentId)
+                .query((resultSet, rowNumber) -> new CommentMutationTarget(
+                        resultSet.getLong("id"),
+                        resultSet.getLong("post_id"),
+                        resultSet.getString("author")))
+                .optional();
+    }
+
+    public int softDelete(long commentId) {
+        return jdbcClient.sql("""
+                        UPDATE comments
+                        SET is_deleted = TRUE
+                        WHERE id = :commentId AND is_deleted = FALSE
+                        """)
+                .param("commentId", commentId)
+                .update();
     }
 
     public List<ReadableComment> findReadablePage(
@@ -92,5 +135,8 @@ public class CommentRepository {
             String content,
             String author,
             Instant createdAt) {
+    }
+
+    public record CommentMutationTarget(long id, long postId, String author) {
     }
 }

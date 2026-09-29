@@ -48,6 +48,57 @@ public class PostRepository {
                 .single();
     }
 
+    public long insertPost(String title, String content, String author, Instant createdAt) {
+        return jdbcClient.sql("""
+                        INSERT INTO posts (title, content, author, base_like_count, created_at, is_deleted)
+                        VALUES (:title, :content, :author, 0, :createdAt, FALSE)
+                        RETURNING id
+                        """)
+                .param("title", title)
+                .param("content", content)
+                .param("author", author)
+                .param("createdAt", createdAt.atOffset(ZoneOffset.UTC))
+                .query(Long.class)
+                .single();
+    }
+
+    public Optional<PostMutationTarget> findReadableMutationTargetForUpdate(long postId) {
+        return jdbcClient.sql("""
+                        SELECT id, author
+                        FROM posts
+                        WHERE id = :postId
+                          AND is_deleted = FALSE
+                        FOR UPDATE
+                        """)
+                .param("postId", postId)
+                .query((resultSet, rowNumber) -> new PostMutationTarget(
+                        resultSet.getLong("id"),
+                        resultSet.getString("author")))
+                .optional();
+    }
+
+    public int updateReadablePost(long postId, String title, String content) {
+        return jdbcClient.sql("""
+                        UPDATE posts
+                        SET title = :title, content = :content
+                        WHERE id = :postId AND is_deleted = FALSE
+                        """)
+                .param("postId", postId)
+                .param("title", title)
+                .param("content", content)
+                .update();
+    }
+
+    public int softDelete(long postId) {
+        return jdbcClient.sql("""
+                        UPDATE posts
+                        SET is_deleted = TRUE
+                        WHERE id = :postId AND is_deleted = FALSE
+                        """)
+                .param("postId", postId)
+                .update();
+    }
+
     public List<ReadablePost> findReadablePage(
             String requester,
             CursorPosition cursor,
@@ -154,5 +205,8 @@ public class PostRepository {
             boolean isLiked,
             String author,
             Instant createdAt) {
+    }
+
+    public record PostMutationTarget(long id, String author) {
     }
 }
