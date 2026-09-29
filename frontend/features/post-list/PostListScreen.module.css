@@ -106,3 +106,25 @@
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
 }
+
+/* DESIGN_DEFINED (SCREEN-006): 181×40 at x=97.5, y=657 in 375×778; white
+   14/18 on black 70%; 6px radius. PRODUCT_DECISION: 2.5 s, no motion, does not
+   block list interaction. Bottom = 778 − 657 − 40 = 81px. */
+.toast {
+  position: fixed;
+  bottom: 81px;
+  left: 50%;
+  z-index: 3;
+  width: 181px;
+  height: 40px;
+  margin: 0;
+  border-radius: 6px;
+  background: var(--color-toast-surface);
+  font-size: 14px;
+  line-height: 40px;
+  color: #ffffff;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
