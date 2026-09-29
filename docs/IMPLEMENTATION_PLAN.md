@@ -4,10 +4,10 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ## Current State
 
-- Current Phase: `P6 — Post Create / Edit / Delete`
-- Status: P6 `COMPLETE`; core feature implementation `COMPLETE` (P1–P6); P7 `NOT_STARTED`.
+- Current Phase: `P7 — Visual Integration & UX Polish`
+- Status: P6 `COMPLETE`; P7 `IN_PROGRESS`; P7-A list state polish is implemented and verified locally, pending code review.
 - Last Verified Commit: `4e53dbd6fb951015f595ae980da1fe845929b60b` (P6 + Deletion Policy Hardening: deletion consistency 28/28, P6 74/74, P5B 52/52, P4 48/48, P5A 63/63, revisit 12/12, backend 49/49; P6 implementation `1f8a21f`).
-- Last Updated: `2026-09-29`
+- Last Updated: `2026-09-30`
 - Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
 
 ### Known Blockers
@@ -18,15 +18,15 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review and merge the P6 PR.
-2. After merge, P7 — Visual Integration & UX Polish.
-3. Do not start P7 until explicitly requested.
+1. Review P7-A list state polish on `feat/p7-visual-polish`.
+2. Keep P7-B as a separate manual-regression/polish scope.
+3. Do not expand P7-A into backend/API work.
 
 ### P7 Backlog (recorded, not implemented)
 
-- Requester-liked list heart: the list shows no liked state, while the detail uses the `#FF8DA1` accent. Review whether list rows should reflect `isLiked` for visual consistency.
-- The `784-412` toast PNG shows a list row layout (author above title) that differs from the audited list frame `755-8831`; decide which is authoritative.
-- Icon shapes, spacing, and color micro-adjustments across all screens; fresh design comparison when available (V-081).
+- P7-A completed: SVG-backed list hierarchy and neutral icons; `post.isLiked` now uses the existing `#FF8DA1` accent on the heart only as `UX_CONSISTENCY`.
+- Requester-commented list accent remains deferred because the list API has no requester-specific comment-participation state.
+- P7-B: manual regression and remaining cross-screen micro-polish; fresh design comparison remains V-081 `NOT_RUN`.
 
 ### Performance Audit Gate Status
 
@@ -457,7 +457,9 @@ Align the implemented flows with the official design and resolve UX edge cases w
 
 ### Status
 
-`NOT_STARTED`
+`IN_PROGRESS` — P7-A corrected the list hierarchy from local SVG evidence,
+aligned neutral list glyphs to `#DADEE3`, and added a `post.isLiked` heart-only
+accent as `UX_CONSISTENCY`. P7-B remains separate and has not started.
 
 ---
 

@@ -177,6 +177,24 @@ A fresh Figma MCP comparison of node `755:8831` was not possible during P4 (Star
 | FAB | fixed `right: 15px; bottom: 49px` (derived from x=310, y=679 in 375×778); red `#F5364F`, shadow `0 2px 8px rgba(0,0,0,.16)` kept local to the CSS Module | Geometry `DESIGN_DEFINED`; color and shadow `PRODUCT_DECISION`, not global tokens |
 | Loading / empty / error / next-page loading / next-page error | centered secondary-color text; errors add a `다시 시도` button | `PRODUCT_DECISION` |
 
+#### P7-A SVG-backed list corrections
+
+`755-8831-post-list.svg` directly preserves the list's `375×778` coordinate
+system and text metadata. P7-A therefore corrects the row hierarchy to
+avatar/author → title → preview → comment/like/time while preserving its 118px
+height and full-row link. The SVG places the 18px avatar at x=16/y=68, author
+at x=40, title at x=16, preview at x=16, and the 343×1 divider at x=16/y=173.
+Maintainable CSS uses the corresponding 18/24/18/16 row rhythm rather than
+encoding text baselines directly.
+
+The canonical list SVG uses filled neutral comment and heart glyphs in
+`#DADEE3` (the heart also has a 1.4px stroke). P7-A normalizes the list icons
+to equivalent vectors. `post.isLiked` now colors only the list heart with the
+existing detail accent `#FF8DA1`; this is `UX_CONSISTENCY`, not a list-design
+claim, because the list reference has no liked variant. A requester-commented
+accent remains deferred: the list API does not expose requester-specific
+comment participation.
+
 ### SCREEN-002 — Post Detail
 
 #### Functional Contract

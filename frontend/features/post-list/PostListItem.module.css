@@ -1,11 +1,9 @@
 /*
- * DESIGN_DEFINED (docs/UI_SPEC.md §6.1–6.2): 118px row, 343×93 content region
- * at x=16/y=12, 343×1 divider, 18px circular avatar, and the title/preview/
- * metadata type ramp.
- * PRODUCT_DECISION: 1-line title and 2-line preview clamps, the 4px
- * title→preview gap, metadata pinned to the region's bottom edge, the 8px/4px
- * metadata gaps, and which metadata text uses the support vs secondary color.
- * The divider reuses --color-border-light; it is not a Figma-exact mapping.
+ * DESIGN_DEFINED (755-8831-post-list.svg): a 118px row with a 343×93 content
+ * region at x=16/y=12. Its author/avatar, title, preview, and metadata rows
+ * have 18px, 24px, 18px, and 16px heights with 6px, 2px, and 9px gaps.
+ * PRODUCT_DECISION: one-line title/preview truncation and the existing divider
+ * token; the SVG records #EAECEE but does not establish a global token choice.
  */
 
 .row {
@@ -16,7 +14,6 @@
 .link {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   height: 100%;
   padding: 12px 0;
   border-bottom: 1px solid var(--color-border-light);
@@ -29,15 +26,9 @@
   outline-offset: -2px;
 }
 
-.text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
 .title {
-  margin: 0;
+  flex: none;
+  margin: 6px 0 0;
   overflow: hidden;
   font-size: 16px;
   font-weight: 500;
@@ -48,23 +39,26 @@
 }
 
 .preview {
-  display: -webkit-box;
-  margin: 0;
+  flex: none;
+  height: 18px;
+  margin: 2px 0 0;
   overflow: hidden;
   font-size: 14px;
   font-weight: 400;
   line-height: 18px;
   color: var(--color-text-secondary);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   overflow-wrap: anywhere;
 }
 
 .meta {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
+  height: 16px;
+  margin-top: 9px;
   min-width: 0;
   font-size: 12px;
   font-weight: 400;
@@ -74,8 +68,10 @@
 
 .author {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  height: 18px;
   min-width: 0;
   color: var(--color-text-support);
 }
@@ -89,6 +85,7 @@
 }
 
 .authorName {
+  display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -99,6 +96,17 @@
   flex: none;
   align-items: center;
   gap: 2px;
+}
+
+.icon,
+.likedIcon {
+  display: flex;
+  flex: none;
+  color: #dadee3;
+}
+
+.likedIcon {
+  color: var(--color-liked);
 }
 
 .time {
