@@ -96,9 +96,9 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| UI-001 | Product is implemented as mobile web. | §4 | TODO |
-| UI-002 | Primary target viewport is 375px. | §4 | TODO |
-| UI-003 | Desktop-specific adaptation is not required. | §4 | TODO |
+| UI-001 | Product is implemented as mobile web. | §4 | VERIFIED |
+| UI-002 | Primary target viewport is 375px. | §4 | VERIFIED |
+| UI-003 | Desktop-specific adaptation is not required. | §4 | VERIFIED |
 | UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | TODO |
 | UI-005 | Undefined design/flow details may be completed reasonably. | §4 | TODO |
 | UI-006 | Avatar uses one of the three provided avatar assets. | §4 | VERIFIED |
@@ -121,7 +121,7 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DEL-004 | Deleted posts are inaccessible through normal detail reads. | §4 | VERIFIED |
 | DEL-005 | Deleted comments are absent from comment list responses. | §4 | VERIFIED |
 | DEL-006 | Deleted comments are excluded from `commentCount`. | §4 | VERIFIED |
-| DEL-007 | UI behaves as if deleted resources no longer exist. | §4 | TODO |
+| DEL-007 | UI behaves as if deleted resources no longer exist. | §4 | VERIFIED |
 
 ---
 
@@ -134,7 +134,7 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | LIST-003 | Posts are ordered newest first. | §4 | VERIFIED |
 | LIST-004 | Post list uses infinite scroll. | §4 | VERIFIED |
 | LIST-005 | Reaching the end loads the next page rather than all posts at once. | §4, §5 | VERIFIED |
-| LIST-006 | Floating/right-bottom write action navigates to the post creation screen. | §4 | IMPLEMENTED |
+| LIST-006 | Floating/right-bottom write action navigates to the post creation screen. | §4 | VERIFIED |
 
 > P4: `LIST-001`/`LIST-002` render `frontend/lib/time/relativeTime.ts` output against `Date.now()` for every row. `LIST-004`/`LIST-005` were verified in the browser: 10/10/10/9 pages fetched only as the `IntersectionObserver` sentinel approached, all 39 readable posts rendered once in API order, and no request followed the final `nextCursor: null`. `LIST-006` is `IMPLEMENTED`: the FAB navigates to `/posts/new`, but that creation screen is built in P6, so the requirement is verified there. `DEL-007` stays `TODO` until detail/comment UI exists, although the list already renders only the 39 readable posts (seed-deleted `9`, `30`, `31` absent).
 
@@ -155,19 +155,31 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DETAIL-009 | User can create a comment. | §4 | VERIFIED |
 | DETAIL-010 | Only the author of a comment can delete that comment. | §4 | VERIFIED |
 | DETAIL-011 | Deleted comment disappears from the displayed list. | §4 | VERIFIED |
-| DETAIL-012 | Only the author of a post sees/uses the post action menu. | §4 | TODO |
-| DETAIL-013 | Own-post menu exposes edit and delete actions. | §4 | TODO |
-| DETAIL-014 | Edit screen reuses the create screen layout/flow. | §4 | TODO |
-| DETAIL-015 | Edit screen opens with existing title/content prefilled. | §4 | TODO |
-| DETAIL-016 | Saving an edit updates the post. | §4 | TODO |
-| DETAIL-017 | Editing enforces the same validation as creation. | §4 | TODO |
-| DETAIL-018 | Deleting own post navigates back to the list. | §4 | TODO |
+| DETAIL-012 | Only the author of a post sees/uses the post action menu. | §4 | VERIFIED |
+| DETAIL-013 | Own-post menu exposes edit and delete actions. | §4 | VERIFIED |
+| DETAIL-014 | Edit screen reuses the create screen layout/flow. | §4 | VERIFIED |
+| DETAIL-015 | Edit screen opens with existing title/content prefilled. | §4 | VERIFIED |
+| DETAIL-016 | Saving an edit updates the post. | §4 | VERIFIED |
+| DETAIL-017 | Editing enforces the same validation as creation. | §4 | VERIFIED |
+| DETAIL-018 | Deleting own post navigates back to the list. | §4 | VERIFIED |
 | DETAIL-019 | A user cannot edit another user’s post. | §4 | VERIFIED |
 | DETAIL-020 | A user cannot delete another user’s post. | §4 | VERIFIED |
 
 > P5A: `DETAIL-001`–`DETAIL-008` are `VERIFIED` by browser runs at 375×778 against the Compose production frontend (V-050 UI evidence, V-060, V-061). `DETAIL-009`/`DETAIL-010` keep their P2B backend `VERIFIED` status, but their UI (comment composer, own-comment delete) is P5B, as is `DETAIL-011`. `DETAIL-012`–`DETAIL-018` are P6.
 
 > P5B: `DETAIL-009` and `DETAIL-010` stay `VERIFIED` (P2B backend evidence), now with UI acceptance. The fixed composer creates comments whose author is the server-resolved requester (`apr_tester` by default, `mintcream` after `/dev-user`), and `삭제` appears only on the requester's own comments, including on other users' posts. The backend still returns 403 for a cross-user delete. `DETAIL-011` is `VERIFIED`: a confirmed delete removes the comment from the collapsed and expanded lists, updates the comment total, detail count, and cached list count, and the comment stays absent after reload. Evidence is in V-062–V-064 and "P5B Comment Mutation Evidence" in `docs/VERIFICATION.md`. `DEL-007` stays `TODO` until the P6 post-delete UI exists.
+
+> P6 (`1f8a21f`, browser evidence in "P6 Post CRUD Evidence" in `docs/VERIFICATION.md`):
+> - `DETAIL-012`/`DETAIL-013`: only the post author sees the `게시글 메뉴` trigger, which opens 수정하기 / 삭제하기 / 취소. This was checked for `apr_tester` and `mintcream`, in both directions.
+> - `DETAIL-014`–`DETAIL-017`: edit reuses the create form, prefills exact values, saves through PATCH, and applies the same validation (blank, 20 Unicode code points).
+> - `DETAIL-018`: own-post delete returns to the list.
+> - `DETAIL-019`/`DETAIL-020` keep backend evidence. The UI also hides the trigger on other users' posts and shows no form on `/posts/{other}/edit`, and the backend still returns 403 for PATCH/DELETE.
+> - `EDIT-004`: invalid input disables `작성 완료` / `수정 완료` and sends no request.
+> - `EDIT-005`/`EDIT-006`: a successful create returns to the list with a one-time `게시글이 등록되었습니다.` toast.
+> - `EDIT-007`: no comment edit UI or endpoint exists.
+> - `LIST-006`: the FAB opens the working create screen.
+> - `DEL-007`: deleted posts disappear from cached and refetched lists and their detail/edit URLs show not-found. Deleted comments and seed-deleted resources behave the same (P4/P5B).
+> - `UI-001`–`UI-003`: V-080 `PASS`; every required screen was checked at 375×778, and no desktop-specific layout exists.
 
 ---
 
@@ -178,10 +190,10 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | EDIT-001 | Post title is required. | §4 | VERIFIED |
 | EDIT-002 | Post content is required. | §4 | VERIFIED |
 | EDIT-003 | Post title maximum length is 20 characters. | §4 | VERIFIED |
-| EDIT-004 | Save/complete action is disabled when required input is invalid. | §4 | TODO |
-| EDIT-005 | Successful creation navigates back to the post list. | §4 | TODO |
-| EDIT-006 | Successful creation shows a completion toast. | §4 | TODO |
-| EDIT-007 | Comment editing is not implemented. | §4 | TODO |
+| EDIT-004 | Save/complete action is disabled when required input is invalid. | §4 | VERIFIED |
+| EDIT-005 | Successful creation navigates back to the post list. | §4 | VERIFIED |
+| EDIT-006 | Successful creation shows a completion toast. | §4 | VERIFIED |
+| EDIT-007 | Comment editing is not implemented. | §4 | VERIFIED |
 
 ---
 

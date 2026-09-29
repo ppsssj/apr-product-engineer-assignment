@@ -184,6 +184,25 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# P6 Post CRUD Update — 2026-09-29
+
+- **Scope:** frontend only (`1f8a21f`). It adds `/posts/new` and `/posts/[postId]/edit` (thin Server Components; `lib/postId.ts` is shared with the detail route), `features/post-form` (`PostForm`, `PostFormScreen`, `usePostFormMutations`), and in `features/post-detail` the `PostActionSheet` and `useDeletePost`. The P2B endpoints are reused unchanged.
+- **Validation parity:** `lib/validation/post.ts` mirrors `MutationValidator`. Blank means every code point is Java whitespace, and the title limit counts Unicode code points (`Array.from`), not UTF-16 units. The submitted values are the typed values.
+- **Server-confirmed caches** (`lib/query/postListCache.ts`), following the P5A/P5B pattern:
+  - Create prepends the returned post to the first cached list page and adds one to every page's `total`, and seeds its detail cache.
+  - Edit replaces the post in the detail cache and in every cached list page. `createdAt` is unchanged, so the order holds.
+  - Delete removes the post from the cached pages and subtracts one from `total`.
+  - Keyset cursors are `(createdAt, id)` bounds, so these edits keep every `nextCursor` valid, including when the deleted row was a page's cursor row.
+  - The deleted post's detail and comment queries are dropped when the detail screen unmounts, so the still-mounted screen does not refetch a missing post.
+- **One-shot messages** (`lib/flash.ts`, `lib/formOrigin.ts`): module memory, not storage, because it survives a client-side navigation but not a reload.
+  - The create toast is taken once by the list.
+  - The form remembers which in-app screen pushed it, so success goes back to that history entry instead of stacking a duplicate. A direct URL load replaces.
+  - No global store or toast framework was added.
+- **Ownership in the UI:** `readCurrentRequester()` (P5B) gates the post menu and the edit form. The backend remains authoritative (403 for another user's PATCH/DELETE).
+- **Single-flight:** the in-flight ref from P5B moved to `lib/hooks/useSingleFlight.ts` and is shared by comment and post mutations. Same-tick double submit, save, and confirm each send one request.
+
+---
+
 # P5B Comment Mutation Update — 2026-09-29
 
 - **Scope:** frontend only (`07c9372`). It adds `CommentComposer`, `ConfirmDialog`, `useCommentMutations.ts` (`useCreateComment`, `useDeleteComment`), and `lib/requester.ts`, wired into `CommentSection`. The P2B endpoints are reused unchanged.
