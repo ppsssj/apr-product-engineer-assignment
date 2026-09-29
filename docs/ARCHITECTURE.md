@@ -70,9 +70,9 @@ This section supersedes the earlier “not yet repository-verified” boundary b
 | ADR-004 data model / soft delete | `PROVISIONAL` | Soft-delete behavior is assigned, but there is no existing schema or persistence code to validate the proposed shape. |
 | ADR-005 likes | `DECIDED` | Seed supplies aggregate `likeCount` but no historical requester-like records; keeping a base count plus application-created requester rows preserves known data. |
 | ADR-006 cursor pagination | `PROVISIONAL` | Pagination is mandatory, but the assignment leaves its wire format to the implementation and no current API exists. |
-| ADR-007 TanStack Query | `OPEN` | No server-state/data-fetching package is installed. Adding it is a future dependency decision, not a P0 fact. |
+| ADR-007 TanStack Query | `DECIDED` | P0: no server-state package was installed. P3 added `@tanstack/react-query` 5.104.0 (lockfile-resolved) and `app/providers.tsx`. |
 | ADR-008 Next.js boundary | `DECIDED` | The verified Next.js App Router starter and immutable client-side cookie selector support server route shells with focused client interaction boundaries. |
-| ADR-009 CSS Modules | `PROVISIONAL` | No competing styling system is installed, but no component styling structure exists yet. |
+| ADR-009 CSS Modules | `DECIDED` | No competing styling system is installed. P3 fixed `globals.css` as reset/font/token scope; component styles start as `.module.css` in P4. |
 | ADR-010 infinite-scroll trigger | `PROVISIONAL` | The browser primitive needs no dependency, but its integration depends on the unresolved pagination/server-state approach. |
 | ADR-011 relative time | `DECIDED` | The native formatter needs no dependency and seed timestamps are UTC ISO strings. |
 | ADR-012 validation / ownership / errors | `DECIDED` | P2B implements explicit dependency-free validation, service-layer ownership/transactions, and consistent JSON errors. |
@@ -167,6 +167,20 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 - Post and comment deletion only set `is_deleted = TRUE`. Comment deletion checks comment authorship independently from post ownership, and a deleted parent makes comment reads and mutations unavailable without cascading child deletion.
 - The JSON error contract is `400` for validation or unreadable JSON, `403` for a readable resource owned by another requester, and `404` for missing or soft-deleted targets. Success statuses are `201` create, `200` update/toggle, and `204` delete.
 - Clean-volume PostgreSQL acceptance verified post/comment identity generation, requester ownership, Unicode title validation, requester-isolated likes, derived counts, retained soft-deleted rows, P2A read regression, and restoration to the seed baseline.
+
+---
+
+# P3 Frontend Foundation Update — 2026-09-29
+
+- **Server state (ADR-007):** `@tanstack/react-query` is the only added production dependency; `package-lock.json` resolves it to 5.104.0. `frontend/app/providers.tsx` is a `"use client"` `AppProviders` component that creates one `QueryClient` per browser session via `useState` and only renders `QueryClientProvider`. No Devtools, Redux, Zustand, SWR, or axios; no separate client global state store.
+- **Client/server boundary (ADR-008):** `app/layout.tsx` remains a Server Component and wraps `children` in `AppProviders`. Pages stay Server Components by default; wrapping in a client provider does not make them client components. Requester-sensitive product data will be fetched from focused client feature boundaries in P4–P6 so the browser sends the `/dev-user` cookie. No server-side cookie-forwarding API layer is introduced.
+- **Shared API client:** `frontend/lib/api/client.ts` `request()` is the single fetch entry point. It resolves `NEXT_PUBLIC_API_BASE_URL` (fallback `http://localhost:8080/api`, matching the Compose build arg), joins paths, encodes query strings with `URLSearchParams`, always sends `credentials: "include"` and `cache: "no-store"`, sets `Content-Type: application/json` only when a body exists, returns `undefined` for 204 without parsing, and throws `ApiError { status, code, message }` using the backend `{ code, message }` body with an `HTTP_ERROR` / `NETWORK_ERROR` / `INVALID_RESPONSE` fallback.
+- **Transport types:** `frontend/lib/api/types.ts` mirrors the backend `PostResponse`, `CommentResponse`, `PageResponse`, `LikeToggleResponse`, `PostMutationRequest`, `CommentCreateRequest`, and `ApiErrorResponse` field names exactly. Timestamps remain ISO strings at the API boundary.
+- **Endpoint functions:** `frontend/lib/api/community.ts` defines all nine assignment endpoints. Feature hooks (`useQuery`/`useMutation`) and invalidation policy are deferred to P4–P6 where the cache requirements are concrete.
+- **Query keys:** `frontend/lib/query/keys.ts` `postKeys` holds only primitive values. `cursor` is excluded because infinite queries carry it as `pageParam`.
+- **Route contract (`PRODUCT_DECISION`):** `/` list, `/posts/{postId}` detail, `/posts/new` create, `/posts/{postId}/edit` edit, `/dev-user` starter page, exposed through `frontend/lib/routes.ts`. Route pages themselves are implemented in P4–P6.
+- **Relative time (ADR-011):** thresholds are seconds < 60s, minutes < 60m, hours < 24h, days < 30d, months < 365d, then years; future instants format as `… 후`; unparseable input returns `null`. Rendering against the current clock in client components must account for server/client hydration differences when P4 uses it.
+- **Styling (ADR-009):** `globals.css` owns reset/font/base plus a small set of `DESIGN_DEFINED` tokens from `docs/UI_SPEC.md` (surface, primary/secondary/support text, light border, disabled surface, liked accent, scrim, toast surface, 16px page inset). No token was invented beyond the audited values.
 
 ---
 
@@ -519,7 +533,7 @@ The backend must encode/decode a cursor and the client cannot jump directly to a
 
 # ADR-007 — Frontend Server State: TanStack Query; local UI state stays local
 
-**Status:** `OPEN`
+**Status:** `DECIDED` — provider and query-key foundation implemented in P3 (see P3 Frontend Foundation Update).
 
 ## Decision
 
@@ -587,7 +601,7 @@ The core screens are interaction-heavy: infinite scroll, like toggling, comment 
 
 # ADR-009 — Styling: CSS Modules + global design tokens
 
-**Status:** `PROVISIONAL`
+**Status:** `DECIDED` — P3 token foundation is in `frontend/app/globals.css`; component CSS Modules begin in P4.
 
 ## Decision
 
@@ -648,7 +662,7 @@ Observer lifecycle must be handled correctly, but this is simpler and less error
 
 # ADR-011 — Relative Time: native `Intl.RelativeTimeFormat`
 
-**Status:** `DECIDED`
+**Status:** `DECIDED` — implemented as `formatRelativeTime` in `frontend/lib/time/relativeTime.ts` (P3).
 
 ## Decision
 
@@ -874,7 +888,7 @@ The following may not be finalized from documentation alone:
 | exact seed startup hook | must align with starter lifecycle/healthcheck | actual backend + compose |
 | exact Flyway dependencies | depends on current Gradle file and dependency management | actual build file |
 | final styling choice | should not fight an already-installed starter system | actual `package.json` / styles |
-| exact frontend route/component tree | design evidence is available; final decomposition belongs to P3 implementation | audited `docs/UI_SPEC.md` plus implemented route/component code |
+| exact frontend component tree | URL route contract is fixed in P3 (`frontend/lib/routes.ts`); component decomposition belongs to P4–P6 | audited `docs/UI_SPEC.md` plus implemented screen code |
 | automated DB integration-test mechanism | should fit existing test/build environment | actual Gradle/CI setup |
 
 These are not permission for an agent to guess. Resolve them in the applicable implementation phase using the audited design and repository evidence.

@@ -186,6 +186,18 @@ Open frontend at `http://localhost:13000`.
 
 ---
 
+## P3 Frontend Foundation Evidence — 2026-09-29
+
+- `npm ci` installed from the updated lockfile; `@tanstack/react-query` resolved to 5.104.0 with `@tanstack/query-core` 5.104.0 and no other new package.
+- `npm run typecheck` (`tsc --noEmit`, strict) exited 0. `npm run build` (Next.js 15.4.6) succeeded with routes `/`, `/_not-found`, and `/dev-user`.
+- `docker compose up -d --build` rebuilt backend and frontend against the existing volume; `db`, `backend`, and `frontend` were `healthy`. `GET /health`, frontend `/`, and frontend `/dev-user` each returned HTTP 200.
+- P2 read smoke: `GET /api/posts?limit=2` returned HTTP 200 with `items` (2), `total` (39), and a string `nextCursor`; item fields exactly matched `frontend/lib/api/types.ts` `Post`.
+- A temporary Node.js script exercised `frontend/lib/api/client.ts` `request()` directly: `credentials: "include"` on GET/POST/DELETE, no body or `Content-Type` on DELETE, JSON body plus `Content-Type` on POST, fallback base URL, path joining, `URLSearchParams` cursor encoding, 204 returning `undefined` without parsing, non-JSON and network failures mapped to `ApiError`, and against the live backend: page continuation by `nextCursor`, deleted post 9 → 404 `POST_NOT_FOUND`, malformed cursor → 400 `INVALID_CURSOR`. All 14 checks passed; the script was removed.
+- A temporary fixed-clock script checked `formatRelativeTime`: `0초 전`, `30초 전`, `3분 전`, `3시간 전`, `2일 전`, `1개월 전`, `1년 전`, future `5분 후`, and `null` for an invalid timestamp. The script was removed.
+- Boundary: no product screen issues browser API requests yet, so the credentialed browser cookie flow (`V-012`) is not executed by P3.
+
+---
+
 # Requester / Ownership
 
 ## V-010 — Default Requester
@@ -252,6 +264,11 @@ x-user-id: <known-author>
 
 - Resolver tests and a direct runtime API request verified that the backend accepts the `x-user-id` cookie and evaluates `isLiked` for that requester.
 - The immutable `/dev-user` frontend-to-backend credentialed browser flow has not been executed, so this combined scenario remains open.
+
+### P3 Partial Evidence — 2026-09-29
+
+- The shared browser client `frontend/lib/api/client.ts` applies `credentials: "include"` to every request; this was checked by direct invocation, not by a browser session.
+- No product screen performs a browser request yet. The full `/dev-user` → product request → requester reflection flow is deferred to P4/P5 or P8.
 
 **Result:** `NOT_RUN`
 

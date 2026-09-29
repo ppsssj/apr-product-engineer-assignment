@@ -32,8 +32,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 |---|---|---|---|
 | ENV-001 | Backend uses Java 17. | §2 | TODO |
 | ENV-002 | Backend uses Spring Boot 3.x. | §2 | TODO |
-| ENV-003 | Frontend uses TypeScript. | §2 | TODO |
-| ENV-004 | Frontend uses Next.js 15 App Router. | §2 | TODO |
+| ENV-003 | Frontend uses TypeScript. | §2 | VERIFIED |
+| ENV-004 | Frontend uses Next.js 15 App Router. | §2 | VERIFIED |
 | ENV-005 | Database is PostgreSQL. | §2 | TODO |
 | ENV-006 | `docker compose up` starts DB, backend, and frontend. | §2, §7 | TODO |
 | ENV-007 | `GET /health` path remains unchanged. | §3 | TODO |
@@ -51,7 +51,9 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 |---|---|---|---|
 | START-001 | `frontend/app/dev-user/` remains unchanged. | §3 | TODO |
 | START-002 | Existing CORS behavior remains compatible with credentialed browser requests. | §3 | TODO |
-| START-003 | Frontend browser requests that rely on the cookie send credentials. | §3 | TODO |
+| START-003 | Frontend browser requests that rely on the cookie send credentials. | §3 | IMPLEMENTED |
+
+> P3: `ENV-003`/`ENV-004` are verified by strict `tsc --noEmit` and `next build` over the `app/` router with Next.js 15.4.6. `START-003` is `IMPLEMENTED` because the shared client in `frontend/lib/api/client.ts` always sends `credentials: "include"`; it becomes `VERIFIED` only after a real browser `/dev-user` → product request flow in P4/P5 or P8. `START-001`, `START-002`, and `USER-004` are unchanged by P3 and remain for final acceptance.
 
 ---
 
