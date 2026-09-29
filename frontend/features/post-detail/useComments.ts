@@ -16,6 +16,12 @@ type CommentPageParam = { cursor?: string; limit: number };
 // which the (createdAt, id) cursor supports independently of page size.
 // The query never fetches a second page by itself: the screen calls
 // `fetchNextPage` only after "More".
+//
+// `gcTime: 0` makes the "More" gate per visit: when the detail screen
+// unmounts, the query (with any continuation pages) is dropped instead of
+// staying in the shared QueryClient. A later visit therefore starts again from
+// a single `limit=2` page, so neither a mount refetch nor "More" can bring back
+// previously loaded continuation pages all at once.
 export function useComments(postId: number) {
   return useInfiniteQuery({
     queryKey: postKeys.commentList(postId),
@@ -26,5 +32,6 @@ export function useComments(postId: number) {
       lastPage.nextCursor
         ? { cursor: lastPage.nextCursor, limit: COMMENT_PAGE_SIZE }
         : undefined,
+    gcTime: 0,
   });
 }

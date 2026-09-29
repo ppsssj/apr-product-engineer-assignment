@@ -14,8 +14,8 @@ type Props = {
 };
 
 export function CommentSection({ postId, commentCount }: Props) {
-  // "More" is per visit: returning to a post starts collapsed again even if
-  // continuation pages are still cached.
+  // "More" is per visit. The comment query is not kept after unmount
+  // (useComments: gcTime 0), so every visit starts from the initial page.
   const [expanded, setExpanded] = useState(false);
   const {
     data,
@@ -48,7 +48,7 @@ export function CommentSection({ postId, commentCount }: Props) {
 
   function expand() {
     setExpanded(true);
-    // Only the initial page is cached: start the continuation right away.
+    // Collapsed state holds only the initial page: start the continuation.
     if (data?.pages.length === 1 && hasNextPage) void fetchNextPage();
   }
 
