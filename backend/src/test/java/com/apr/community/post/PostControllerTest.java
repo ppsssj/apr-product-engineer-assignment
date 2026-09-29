@@ -3,9 +3,13 @@ package com.apr.community.post;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +18,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.apr.community.comment.CommentResponse;
+import com.apr.community.comment.CommentMutationService;
 import com.apr.community.common.error.ApiException;
 import com.apr.community.common.error.ApiExceptionHandler;
 import com.apr.community.common.pagination.CursorCodec;
@@ -30,13 +35,19 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class PostControllerTest {
 
     private PostReadService postReadService;
+    private PostMutationService postMutationService;
+    private CommentMutationService commentMutationService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         postReadService = mock(PostReadService.class);
+        postMutationService = mock(PostMutationService.class);
+        commentMutationService = mock(CommentMutationService.class);
         var controller = new PostController(
                 postReadService,
+                postMutationService,
+                commentMutationService,
                 new RequesterResolver(),
                 new PageRequestParser(new CursorCodec()));
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -170,5 +181,96 @@ class PostControllerTest {
         mockMvc.perform(get("/api/posts/not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"));
+    }
+
+    @Test
+    void createsPostWithRequesterAndCreatedStatus() throws Exception {
+        var response = new PostResponse(43L, "title", "content", 0L, 0L, false, "author", Instant.EPOCH);
+        when(postMutationService.create(any(PostMutationRequest.class), eq("author"))).thenReturn(response);
+
+        mockMvc.perform(post("/api/posts")
+                        .header("x-user-id", "author")
+                        .contentType("application/json")
+                        .content("{\"title\":\"title\",\"content\":\"content\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(43))
+                .andExpect(jsonPath("$.author").value("author"))
+                .andExpect(jsonPath("$.likeCount").value(0))
+                .andExpect(jsonPath("$.commentCount").value(0))
+                .andExpect(jsonPath("$.isLiked").value(false));
+    }
+
+    @Test
+    void updatesAndDeletesPostWithDocumentedStatuses() throws Exception {
+        var response = new PostResponse(1L, "updated", "content", 0L, 0L, false, "owner", Instant.EPOCH);
+        when(postMutationService.update(eq(1L), any(PostMutationRequest.class), eq("owner")))
+                .thenReturn(response);
+
+        mockMvc.perform(patch("/api/posts/1")
+                        .header("x-user-id", "owner")
+                        .contentType("application/json")
+                        .content("{\"title\":\"updated\",\"content\":\"content\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("updated"));
+
+        mockMvc.perform(delete("/api/posts/1").header("x-user-id", "owner"))
+                .andExpect(status().isNoContent());
+        verify(postMutationService).delete(1L, "owner");
+    }
+
+    @Test
+    void togglesLikeAndCreatesComment() throws Exception {
+        when(postMutationService.toggleLike(1L, "apr_tester"))
+                .thenReturn(new LikeToggleResponse(true, 8L));
+        var comment = new CommentResponse(2077L, 1L, "comment", "apr_tester", Instant.EPOCH);
+        when(commentMutationService.create(eq(1L), any(), eq("apr_tester"))).thenReturn(comment);
+
+        mockMvc.perform(post("/api/posts/1/likes/toggle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isLiked").value(true))
+                .andExpect(jsonPath("$.likeCount").value(8));
+
+        mockMvc.perform(post("/api/posts/1/comments")
+                        .contentType("application/json")
+                        .content("{\"content\":\"comment\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2077));
+    }
+
+    @Test
+    void rejectsMalformedJsonWithJsonError() throws Exception {
+        mockMvc.perform(post("/api/posts")
+                        .contentType("application/json")
+                        .content("{not-json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void mapsValidationOwnershipAndMissingErrorsToJsonContract() throws Exception {
+        when(postMutationService.create(any(PostMutationRequest.class), eq("apr_tester")))
+                .thenThrow(new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TITLE", "Title is required."));
+        when(postMutationService.update(eq(1L), any(PostMutationRequest.class), eq("other")))
+                .thenThrow(new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Only the author may modify this post."));
+        when(postMutationService.toggleLike(9L, "apr_tester"))
+                .thenThrow(new ApiException(HttpStatus.NOT_FOUND, "POST_NOT_FOUND", "Post 9 was not found."));
+
+        mockMvc.perform(post("/api/posts")
+                        .contentType("application/json")
+                        .content("{\"title\":\"\",\"content\":\"content\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_TITLE"));
+
+        mockMvc.perform(patch("/api/posts/1")
+                        .header("x-user-id", "other")
+                        .contentType("application/json")
+                        .content("{\"title\":\"title\",\"content\":\"content\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+
+        mockMvc.perform(post("/api/posts/9/likes/toggle"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
     }
 }

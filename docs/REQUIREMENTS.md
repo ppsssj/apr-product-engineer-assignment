@@ -82,8 +82,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | USER-002 | Current user may be resolved from `x-user-id` cookie. | §4 | VERIFIED |
 | USER-003 | If neither header nor cookie is present, current user is `apr_tester`. | §4 | VERIFIED |
 | USER-004 | Login/authentication UI is not implemented. | §4 | TODO |
-| USER-005 | Post ownership is determined by `post.author == currentUser`. | §4 | TODO |
-| USER-006 | Comment ownership is determined by `comment.author == currentUser`. | §4 | TODO |
+| USER-005 | Post ownership is determined by `post.author == currentUser`. | §4 | VERIFIED |
+| USER-006 | Comment ownership is determined by `comment.author == currentUser`. | §4 | VERIFIED |
 | USER-007 | A separate user table is not required for the assignment. | §4 | TODO |
 
 ---
@@ -109,8 +109,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| DEL-001 | Deleting a post does not physically delete the DB row. | §4 | TODO |
-| DEL-002 | Deleting a comment does not physically delete the DB row. | §4 | TODO |
+| DEL-001 | Deleting a post does not physically delete the DB row. | §4 | VERIFIED |
+| DEL-002 | Deleting a comment does not physically delete the DB row. | §4 | VERIFIED |
 | DEL-003 | Deleted posts are absent from list responses. | §4 | VERIFIED |
 | DEL-004 | Deleted posts are inaccessible through normal detail reads. | §4 | VERIFIED |
 | DEL-005 | Deleted comments are absent from comment list responses. | §4 | VERIFIED |
@@ -144,8 +144,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DETAIL-006 | “More” control appears only when comment total is 3 or more. | §4 | TODO |
 | DETAIL-007 | “More” control does not appear when total comments are 2 or fewer. | §4 | TODO |
 | DETAIL-008 | After “More” is activated, remaining comments load through infinite scroll. | §4 | TODO |
-| DETAIL-009 | User can create a comment. | §4 | TODO |
-| DETAIL-010 | Only the author of a comment can delete that comment. | §4 | TODO |
+| DETAIL-009 | User can create a comment. | §4 | VERIFIED |
+| DETAIL-010 | Only the author of a comment can delete that comment. | §4 | VERIFIED |
 | DETAIL-011 | Deleted comment disappears from the displayed list. | §4 | TODO |
 | DETAIL-012 | Only the author of a post sees/uses the post action menu. | §4 | TODO |
 | DETAIL-013 | Own-post menu exposes edit and delete actions. | §4 | TODO |
@@ -154,8 +154,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DETAIL-016 | Saving an edit updates the post. | §4 | TODO |
 | DETAIL-017 | Editing enforces the same validation as creation. | §4 | TODO |
 | DETAIL-018 | Deleting own post navigates back to the list. | §4 | TODO |
-| DETAIL-019 | A user cannot edit another user’s post. | §4 | TODO |
-| DETAIL-020 | A user cannot delete another user’s post. | §4 | TODO |
+| DETAIL-019 | A user cannot edit another user’s post. | §4 | VERIFIED |
+| DETAIL-020 | A user cannot delete another user’s post. | §4 | VERIFIED |
 
 ---
 
@@ -163,9 +163,9 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| EDIT-001 | Post title is required. | §4 | TODO |
-| EDIT-002 | Post content is required. | §4 | TODO |
-| EDIT-003 | Post title maximum length is 20 characters. | §4 | TODO |
+| EDIT-001 | Post title is required. | §4 | VERIFIED |
+| EDIT-002 | Post content is required. | §4 | VERIFIED |
+| EDIT-003 | Post title maximum length is 20 characters. | §4 | VERIFIED |
 | EDIT-004 | Save/complete action is disabled when required input is invalid. | §4 | TODO |
 | EDIT-005 | Successful creation navigates back to the post list. | §4 | TODO |
 | EDIT-006 | Successful creation shows a completion toast. | §4 | TODO |
@@ -180,14 +180,14 @@ Base path: `http://localhost:8080/api`
 | ID | Method | Path | Requirement | Status |
 |---|---|---|---|---|
 | API-001 | GET | `/posts` | Return newest-first post list. | VERIFIED |
-| API-002 | POST | `/posts` | Create post from `{ title, content }`. | TODO |
+| API-002 | POST | `/posts` | Create post from `{ title, content }`. | VERIFIED |
 | API-003 | GET | `/posts/{postId}` | Return single post detail. | VERIFIED |
-| API-004 | PATCH | `/posts/{postId}` | Update own post from `{ title, content }`. | TODO |
-| API-005 | DELETE | `/posts/{postId}` | Soft-delete own post. | TODO |
-| API-006 | POST | `/posts/{postId}/likes/toggle` | Toggle requester-specific like state. | TODO |
+| API-004 | PATCH | `/posts/{postId}` | Update own post from `{ title, content }`. | VERIFIED |
+| API-005 | DELETE | `/posts/{postId}` | Soft-delete own post. | VERIFIED |
+| API-006 | POST | `/posts/{postId}/likes/toggle` | Toggle requester-specific like state. | VERIFIED |
 | API-007 | GET | `/posts/{postId}/comments` | Return newest-first comments. | VERIFIED |
-| API-008 | POST | `/posts/{postId}/comments` | Create comment from `{ content }`. | TODO |
-| API-009 | DELETE | `/comments/{commentId}` | Soft-delete own comment. | TODO |
+| API-008 | POST | `/posts/{postId}/comments` | Create comment from `{ content }`. | VERIFIED |
+| API-009 | DELETE | `/comments/{commentId}` | Soft-delete own comment. | VERIFIED |
 
 ---
 
@@ -195,7 +195,7 @@ Base path: `http://localhost:8080/api`
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| API-010 | Request/response bodies are JSON. | §5 | IMPLEMENTED |
+| API-010 | Request/response bodies are JSON. | §5 | VERIFIED |
 | API-011 | `GET /posts` response contains `items`. | §5 | VERIFIED |
 | API-012 | `GET /posts` response contains `total`. | §5 | VERIFIED |
 | API-013 | `GET /posts` `total` means total matching readable rows, not current page size. | §5 | VERIFIED |
@@ -212,15 +212,15 @@ Base path: `http://localhost:8080/api`
 | API-024 | Comment list response contains `items`. | §5 | VERIFIED |
 | API-025 | Comment list response contains `total`. | §5 | VERIFIED |
 | API-026 | Comment item includes `id`, `postId`, `content`, `author`, `createdAt`. | §5 | VERIFIED |
-| API-027 | Like toggle response contains `isLiked`. | §5 | TODO |
-| API-028 | Like toggle response contains `likeCount`. | §5 | TODO |
-| API-029 | Patch response returns the updated post object. | §5 | TODO |
+| API-027 | Like toggle response contains `isLiked`. | §5 | VERIFIED |
+| API-028 | Like toggle response contains `likeCount`. | §5 | VERIFIED |
+| API-029 | Patch response returns the updated post object. | §5 | VERIFIED |
 | API-030 | `isLiked` is evaluated per requester. | §5 | VERIFIED |
 | API-031 | List APIs support pagination designed by the implementation. | §5 | VERIFIED |
 | API-032 | List APIs do not return the complete collection in one request. | §5 | VERIFIED |
-| API-033 | Error/success status codes are chosen consistently by the implementation. | §5 | IMPLEMENTED |
-| API-034 | Unauthorized ownership operations are rejected by backend behavior. | §5 | TODO |
-| API-035 | Deleted resources are excluded/rejected consistently by API behavior. | §5 | IMPLEMENTED |
+| API-033 | Error/success status codes are chosen consistently by the implementation. | §5 | VERIFIED |
+| API-034 | Unauthorized ownership operations are rejected by backend behavior. | §5 | VERIFIED |
+| API-035 | Deleted resources are excluded/rejected consistently by API behavior. | §5 | VERIFIED |
 
 ---
 
