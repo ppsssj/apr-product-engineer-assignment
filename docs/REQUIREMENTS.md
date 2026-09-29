@@ -154,7 +154,7 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DETAIL-008 | After “More” is activated, remaining comments load through infinite scroll. | §4 | VERIFIED |
 | DETAIL-009 | User can create a comment. | §4 | VERIFIED |
 | DETAIL-010 | Only the author of a comment can delete that comment. | §4 | VERIFIED |
-| DETAIL-011 | Deleted comment disappears from the displayed list. | §4 | TODO |
+| DETAIL-011 | Deleted comment disappears from the displayed list. | §4 | VERIFIED |
 | DETAIL-012 | Only the author of a post sees/uses the post action menu. | §4 | TODO |
 | DETAIL-013 | Own-post menu exposes edit and delete actions. | §4 | TODO |
 | DETAIL-014 | Edit screen reuses the create screen layout/flow. | §4 | TODO |
@@ -166,6 +166,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | DETAIL-020 | A user cannot delete another user’s post. | §4 | VERIFIED |
 
 > P5A: `DETAIL-001`–`DETAIL-008` are `VERIFIED` by browser runs at 375×778 against the Compose production frontend (V-050 UI evidence, V-060, V-061). `DETAIL-009`/`DETAIL-010` keep their P2B backend `VERIFIED` status, but their UI (comment composer, own-comment delete) is P5B, as is `DETAIL-011`. `DETAIL-012`–`DETAIL-018` are P6.
+
+> P5B: `DETAIL-009` and `DETAIL-010` stay `VERIFIED` (P2B backend evidence), now with UI acceptance. The fixed composer creates comments whose author is the server-resolved requester (`apr_tester` by default, `mintcream` after `/dev-user`), and `삭제` appears only on the requester's own comments, including on other users' posts. The backend still returns 403 for a cross-user delete. `DETAIL-011` is `VERIFIED`: a confirmed delete removes the comment from the collapsed and expanded lists, updates the comment total, detail count, and cached list count, and the comment stays absent after reload. Evidence is in V-062–V-064 and "P5B Comment Mutation Evidence" in `docs/VERIFICATION.md`. `DEL-007` stays `TODO` until the P6 post-delete UI exists.
 
 ---
 

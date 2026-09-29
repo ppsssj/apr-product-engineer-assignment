@@ -236,6 +236,49 @@ Open frontend at `http://localhost:13000`.
 
 ---
 
+## P5B Comment Mutation Evidence — 2026-09-29
+
+- Implementation commit `07c93724df195b2158d459d98eddd399797faa9b` (frontend only; no backend, schema, or dependency change). `npm run typecheck` exited 0; a clean `npm run build` succeeded; `backend/gradlew.bat clean test` passed 49/49 unchanged; `git diff --check` was clean. The production frontend container was rebuilt from this code.
+- A temporary Playwright (Chromium) script at `375 × 778` passed **52/52** checks against the Compose production stack. The script and screenshots stayed in the session scratchpad.
+- Composer: fixed 375×86 region at y=692 on every post, including with 0 comments. Whitespace-only input disables `등록`, and Enter sends no request. The input clears only after a successful create. Content at the page bottom stays above the composer, and a long unbroken comment wraps with no horizontal overflow.
+- Create boundaries on post 23 (skin_beginner's post, 0 comments) as `apr_tester`:
+  - 0→1: `댓글 (1)`, server author `apr_tester`, no More.
+  - 1→2: both newest-first, no More.
+  - 2→3: collapsed still shows the 2 newest, `댓글 더보기` appears, and More reveals the third with no extra request.
+  - Reload matched the server (3).
+  - 3+→+1 on post 4 (27→28): new comment first, More kept, expanded list equal to the server.
+- Delete boundaries on the same post:
+  - 3→2 (first-page item, collapsed): More disappears and the remaining 2 are shown.
+  - 2→1, then 1→0: only `댓글 (0)`, no new empty message, composer kept.
+  - Reload matched the server (0).
+  - Seed comment 1834 (`apr_tester`) on Roidl_08's post 26: `삭제` shown only on it. Cancel sent no DELETE. Confirm took 3→2, More disappeared, and the deletion persisted.
+- Expanded multi-page state on post 8 (58):
+  - After loading 2 continuation pages, deleting own comment 1613 (inside a continuation page) removed only it (`댓글 (57)`).
+  - Creating while expanded put the new comment first (`댓글 (58)`) with no duplicate.
+  - Scrolling to the end matched the server exactly (58).
+- Cursor boundary: acting as `Jelin` (cookie), the last loaded row 1608 (position 42, the page's cursor row) was deleted. The next continuation request used the deleted row's `(createdAt, id)` cursor (`…|1608`), and the full list then equaled the server (57) with no skip or duplicate.
+- Count sync (post 1, list row 1, list refetch frozen by route interception):
+  - After a create, going back showed the list count +1.
+  - Re-entering the detail showed `댓글 (3)`.
+  - After a delete, the list count returned.
+  - A list reload matched the server.
+- Failures:
+  - POST 500, 400, and network abort each kept the input text, added no comment, left the count unchanged, and showed `댓글을 등록하지 못했습니다. 다시 시도해 주세요.`. The retry created exactly one comment.
+  - DELETE 500, 403, and 404 each kept the dialog open with `댓글을 삭제하지 못했습니다. 다시 시도해 주세요.`, re-enabled `예`, and left the comment and count unchanged. The retry succeeded.
+- Duplicate prevention: two `requestSubmit()` calls in the same tick produced exactly 1 POST and 1 comment. Two clicks on `예` in the same tick produced exactly 1 DELETE.
+- Dialog: `alertdialog` with `aria-modal="true"` and `aria-labelledby`, 327×264 at (24, 257), title `삭제하기`, body `삭제한 댓글은 복구할 수 없습니다.` / `정말 삭제 하시겠습니까?`, actions `취소` / `예`.
+- Requester switch:
+  - `/dev-user` → `mintcream`, then a create on Jelin's post 41: response and UI author `mintcream`, with `삭제` only on mintcream's comment.
+  - A fresh `apr_tester` load showed no `삭제` on it.
+  - Backend: an `apr_tester` DELETE of that comment returned 403; mintcream's own delete returned 204 and a repeat returned 404.
+- Regressions:
+  - The P5A revisit script passed 12/12 after the mutations (post 4 at 28 comments: fresh `limit=2`, 0 continuation requests before More).
+  - After reseeding: P4 48/48 (0 unexpected 404s), P5A 63/63, and the keyset traversal/tie script (39 posts; post 2 with 1,411 comments in 72 pages; tie fixture) all passed.
+- Test-script maintenance (not product changes): the older P5A/revisit scripts read comment text with `li p:last-child`; own comments now end with the `삭제` button, so they now read `p:nth-of-type(2)`. The P5A zero-comment "no extra empty message" check now excludes the composer form from the section text.
+- DB baseline: the soft-deleted test comments remain as physical rows, so the baseline was restored by dropping the schema and letting Flyway and the seed runner recreate it. Final state: posts 42 (3 deleted), comments 2,076 (81 deleted), likes 0, `seed_history = assignment-v1`.
+
+---
+
 # Requester / Ownership
 
 ## V-010 — Default Requester
@@ -316,6 +359,10 @@ x-user-id: <known-author>
 ### P5A Evidence — 2026-09-29
 
 - Selecting `mintcream` on `/dev-user` produced a detail view with that requester's own `isLiked`, independent of `apr_tester`'s like, and the cookie user's toggle was recorded for `mintcream` only. Ownership UI (own-post menu, own-comment delete) is still unbuilt (P5B/P6), so the combined scenario remains open.
+
+### P5B Evidence — 2026-09-29
+
+- Comment ownership now follows the cookie requester in the browser. After `/dev-user` → `mintcream`, created comments are authored by `mintcream` and only mintcream's comments show `삭제`; a default `apr_tester` load does not. The post-owner menu (P6) is still unbuilt, so the combined scenario remains open.
 
 **Result:** `NOT_RUN`
 
@@ -659,6 +706,10 @@ Test posts with:
 - The next comments read returned it first, PostgreSQL retained it as readable, and the parent post's derived `commentCount` changed from `0` to `1`.
 - Blank comment content returned HTTP 400 `INVALID_CONTENT`.
 
+### P5B UI Evidence — 2026-09-29
+
+- Browser creation through the fixed composer at 0→1, 1→2, 2→3 (More appears), 27→28, and while expanded over multiple pages. Server-confirmed only: failures keep the input and counts, and a same-tick double submit sends one POST. See "P5B Comment Mutation Evidence".
+
 **Result:** `PASS`
 
 ---
@@ -687,6 +738,10 @@ Test posts with:
 - PostgreSQL retained the row with `is_deleted = true`; comments `total` and the parent post's derived `commentCount` both changed from `1` to `0`.
 - A repeated delete returned HTTP 404.
 
+### P5B UI Evidence — 2026-09-29
+
+- Browser delete through the confirmation dialog at 3→2 (More disappears), 2→1, 1→0, inside a continuation page, and at the cursor-boundary row. Each comment disappeared, and the comment total, detail count, and cached list count dropped by one and matched the server after reload. See "P5B Comment Mutation Evidence".
+
 **Result:** `PASS`
 
 ---
@@ -709,6 +764,10 @@ Test posts with:
 
 - Post owner `p2b_user_a` attempted to delete `p2b_user_b`'s comment and received HTTP 403, proving post ownership does not imply comment ownership.
 - PostgreSQL still reported the comment as readable; requester B then deleted their own comment successfully.
+
+### P5B UI Evidence — 2026-09-29
+
+- The UI renders `삭제` only for the requester's own comments (checked for `apr_tester` and `mintcream`, including own comments on other users' posts). The backend still returns 403 for a cross-user DELETE.
 
 **Result:** `PASS`
 
@@ -813,6 +872,10 @@ Inspect required screens at 375px viewport:
 
 - Post detail at `375 × 778`: 375×48 sticky navigation, content from y=56, document `scrollWidth` 375. Create, edit, and action-sheet screens do not exist yet.
 
+### P5B Partial Evidence — 2026-09-29
+
+- Detail with the fixed 375×86 composer at y=692 and the 327×264 delete dialog at (24, 257): no horizontal overflow, including with a long unbroken comment. Create, edit, and action-sheet screens are still missing.
+
 **Result:** `NOT_RUN`
 
 ---
@@ -851,6 +914,10 @@ Implementation matches official design as closely as practical, with any intenti
 ### P5A Partial Evidence — 2026-09-29
 
 - Detail typography matched the `docs/UI_SPEC.md` `DESIGN_DEFINED` values (title Bold 18/26, author Bold 15/22, body Regular 14/18, heading Bold 16/24, `#292828`, liked `#FF8DA1`). Layout offsets, avatar sizes, comment typography, icons, and the More button were estimated from local PNG exports of the official frames (`755-10420`, `755-10774`, `755-12645`, `755-13104`, `769-142`) and are `PRODUCT_DECISION` values, not Figma node measurements. Comparing against local PNGs does not constitute V-081; the result remains `NOT_RUN`.
+
+### P5B Partial Evidence — 2026-09-29
+
+- Composer region, dialog geometry, and dialog copy follow `docs/UI_SPEC.md`. Internal spacing, colors, and the `등록` control are PNG-estimated `PRODUCT_DECISION` values (local exports `755-12175`, `755-13104`, `755-12645`), not Figma node measurements. The result remains `NOT_RUN`.
 
 **Result:** `NOT_RUN`
 
