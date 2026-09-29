@@ -6,7 +6,7 @@ This document is the operational state for the assignment. Keep it concise and c
 
 - Current Phase: `P2 — Backend Domain & API`
 - Status: `COMPLETE`
-- Last Verified Baseline: `8d38b1697c00e9eba02deaffddbea8a594414620`; P2B acceptance targets this branch's implementation worktree.
+- Last Verified Commit: `8b8d1006dce64074991b6af56c884a67cab1ae22` (P2B implementation and acceptance).
 - Last Updated: `2026-09-29`
 
 ### Known Blockers
@@ -15,8 +15,9 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-- Review the P2B PR only.
-- Do not start P3 until the P2B PR is reviewed and merged.
+- Merge the reviewed P2B PR.
+- After merge, P3 — Frontend Foundation is the next implementation phase.
+- Do not start P3 until explicitly requested.
 
 ### P0 Completion Update
 

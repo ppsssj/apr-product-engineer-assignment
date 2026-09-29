@@ -176,15 +176,13 @@ Open frontend at `http://localhost:13000`.
 ## P2B Mutation API Runtime Acceptance — 2026-09-29
 
 - A project-scoped clean-volume `docker compose up -d --build` made `db`, `backend`, and `frontend` healthy; `/health` returned HTTP 200 with database status `up`.
-- The baseline contained 42 physical/39 readable posts, 2,076 physical/1,995 readable comments, zero `post_likes`, and one `assignment-v1` seed-history row.
+- The baseline contained 42 physical/39 readable posts, 2,076 physical/1,995 non-deleted comment rows, zero `post_likes`, and one `assignment-v1` seed-history row. API-readable comments additionally require a readable parent post.
 - Post ID `43` was created for `p2b_user_a` with zero derived counts and false requester-like state, appeared first in the list, rejected requester B's PATCH/DELETE with 403, accepted owner PATCH/DELETE, and remained physically stored after soft deletion.
 - Validation returned JSON 400 errors for missing/blank title or content, a 21-code-point title, blank comment, and malformed JSON. A title containing exactly 20 emoji code points returned 201.
 - Two requesters independently toggled one post through count sequence `0 → 1 → 2 → 1 → 0`; each requester saw only their own `isLiked`, and the final database like-row count was zero.
 - Comment ID `2077` was created by requester B. Post owner A could not delete it (403), requester B could (204), the row remained with `is_deleted = true`, the derived count returned from one to zero, and a repeated delete returned 404.
 - After post deletion, list exclusion and 404 behavior were verified for detail, comments read/create, PATCH, like toggle, and repeated DELETE. The original 42 posts, 2,076 comments, seed-history marker, and seed-deleted read exclusions remained intact.
-- Cleanup used only this APR Compose project's `down -v` followed by `up -d`. The restored baseline is 42/39 posts, 2,076/1,995 comments, zero likes, one seed-history row, and `/health` HTTP 200. The Node.js verifier was removed.
-
----
+- Cleanup used only this APR Compose project's `down -v` followed by `up -d`. The restored baseline is 42/39 posts, 2,076 physical/1,995 non-deleted comment rows, zero likes, one seed-history row, and `/health` HTTP 200. The Node.js verifier was removed.
 
 ---
 
