@@ -1030,6 +1030,26 @@ Implementation matches official design as closely as practical, with any intenti
 
 - Create/edit fixed action (343×56 at y=690 in the 68 + 26 region), the action sheet (375×224 at y=554), the post delete dialog (327×264 at 24, 257), and the toast (181×40 at 97.5, 657) match `docs/UI_SPEC.md`. Other values are PNG-estimated `PRODUCT_DECISION`s. No fresh Figma comparison was run, so the result remains `NOT_RUN`.
 
+### P7-A Local SVG and Chromium Evidence — 2026-09-30
+
+- `755-8831-post-list.svg` provides a 375×778 viewBox with preserved text and
+  geometry: 118px rows, 18px avatar/author row, 16/24 title, 14/18 preview,
+  12/16 metadata, and a divider at x=16/y=173. The list now follows the SVG
+  hierarchy avatar/author → title → preview → metadata without changing link,
+  query, cache, or pagination behavior.
+- The SVG directly supplies filled neutral comment/heart glyphs in `#DADEE3`;
+  the heart also uses a `#DADEE3` 1.4px stroke. Chromium DOM evidence confirms
+  the list uses those vectors and switches only the heart to `#FF8DA1` when
+  `post.isLiked` is true. The count text remains neutral.
+- `npm run typecheck`, `npm run build`, `git diff --check`, Compose frontend
+  rebuild, and `/health` passed. Chromium rendered the corrected ordering,
+  neutral rows, and an `isLiked: true` pink heart at the list's first row.
+- Chrome/Edge headless capture has a minimum CSS viewport wider than 375px in
+  this environment, clipping the right-aligned time and fixed FAB from its
+  375px bitmap. DOM/CSS evidence confirms both elements remain present with
+  their existing right-aligned/fixed rules. This is not fresh Figma MCP
+  comparison evidence; V-081 remains `NOT_RUN`.
+
 **Result:** `NOT_RUN`
 
 ---
