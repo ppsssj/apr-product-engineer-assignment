@@ -1,3 +1,5 @@
 build/
 .gradle/
+# IDE (VS Code / Eclipse Java) compiler output
+bin/
 !gradle/wrapper/gradle-wrapper.jar
