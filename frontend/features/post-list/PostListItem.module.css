@@ -1,7 +1,8 @@
 /*
- * RETOUCH (design/design-retouch/svg/메디큐브톡.svg, PRODUCT_DECISION): a 98px
- * row whose content is title → preview → metadata. 12 + title 24 + 4 +
- * preview 18 + 9 + metadata 18 + 12 + 1px divider = 98. The metadata row is
+ * RETOUCH (design/design-retouch/svg/메디큐브톡.svg, PRODUCT_DECISION): a row
+ * whose content is title → preview → metadata. The retouch draws 98px; review
+ * found that dense, so spacing (not type) grows it to 108px: 14 + title 24 +
+ * 6 + preview 18 + 13 + metadata 18 + 14 + 1px divider = 108. The metadata row is
  * [18px avatar + author] [comment · like] … [time], with the time pinned right.
  * Kept from the official design (755-8831-post-list.svg): title Medium 16/24,
  * preview 14/18 #979EA9, 12/16 metadata, author #5E5E5E, 14px neutral glyphs.
@@ -10,7 +11,7 @@
  */
 
 .row {
-  height: 98px;
+  height: 108px;
   padding: 0 var(--space-page-inset);
 }
 
@@ -18,7 +19,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 12px 0;
+  padding: 14px 0;
   border-bottom: 1px solid var(--color-border-light);
   color: inherit;
   text-decoration: none;
@@ -50,7 +51,7 @@
 .preview {
   flex: none;
   height: 18px;
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   overflow: hidden;
   font-size: 14px;
   font-weight: 400;
@@ -66,7 +67,7 @@
   flex: none;
   align-items: center;
   height: 18px;
-  margin-top: 9px;
+  margin-top: 13px;
   min-width: 0;
   font-size: 12px;
   font-weight: 400;

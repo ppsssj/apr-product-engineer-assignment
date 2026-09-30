@@ -382,8 +382,10 @@ the implementation. Everything else keeps the official values. The rationale
 and details are in `design/design-retouch/readme.md`.
 
 - **SCREEN-001 list:**
-  - 98px rows ordered title → preview → metadata; the author row above the
-    title is removed.
+  - Rows ordered title → preview → metadata; the author row above the title
+    is removed.
+  - Rows are 108px, not the retouch's 98px. Visual review found 98px too
+    dense, so only spacing grew (14/6/13/14); type sizes are unchanged.
   - Metadata is [18px avatar + author, max 132px] [comment · like] … [time].
   - Counts use thousands separators, as in both references.
   - The app title is centered with a 1px `#EAECEE` header divider.
