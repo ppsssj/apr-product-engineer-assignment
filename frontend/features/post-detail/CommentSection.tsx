@@ -77,7 +77,10 @@ export function CommentSection({ postId, commentCount }: Props) {
   return (
     <section className={styles.section} aria-labelledby="comments-heading">
       <h2 id="comments-heading" className={styles.heading}>
-        댓글 ({total.toLocaleString("ko-KR")})
+        댓글
+        <span className={styles.headingCount}>
+          ({total.toLocaleString("ko-KR")})
+        </span>
       </h2>
 
       {status === "pending" && (

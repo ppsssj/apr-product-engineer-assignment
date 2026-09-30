@@ -400,3 +400,6 @@ and details are in `design/design-retouch/readme.md`.
     transform only; close is immediate).
   - `prefers-reduced-motion` disables the motion.
   - The comment-delete target is enlarged without moving its text.
+- **Comment heading (code-level refinement, no reference image):** `댓글`
+  stays Bold 16/24 `#292828`; the count becomes Medium 14/20 `#979EA9` with
+  a 4px gap. The 49px heading box and comment positions are unchanged.

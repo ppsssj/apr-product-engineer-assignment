@@ -23,6 +23,17 @@
   color: var(--color-text-primary);
 }
 
+/* P8-C code-level refinement (PRODUCT_DECISION, not Figma evidence): the
+   count is supporting metadata, so it steps down from the Bold 16 label.
+   Baseline-aligned inline text, so the 24px heading line does not grow. */
+.headingCount {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
 .list {
   margin: 0;
   padding: 0;
