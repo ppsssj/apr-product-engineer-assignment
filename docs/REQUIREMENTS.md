@@ -30,18 +30,33 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| ENV-001 | Backend uses Java 17. | §2 | TODO |
-| ENV-002 | Backend uses Spring Boot 3.x. | §2 | TODO |
+| ENV-001 | Backend uses Java 17. | §2 | VERIFIED |
+| ENV-002 | Backend uses Spring Boot 3.x. | §2 | VERIFIED |
 | ENV-003 | Frontend uses TypeScript. | §2 | VERIFIED |
 | ENV-004 | Frontend uses Next.js 15 App Router. | §2 | VERIFIED |
-| ENV-005 | Database is PostgreSQL. | §2 | TODO |
-| ENV-006 | `docker compose up` starts DB, backend, and frontend. | §2, §7 | TODO |
-| ENV-007 | `GET /health` path remains unchanged. | §3 | TODO |
-| ENV-008 | `GET /health` returns HTTP 200. | §3 | TODO |
-| ENV-009 | `FRONTEND_PORT` override works. | §7 | TODO |
-| ENV-010 | `BACKEND_PORT` override works. | §7 | TODO |
-| ENV-011 | `DB_PORT` override works. | §7 | TODO |
+| ENV-005 | Database is PostgreSQL. | §2 | VERIFIED |
+| ENV-006 | `docker compose up` starts DB, backend, and frontend. | §2, §7 | VERIFIED |
+| ENV-007 | `GET /health` path remains unchanged. | §3 | VERIFIED |
+| ENV-008 | `GET /health` returns HTTP 200. | §3 | VERIFIED |
+| ENV-009 | `FRONTEND_PORT` override works. | §7 | VERIFIED |
+| ENV-010 | `BACKEND_PORT` override works. | §7 | VERIFIED |
+| ENV-011 | `DB_PORT` override works. | §7 | VERIFIED |
 | ENV-012 | README documents any runtime prerequisites needed for successful startup. | §7 | TODO |
+
+> P8-B:
+>
+> - `ENV-001`: Java 17 comes from the `build.gradle` toolchain
+>   `JavaLanguageVersion.of(17)` and the `gradle:8.14-jdk17` /
+>   `eclipse-temurin:17-jre` Docker stages. The runtime log reports
+>   `Java 17.0.20.1`.
+> - `ENV-002`: Spring Boot comes from the `org.springframework.boot` plugin
+>   `3.5.0`, and the backend passed `gradlew clean test`.
+> - `ENV-005`: PostgreSQL is Compose `postgres:16-alpine`; Flyway reported
+>   `PostgreSQL 16.15`.
+> - `ENV-006`–`ENV-008`: V-001 (P8-A clean-volume boot with the seed-readiness
+>   health gate) plus the P8-B healthy stack with `/health` 200.
+> - `ENV-009`–`ENV-011`: V-002 (P8-A alternate ports 13000/18080/25432).
+> - `ENV-012` belongs to P9 (README).
 
 ---
 
@@ -49,13 +64,22 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| START-001 | `frontend/app/dev-user/` remains unchanged. | §3 | TODO |
-| START-002 | Existing CORS behavior remains compatible with credentialed browser requests. | §3 | TODO |
+| START-001 | `frontend/app/dev-user/` remains unchanged. | §3 | VERIFIED |
+| START-002 | Existing CORS behavior remains compatible with credentialed browser requests. | §3 | VERIFIED |
 | START-003 | Frontend browser requests that rely on the cookie send credentials. | §3 | VERIFIED |
 
 > P3: `ENV-003`/`ENV-004` are verified by strict `tsc --noEmit` and `next build` over the `app/` router with Next.js 15.4.6. `START-003` is `IMPLEMENTED` because the shared client in `frontend/lib/api/client.ts` always sends `credentials: "include"`; it becomes `VERIFIED` only after a real browser `/dev-user` → product request flow in P4/P5 or P8. `START-001`, `START-002`, and `USER-004` are unchanged by P3 and remain for final acceptance.
 
 > P4: `START-003` is `VERIFIED` by a real Chromium session that selected `mintcream` on the unchanged `/dev-user` page and was redirected to `/`; the list request `GET /api/posts?limit=10` carried `Cookie: x-user-id=mintcream`, and the response reported that user's temporary like as `isLiked: true` (V-012 P4 evidence).
+
+> P8-B:
+>
+> - `START-001`: `git diff 38a9755 HEAD -- frontend/app/dev-user/` is empty
+>   (V-004).
+> - `START-002`: `CorsConfig.java` is likewise unchanged from the starter.
+>   Every P8-B browser request from `:3000` to `:8080` carried the
+>   `x-user-id` cookie and succeeded, including preflighted PATCH and DELETE
+>   (see "P8-B Full Behavioral Acceptance" in `docs/VERIFICATION.md`).
 
 ---
 
@@ -85,10 +109,20 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | USER-001 | Current user may be resolved from `x-user-id` request header. | §4 | VERIFIED |
 | USER-002 | Current user may be resolved from `x-user-id` cookie. | §4 | VERIFIED |
 | USER-003 | If neither header nor cookie is present, current user is `apr_tester`. | §4 | VERIFIED |
-| USER-004 | Login/authentication UI is not implemented. | §4 | TODO |
+| USER-004 | Login/authentication UI is not implemented. | §4 | VERIFIED |
 | USER-005 | Post ownership is determined by `post.author == currentUser`. | §4 | VERIFIED |
 | USER-006 | Comment ownership is determined by `comment.author == currentUser`. | §4 | VERIFIED |
-| USER-007 | A separate user table is not required for the assignment. | §4 | TODO |
+| USER-007 | A separate user table is not required for the assignment. | §4 | VERIFIED |
+
+> P8-B:
+>
+> - `USER-004`: the frontend routes are only `/`, `/dev-user`, `/posts/new`,
+>   `/posts/[postId]`, and `/posts/[postId]/edit`, and the frontend source has
+>   no login, sign-in, or password code. The requester comes only from the
+>   starter `/dev-user` cookie or the `x-user-id` header.
+> - `USER-007`: the Flyway `V1` schema creates only `posts`, `comments`,
+>   `post_likes`, and `seed_history`. Ownership compares `author` with the
+>   resolved requester string, re-verified in P8-B for posts and comments.
 
 ---
 
@@ -100,7 +134,7 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | UI-002 | Primary target viewport is 375px. | §4 | VERIFIED |
 | UI-003 | Desktop-specific adaptation is not required. | §4 | VERIFIED |
 | UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | TODO |
-| UI-005 | Undefined design/flow details may be completed reasonably. | §4 | TODO |
+| UI-005 | Undefined design/flow details may be completed reasonably. | §4 | VERIFIED |
 | UI-006 | Avatar uses one of the three provided avatar assets. | §4 | VERIFIED |
 | UI-007 | Avatar selection policy may be implementation-defined. | §4 | VERIFIED |
 | UI-008 | Any intentional UI/UX improvement is documented in README with rationale. | §4 | TODO |
@@ -108,6 +142,21 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 > The official Figma source is now available and audited in `docs/UI_SPEC.md`. `UI-004` remains `TODO` because acquiring/auditing the design is not the same as implementing or acceptance-verifying visual fidelity.
 >
 > P4: `UI-006`/`UI-007` are `VERIFIED` — every list avatar is one of `/avatar-1.png`–`/avatar-3.png`, chosen by `frontend/lib/avatar.ts` `avatarFor()` (`stableHash(author) % 3`), identical for one author across rows and reloads. `UI-001`, `UI-002`, and `UI-004` stay `TODO`: only the list screen exists, V-080 needs every required screen, and V-081 was not run (no fresh Figma MCP comparison; see `docs/VERIFICATION.md`).
+>
+> P8-B:
+>
+> - `UI-005` is `VERIFIED`. Flows the assignment and Figma leave undefined
+>   were completed and exercised in the browser:
+>   - loading, empty, and error states with retry;
+>   - not-found for deleted, missing, or invalid posts;
+>   - the no-permission edit notice;
+>   - toast lifetime;
+>   - failure handling that keeps input.
+>
+>   Their values are recorded as `PRODUCT_DECISION`s in `docs/UI_SPEC.md`.
+> - `UI-004` stays `TODO` until V-081 compares against the official Figma
+>   source.
+> - `UI-008` (README) belongs to P9.
 
 ---
 
