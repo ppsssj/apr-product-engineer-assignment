@@ -3,10 +3,12 @@
  * 44px discovery row directly under the app title. The title scrolls away;
  * only this row sticks at top 0 (white, 1px #EAECEE bottom divider), so the
  * list keeps one 44px sticky band instead of two.
- * Normal: search action left (secondary), sorts right. The selected sort is
- * #292828 SemiBold, the other #979EA9 Medium; red is kept for identity and
- * destructive roles. Search mode reuses the same row: back, field, clear.
- * Every control keeps a 44px-tall touch target.
+ * Normal: the sort group (최신순 · 좋아요순) on the left, then one search
+ * button that fills the rest of the row: its icon/label sit just after a
+ * short #EAECEE divider and the blank space to the right edge is part of the
+ * same button. The selected sort is #292828 SemiBold, the other #979EA9
+ * Medium; red is kept for identity and destructive roles. Search mode reuses
+ * the same row: back, field, clear. Every control keeps a 44px-tall target.
  */
 
 .toolbar {
@@ -35,21 +37,55 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.searchTrigger {
-  gap: 6px;
-  height: 43px;
+/* Compact group sized to its content. The 8px button padding keeps each
+   target wide; labels read 18px apart (8 + 2 + 8). */
+.sorts {
+  display: flex;
+  flex: none;
+  gap: 2px;
   margin-left: -8px;
-  padding: 0 8px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 18px;
+}
+
+/* One semantic button from the divider to the toolbar's right edge (the
+   negative right margin cancels the row inset). Content is left-aligned;
+   the blank remainder is invisible but clickable. */
+.searchTrigger {
+  position: relative;
+  flex: 1;
+  justify-content: flex-start;
+  min-width: 0;
+  height: 43px;
+  margin: 0 calc(-1 * var(--space-page-inset)) 0 4px;
+  padding: 0 var(--space-page-inset) 0 13px;
   color: var(--color-text-secondary);
 }
 
-.sorts {
-  display: flex;
-  margin-left: auto;
-  margin-right: -8px;
+/* Short role-separation divider, vertically centered (not a full-height
+   rule that would meet the bottom border). */
+.searchTrigger::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 16px;
+  background: #eaecee;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.searchContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  transition: opacity 120ms ease;
+}
+
+/* Subtle press feedback on the content only; the wide area never flashes. */
+.searchTrigger:active .searchContent {
+  opacity: 0.55;
 }
 
 .sort {
@@ -119,7 +155,6 @@
   color: #c6ccd3;
 }
 
-.searchTrigger:active,
 .sort:active,
 .back:active {
   opacity: 0.6;
@@ -134,8 +169,15 @@
   border-radius: 6px;
 }
 
+/* The focus ring covers the whole search target (inset so the divider and
+   bottom border stay visible). */
+.searchTrigger:focus-visible {
+  outline-offset: -4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .sort {
+  .sort,
+  .searchContent {
     transition: none;
   }
 }

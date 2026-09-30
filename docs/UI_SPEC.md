@@ -437,10 +437,18 @@ Update".
     spends about 92px on two sticky bands.
   - List rows now start at y=92 (previously 56); the 108px row rhythm is
     unchanged.
-- **Normal mode:**
-  - `🔍 검색` on the left is a secondary 14px action, not a field.
-  - `최신순` and `좋아요순` on the right are two plain text buttons with no
-    pills and no dropdown.
+- **Normal mode:** `최신순 좋아요순 │ 🔍 검색`.
+  - Sorting is the list's persistent state, so it comes first as one compact
+    group. Its labels are 18px apart and `최신순` starts at the 16px inset.
+    They are two plain text buttons with no pills and no dropdown.
+  - A short 16px `#EAECEE` divider follows.
+  - Then comes one search button (accessible name `게시글 검색`) that fills
+    the rest of the row to the right edge. Its icon and `검색` are
+    left-aligned 13px after the divider, and the blank remainder is part of
+    the same button, so it gets a wide hit area with no extra tab stop and no
+    visible box.
+  - Press feedback dims only the icon and label. Keyboard focus shows a ring
+    around the whole search target.
   - The selected sort is `#292828` SemiBold; the other is `#979EA9` Medium.
     Red is not used (it stays reserved for identity and destructive roles).
   - Every control has a 44px-tall target and `aria-pressed` on the sorts.

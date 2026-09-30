@@ -47,7 +47,8 @@ export function PostListToolbar({
     wasOpen.current = searchOpen;
   }, [searchOpen]);
 
-  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  // Handled on the whole search row, so Escape works from the field, ← or ×.
+  function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
       onCloseSearch();
@@ -59,6 +60,7 @@ export function PostListToolbar({
       <form
         role="search"
         className={styles.toolbar}
+        onKeyDown={onKeyDown}
         onSubmit={(event) => {
           event.preventDefault();
           onSubmitSearch();
@@ -73,7 +75,6 @@ export function PostListToolbar({
             className={styles.input}
             value={searchInput}
             onChange={(event) => onSearchInputChange(event.target.value)}
-            onKeyDown={onKeyDown}
             placeholder="게시글 검색"
             aria-label="게시글 검색"
             enterKeyHint="search"
@@ -81,7 +82,16 @@ export function PostListToolbar({
             maxLength={100}
           />
           {searchInput.length > 0 && (
-            <button type="button" className={styles.clear} onClick={onClearSearch} aria-label="검색어 지우기">
+            <button
+              type="button"
+              className={styles.clear}
+              onClick={() => {
+                onClearSearch();
+                // The × disappears with the text; keep focus in the field.
+                inputRef.current?.focus();
+              }}
+              aria-label="검색어 지우기"
+            >
               <ClearIcon />
             </button>
           )}
@@ -90,12 +100,11 @@ export function PostListToolbar({
     );
   }
 
+  // Sorting (the list's persistent state) comes first; the search action
+  // follows as one button that fills the rest of the row, so the whole blank
+  // area after "검색" is its hit target. DOM order = visual = tab order.
   return (
     <div className={styles.toolbar}>
-      <button ref={triggerRef} type="button" className={styles.searchTrigger} onClick={onOpenSearch}>
-        <SearchIcon />
-        검색
-      </button>
       <div className={styles.sorts} role="group" aria-label="정렬">
         {SORT_OPTIONS.map((option) => (
           <button
@@ -109,6 +118,18 @@ export function PostListToolbar({
           </button>
         ))}
       </div>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={styles.searchTrigger}
+        onClick={onOpenSearch}
+        aria-label="게시글 검색"
+      >
+        <span className={styles.searchContent}>
+          <SearchIcon />
+          검색
+        </span>
+      </button>
     </div>
   );
 }
