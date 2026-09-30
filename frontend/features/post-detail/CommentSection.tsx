@@ -120,7 +120,15 @@ export function CommentSection({ postId, commentCount }: Props) {
                 />
                 <div className={styles.body}>
                   <p className={styles.meta}>
-                    <span className={styles.author}>{comment.author}</span>
+                    <span
+                      className={
+                        comment.author === requester
+                          ? `${styles.author} ${styles.authorOwn}`
+                          : styles.author
+                      }
+                    >
+                      {comment.author}
+                    </span>
                     {relativeTime && (
                       <time dateTime={comment.createdAt} className={styles.time}>
                         {relativeTime}

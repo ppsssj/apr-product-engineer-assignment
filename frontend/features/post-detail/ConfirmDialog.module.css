@@ -5,7 +5,13 @@
  * PRODUCT_DECISION (estimated from the local PNG export 755-12175, not Figma
  * node values): 20px dialog radius and 12px button radius (both within the
  * audited radius set), title Bold 18/26, body 15/22 #979EA9, 130×56 buttons
- * with a 15px gap, cancel on #EAECEE, confirm on #292828.
+ * with a 15px gap, cancel on #EAECEE.
+ * P8-C PRODUCT_DECISION (design/design-retouch 메디큐브톡_상세(댓글 삭제)):
+ * the destructive "예" uses the app red #C2102F (both comment and post
+ * deletion share this dialog), and the vertical rhythm is compacted from the
+ * former 264px minimum to content height: 32 + title 26 + 16 + body 44 + 30
+ * + buttons 56 + 32 = 236px with the two-line copy. There is no fixed
+ * height, so an error line still grows it.
  */
 
 .scrim {
@@ -25,8 +31,7 @@
   align-items: center;
   width: 327px;
   max-width: 100%;
-  min-height: 264px;
-  padding: 51px 26px 40px;
+  padding: 32px 26px;
   border-radius: 20px;
   background: var(--color-surface);
   text-align: center;
@@ -60,8 +65,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 15px;
   width: 100%;
-  margin-top: auto;
-  padding-top: 24px;
+  padding-top: 30px;
 }
 
 .cancel,
@@ -81,9 +85,10 @@
   color: var(--color-text-secondary);
 }
 
+/* Destructive action: the app red (also the FAB fill). */
 .confirm {
-  background: var(--color-text-primary);
-  color: var(--color-surface);
+  background: #c2102f;
+  color: #ffffff;
 }
 
 .cancel:disabled,
@@ -120,7 +125,7 @@
 }
 
 .confirm:enabled:active {
-  filter: brightness(1.25);
+  filter: brightness(0.92);
 }
 
 @keyframes dialog-scrim-in {

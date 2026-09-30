@@ -66,14 +66,21 @@
   margin: 0;
 }
 
+/* P8-C: SemiBold (was Bold) so the name does not outweigh the comment. */
 .author {
   overflow: hidden;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 22px;
   color: var(--color-text-primary);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* P8-C: the requester's own comments carry the app red on the name only
+   (same requester value that shows "삭제"); no badge or other accent. */
+.authorOwn {
+  color: #c2102f;
 }
 
 .time {
