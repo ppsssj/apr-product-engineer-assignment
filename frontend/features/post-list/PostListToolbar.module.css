@@ -8,7 +8,8 @@
  * short #EAECEE divider and the blank space to the right edge is part of the
  * same button. The selected sort is #292828 SemiBold, the other #979EA9
  * Medium; red is kept for identity and destructive roles. Search mode reuses
- * the same row: back, field, clear. Every control keeps a 44px-tall target.
+ * the same flat row: ←, a decorative search icon, and a borderless input that
+ * fills the rest (no pill, no ×). Every control keeps a 44px-tall target.
  */
 
 .toolbar {
@@ -25,8 +26,7 @@
 
 .searchTrigger,
 .sort,
-.back,
-.clear {
+.back {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -112,47 +112,45 @@
   color: var(--color-text-primary);
 }
 
-.field {
+/* Search mode is the same flat row changing state: no field box, pill, or
+   outline. While the query field has focus, the row's own bottom divider
+   darkens slightly (with the caret) instead of a separate ring. */
+.searchMode {
+  transition: border-color 120ms ease;
+}
+
+.searchMode:focus-within {
+  border-bottom-color: var(--color-text-secondary);
+}
+
+/* Decorative, secondary grey like the normal-mode search icon. */
+.searchModeIcon {
   display: flex;
-  flex: 1;
-  align-items: center;
-  min-width: 0;
-  height: 32px;
-  margin-left: 2px;
-  padding: 0 4px 0 12px;
-  border-radius: 16px;
-  background: var(--color-disabled-surface);
+  flex: none;
+  margin-left: 6px;
+  color: var(--color-text-secondary);
 }
 
-.field:focus-within {
-  box-shadow: inset 0 0 0 1px var(--color-text-secondary);
-}
-
+/* Fills the rest of the row up to the page inset. 16px text keeps iOS Safari
+   from zooming the page when the field is focused. */
 .input {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  height: 43px;
+  margin-left: 6px;
   padding: 0;
   border: 0;
+  border-radius: 0;
   outline: none;
   background: transparent;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 20px;
   color: var(--color-text-primary);
 }
 
 .input::placeholder {
   color: var(--color-text-secondary);
-}
-
-.clear {
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border-radius: 50%;
-  color: #c6ccd3;
 }
 
 .sort:active,
@@ -162,8 +160,7 @@
 
 .searchTrigger:focus-visible,
 .sort:focus-visible,
-.back:focus-visible,
-.clear:focus-visible {
+.back:focus-visible {
   outline: 2px solid var(--color-text-primary);
   outline-offset: -2px;
   border-radius: 6px;
@@ -177,7 +174,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sort,
-  .searchContent {
+  .searchContent,
+  .searchMode {
     transition: none;
   }
 }

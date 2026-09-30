@@ -117,10 +117,6 @@ export function PostListScreen() {
         onSearchInputChange={setSearchInput}
         onOpenSearch={() => setSearchOpen(true)}
         onCloseSearch={closeSearch}
-        onClearSearch={() => {
-          setSearchInput("");
-          setQuery(null);
-        }}
         onSubmitSearch={() => setQuery(normalizePostQuery(searchInput))}
       />
 

@@ -452,11 +452,16 @@ Update".
   - The selected sort is `#292828` SemiBold; the other is `#979EA9` Medium.
     Red is not used (it stays reserved for identity and destructive roles).
   - Every control has a 44px-tall target and `aria-pressed` on the sorts.
-- **Search mode:** the same 44px row changes to ← (`검색 닫기`), a 32px
-  rounded field on `#F3F4F8` (`게시글 검색`, auto-focused), and a clear
-  button (`검색어 지우기`) while text exists.
-  - Escape or ← clears the query and returns to normal mode, and focus
-    returns to `검색`.
+- **Search mode:** the same flat 44px row changes state to `← 🔍 게시글 검색`.
+  - It contains ← (`검색 닫기`), a decorative secondary-grey search icon, and
+    a borderless, transparent input (`게시글 검색`, auto-focused) that fills
+    the rest of the row to the page inset.
+  - There is no pill, field box, or × button.
+  - The input text is 16px so iOS does not zoom the page on focus.
+  - While the field has focus, the row's own bottom divider darkens to
+    `#979EA9` instead of showing a separate ring.
+  - ← and Escape are the only exits. They clear the query and restore the
+    unfiltered list, and focus returns to `검색`.
   - The chosen sort stays applied to the results and is still selected after
     closing.
 - **Behavior:**

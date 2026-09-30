@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { PostSort } from "@/lib/api/types";
-import { ClearIcon, SearchBackIcon, SearchIcon } from "./icons";
+import { SearchBackIcon, SearchIcon } from "./icons";
 import styles from "./PostListToolbar.module.css";
 
 type Props = {
@@ -12,8 +12,8 @@ type Props = {
   searchInput: string;
   onSearchInputChange: (value: string) => void;
   onOpenSearch: () => void;
+  // Closing clears the query and keeps the sort (PostListScreen.closeSearch).
   onCloseSearch: () => void;
-  onClearSearch: () => void;
   onSubmitSearch: () => void;
 };
 
@@ -22,9 +22,10 @@ const SORT_OPTIONS: { value: PostSort; label: string }[] = [
   { value: "likes", label: "좋아요순" },
 ];
 
-// Discovery row under the app title (PRODUCT_DECISION). Normal mode: a search
-// action on the left and the two sort choices on the right. Search mode swaps
-// the same 44px row for a query field; the chosen sort still applies.
+// Discovery row under the app title (PRODUCT_DECISION). Normal mode: the two
+// sort choices, then a wide search action. Search mode keeps the same flat
+// 44px row: ←, a decorative search icon, and the query field. ← (or Escape)
+// is the only exit; it clears the query and keeps the chosen sort.
 export function PostListToolbar({
   sort,
   onSortChange,
@@ -33,7 +34,6 @@ export function PostListToolbar({
   onSearchInputChange,
   onOpenSearch,
   onCloseSearch,
-  onClearSearch,
   onSubmitSearch,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +47,7 @@ export function PostListToolbar({
     wasOpen.current = searchOpen;
   }, [searchOpen]);
 
-  // Handled on the whole search row, so Escape works from the field, ← or ×.
+  // Handled on the search row, so Escape closes search whether focus is in the field or on ←.
   function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -59,7 +59,7 @@ export function PostListToolbar({
     return (
       <form
         role="search"
-        className={styles.toolbar}
+        className={`${styles.toolbar} ${styles.searchMode}`}
         onKeyDown={onKeyDown}
         onSubmit={(event) => {
           event.preventDefault();
@@ -69,33 +69,21 @@ export function PostListToolbar({
         <button type="button" className={styles.back} onClick={onCloseSearch} aria-label="검색 닫기">
           <SearchBackIcon />
         </button>
-        <div className={styles.field}>
-          <input
-            ref={inputRef}
-            className={styles.input}
-            value={searchInput}
-            onChange={(event) => onSearchInputChange(event.target.value)}
-            placeholder="게시글 검색"
-            aria-label="게시글 검색"
-            enterKeyHint="search"
-            autoComplete="off"
-            maxLength={100}
-          />
-          {searchInput.length > 0 && (
-            <button
-              type="button"
-              className={styles.clear}
-              onClick={() => {
-                onClearSearch();
-                // The × disappears with the text; keep focus in the field.
-                inputRef.current?.focus();
-              }}
-              aria-label="검색어 지우기"
-            >
-              <ClearIcon />
-            </button>
-          )}
-        </div>
+        {/* Decorative: the input carries the accessible name. */}
+        <span className={styles.searchModeIcon}>
+          <SearchIcon />
+        </span>
+        <input
+          ref={inputRef}
+          className={styles.input}
+          value={searchInput}
+          onChange={(event) => onSearchInputChange(event.target.value)}
+          placeholder="게시글 검색"
+          aria-label="게시글 검색"
+          enterKeyHint="search"
+          autoComplete="off"
+          maxLength={100}
+        />
       </form>
     );
   }
