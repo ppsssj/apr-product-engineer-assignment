@@ -68,6 +68,12 @@ curl -i http://localhost:8080/health
   health 200 had total 39. Docker therefore could not report a healthy backend
   while the readable seed was absent.
 
+### P8-B Current-Candidate Note — 2026-09-30
+
+- P8-B changed no product code. The rebuilt default-port stack stayed healthy
+  with `/health` 200 and total 39. The P8-A clean-volume evidence still applies
+  and was not rerun destructively.
+
 **Result:** `PASS`
 
 ---
@@ -107,6 +113,11 @@ Open frontend at `http://localhost:13000`.
   browser resource was `http://localhost:18080/api/posts?limit=10`; no request
   used `localhost:8080`. The temporary PowerShell port variables were removed
   after the run and a default-port stack was rebuilt successfully.
+
+### P8-B Current-Candidate Note — 2026-09-30
+
+- There is no Compose, port, or frontend API-base change since P8-A, so the
+  alternate-port evidence still applies. It was not rerun.
 
 **Result:** `PASS`
 
@@ -163,6 +174,9 @@ Open frontend at `http://localhost:13000`.
   All post IDs and comment IDs, both complete deleted-ID sets, all 42 base
   like counts, and all 42 per-post readable-comment counts matched the source;
   the readable post API total was 39.
+- P8-B note: the P8-B pre-test database was still `42|3|2076|81|0|1` and the
+  seed and seed runner were unchanged. P8-B then added only runtime-generated,
+  soft-deleted acceptance rows (see "P8-B Full Behavioral Acceptance").
 - After `docker compose stop` then `docker compose up -d` without deleting the
   volume, the state remained `42|2076|3|81|0|1` and the readable total remained
   39. No seed row, deleted marker, like row, or seed-history marker duplicated.
@@ -206,6 +220,13 @@ Open frontend at `http://localhost:13000`.
   read liked again as `mintcream`; the relation was toggled off and the cookie
   restored to `apr_tester`, leaving `post_likes` at zero.
 
+### P8-B Current-Candidate Note — 2026-09-30
+
+- `git diff 38a9755 HEAD` is still empty for `frontend/app/dev-user/` (and
+  `CorsConfig.java`). `/dev-user` switching to `mintcream`, `Roidl_08`, and
+  `apr_tester` drove requester-specific like, comment, and post-ownership
+  behavior in the browser.
+
 **Result:** `PASS`
 
 ---
@@ -246,6 +267,242 @@ window; the initial image-build time is intentionally outside those values.
   build is not claimed as clean. The frontend Docker build context excludes
   `.next` via `frontend/.dockerignore` and successfully performed the
   production build used for the runtime images.
+
+---
+
+## P8-B Full Behavioral Acceptance — 2026-09-30
+
+- **Candidate:** `feat/p8b-full-acceptance` at `79ebd67` (P8-A merge). No product
+  code changed during P8-B. The Compose production stack was rebuilt from this
+  commit; `db`, `backend`, and `frontend` were healthy and `/health` returned
+  `{"status":"ok","db":"up"}`.
+- **Pre-test baseline:** posts 42 (3 deleted), comments 2,076 (81 deleted),
+  `post_likes` 0, one `assignment-v1` seed-history row; readable post total 39.
+- **Method:** a temporary Node.js API verifier (108 checks, each state change
+  cross-checked with `psql`) and a Playwright Chromium verifier with a true
+  `375 × 778` viewport (`innerWidth` and document `scrollWidth` 375), run as
+  independent sections plus one continuous end-to-end path. The scripts stayed in
+  the session scratchpad and are not repository artifacts.
+
+### Requester (V-010, V-011, V-012)
+
+- A temporary like by `p8b_req_a` on post 13 (`user_id = p8b_req_a` in
+  `post_likes`) read `isLiked: true` with only the header, true with only the
+  cookie, and false with neither. With both, the header won in each direction
+  (header other + cookie A → false; header A + cookie other → true). A blank
+  header fell back to the cookie.
+- Default: a toggle with no header or cookie stored `user_id = apr_tester`, was
+  visible to header `apr_tester`, and not to another requester. A post created
+  without identity had author `apr_tester` and was deletable with cookie
+  `apr_tester`.
+- Browser: `/dev-user` → `mintcream` made the product request carry
+  `x-user-id=mintcream`; like state, comment authorship, and delete affordances
+  followed that requester.
+
+### List / pagination (V-020, V-021)
+
+- API traversals at limits 7, 10, and 50 (6/4/1 pages, sizes `7/7/7/7/7/4`,
+  `10/10/10/9`, `39`) exactly matched PostgreSQL
+  `ORDER BY created_at DESC, id DESC` over readable rows. `total` was 39 on
+  every page, there were no duplicates or skips, and the final `nextCursor` was
+  `null`. Seed-deleted posts 9, 30, and 31 were absent. The default limit
+  returned 20 rows.
+- Invalid input: `limit` 0, 51, and -1 → 400 `INVALID_LIMIT`; `limit=abc` →
+  400 `INVALID_PARAMETER`; malformed or empty `cursor` → 400
+  `INVALID_CURSOR` on posts and comments.
+- Browser: exactly one initial `limit=10` request; scrolling appended
+  `10/10/10/9` rows through four requests chained by `nextCursor`. The 39 rows
+  were unique and in API order, and further scrolling after the final page sent
+  no request.
+
+### Response shapes (V-070, V-071)
+
+- List: `{ items, total, nextCursor }`. Each item has exactly `id`, `title`,
+  `content`, `likeCount`, `commentCount`, `isLiked`, `author`, and `createdAt`,
+  and `createdAt` is ISO-8601 UTC (sample `2026-08-30T13:55:54Z`).
+- Detail: the same single object without an envelope, byte-identical to the
+  list item. PATCH returned the complete updated single object with unchanged
+  `author` and `createdAt`.
+- Comments: `{ items, total, nextCursor }`, with items of exactly `id`,
+  `postId`, `content`, `author`, and `createdAt`.
+- Like toggle: exactly `{ isLiked, likeCount }`.
+
+### Likes (V-050)
+
+- API on post 13: A and B both started false with no like rows. The count went
+  `856 → 857 → 858 → 857 → 856` (A on, B on, A off, B off). B stayed false
+  while A was on, B stayed true after A went off, the list reflected A's
+  `isLiked` and count, and the run ended with 0 like rows.
+- Browser: the detail heart (`aria-pressed`) and count updated with exactly one
+  toggle request. Back on the list, the row's heart showed the liked accent with
+  the synced count. After switching to `mintcream` the post read unliked at
+  +1; mintcream's toggle made +2, and the list reflected it. Both requesters
+  toggled back, and reload and the database matched the original 856 with 0
+  rows.
+
+### Comment reads (V-060, V-061, V-065)
+
+- API: posts 10 (0), 24 (1), 1 (2), 3 (3), and 4 (27) traversed `limit=2` and
+  then `limit=20`, exactly matching PostgreSQL readable IDs and order, with
+  matching `total` and detail `commentCount`. Post 2 (1,411) was fully
+  traversed twice (`2` then `50`: 30 pages; `2` then `20`: 72 pages) with no
+  duplicate or skip and a null final cursor.
+- Browser: each post sent one `limit=2` request without a cursor and showed at
+  most 2 comments in API order. More appeared only for 3 and 27. Scrolling
+  before More sent nothing. After More, `limit=20` requests chained by
+  `nextCursor` rendered all 3 and all 27 comments, More disappeared, and no
+  request followed the null cursor.
+- Revisit: returning to post 4 in the same session (no reload, verified by a
+  window marker) made one fresh `limit=2` request, 0 continuations, and showed 2
+  comments with More.
+- Post 2 in the browser: 2 visible with More, then bounded `limit=20` pages
+  (122 rows after 7 requests).
+
+### Comment mutations (V-062, V-063, V-064)
+
+- Browser as `apr_tester` on post 1 (2 comments): one POST put the new comment
+  first with author `apr_tester`, the heading went to 3, More appeared, and the
+  list count went +1.
+- `삭제` appeared only on the requester's own comments. Cancel sent no DELETE;
+  confirm sent exactly one. The comment disappeared, the heading and list count
+  returned to 2, the row stayed with `is_deleted = true`, and a repeat DELETE
+  returned 404.
+- `mintcream` created a comment through the UI (author `mintcream`, `삭제`
+  only on it). `apr_tester` saw it without `삭제` and a direct `apr_tester`
+  DELETE returned 403 with the row unchanged. mintcream then deleted it through
+  the UI.
+- API: a post owner's DELETE of another requester's comment returned 403.
+  Deleted comments were excluded from reads and counts, and a repeat by either
+  owner or non-owner returned 404 `COMMENT_NOT_FOUND`.
+
+### Post validation and CRUD (V-030, V-031, V-032, V-033, V-040, V-041)
+
+- **Backend:** 400 JSON errors for empty, missing, whitespace-only, and
+  U+3000-only titles; empty, missing, and whitespace-only content; and 21 ASCII,
+  21 emoji, or 21 Korean code points. No row was created. 20 ASCII, 20 emoji
+  (40 UTF-16 units), and 20 Korean code points returned 201. PATCH rejected a
+  21-emoji title.
+- **Frontend:** the same invalid cases kept `작성 완료` disabled, and a forced
+  `requestSubmit()` sent 0 requests. The three 20-code-point titles enabled it,
+  and the over-length hint appeared.
+- **Create (browser):** the FAB opened `/posts/new`. A 20-code-point title
+  (21 UTF-16 units) with multiline content made one POST (201). The app
+  returned to `/` with the post first and the list total +1. The
+  `게시글이 등록되었습니다.` toast appeared once and expired. The server author
+  was `apr_tester` with 0 likes, 0 comments, and `isLiked: false`, and the
+  detail matched.
+- **Edit (browser):** the own-post menu opened the sheet, and `수정하기`
+  opened the form with the exact title and content prefilled. One PATCH
+  updated the detail, the list cache showed the edited title, and reload and
+  the API confirmed persistence with `createdAt` unchanged.
+- **Delete (browser):** `삭제하기` replaced the sheet with the dialog, and
+  confirm made one DELETE and returned to `/` without the row. The total went
+  back to 39, a direct visit showed `게시글을 찾을 수 없습니다.`, the row stayed
+  with `is_deleted = true`, and a repeat DELETE returned 404.
+- **Ownership:** post 2 (Roidl_08) showed no menu to `apr_tester`, and
+  `/posts/2/edit` showed `이 게시글을 수정할 권한이 없습니다.` with no form.
+  Switching to `Roidl_08` showed the menu. Non-owner PATCH and DELETE returned
+  403 with the post unchanged and readable.
+
+### Soft delete (V-040, V-063, V-065)
+
+- A post by `p8b_owner` had comments by owner and non-owner plus two likes.
+  While readable, the non-owner got 403 on PATCH and DELETE.
+- After the owner's DELETE (204):
+  - The post row stayed with `is_deleted = true`, both child comments stayed
+    `is_deleted = false`, and both like rows remained.
+  - The list excluded the post and the total dropped by one.
+  - Every product route returned 404 `POST_NOT_FOUND` or `COMMENT_NOT_FOUND`
+    for owner and non-owner alike: detail, comments read, PATCH, repeat DELETE,
+    like toggle, comment create, and each child comment delete by its own
+    author.
+  - None of those 404s changed the database.
+- This matches the documented model: readable post = not deleted; readable
+  comment = not deleted and readable parent; effective like = readable parent
+  and relation. A deleted resource returns 404 before any ownership check.
+
+### Error paths
+
+- Malformed JSON on post create, PATCH, and comment create → 400
+  `INVALID_REQUEST`; blank comment → 400 `INVALID_CONTENT`.
+- Unknown and seed-deleted posts (detail, comments, like) → 404
+  `POST_NOT_FOUND`; unknown comment → 404 `COMMENT_NOT_FOUND`; non-numeric
+  post ID → 400 `INVALID_PARAMETER`.
+- Non-owner PATCH or DELETE of seed post 2 → 403 `FORBIDDEN`; non-owner delete
+  of a seed comment → 403 with the row unchanged.
+- Every error was a JSON `{ code, message }` body with no HTML or stack trace,
+  and `/health` stayed 200.
+
+### Continuous 375px end-to-end (V-080 regression)
+
+- The path ran in one Chromium session, starting from a different cookie:
+  `/dev-user` → `apr_tester` → list → infinite scroll → post 13 detail → like
+  on → comment create → comment delete → like off → back → FAB → create →
+  toast → open created → sheet → edit (prefilled) → save → sheet → delete →
+  list.
+- Every screen and overlay had `scrollWidth` 375. The FAB, comment composer,
+  and form action bar stayed fixed and inside the viewport, and state updated
+  without manual reload.
+- There were no page errors, console errors, or 4xx/5xx responses. Post 13's
+  like and comment state were restored.
+
+### Findings (no product change)
+
+- The browser's automatic `GET /favicon.ico` returns 404 because no favicon
+  has existed since the starter. It is not an app request and has no functional
+  effect; left unchanged under the no-speculative-change rule.
+- Chromium logs `net::ERR_ABORTED` for UI DELETE requests after their `204`
+  response arrives. The client intentionally does not read a 204 body (P3), so
+  the unread stream is cancelled. The request succeeds, as the `requestfinished`
+  trace and database confirm. Next.js RSC prefetches cancelled by navigation
+  also report `ERR_ABORTED`. Neither is a failed product request.
+- Five verifier mistakes were corrected without product changes:
+  - an invalid percent-encoded cursor that Tomcat dropped;
+  - a boolean-to-text cleanup comparison;
+  - a 21-code-point "20" fixture, which the UI correctly refused;
+  - a fixed-position check on the button instead of its fixed action bar;
+  - Playwright `headers()` omitting the `Cookie` header, fixed by using
+    `allHeaders()`.
+
+### Automated / static checks
+
+- `backend/gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`, 51 tests,
+  0 failures/errors/skips.
+- `npm run typecheck`: exit 0.
+- Production build:
+  - Local: the generated `frontend/.next` was removed (git-ignored; the
+    removal was permitted this time), then `npm run build` compiled
+    successfully with `/`, `/_not-found`, `/dev-user`, `/posts/[postId]`,
+    `/posts/[postId]/edit`, and `/posts/new`. This is a clean local build.
+  - Docker: `docker compose build --no-cache frontend` also succeeded; its
+    context excludes `.next` and `node_modules` via `frontend/.dockerignore`.
+    The image was redeployed healthy and the list browser section passed 7/7
+    against it.
+- `git diff --check`: clean.
+- Runtime after the checks: `db`, `backend`, and `frontend` healthy; `/health`
+  `{"status":"ok","db":"up"}`; `/api/posts?limit=1` total 39; frontend root 200.
+- Starter contracts: `git diff 38a9755 HEAD` is empty for
+  `frontend/app/dev-user/` and `CorsConfig.java`. Cross-origin browser requests
+  from `:3000` to `:8080` with the `x-user-id` cookie, including preflighted
+  PATCH and DELETE, succeeded throughout.
+
+### Data restoration
+
+- The readable product state matches the baseline: readable total 39, post 13
+  back to 856 with no like rows on readable posts, every temporary comment on a
+  readable post soft-deleted, and seed rows unchanged.
+- Soft-deleted P8-B artifacts were kept on purpose (rows are never erased):
+  - Posts 43–50 are all `is_deleted = true`.
+  - Comments 2079–2084 are `is_deleted = true`.
+  - Comments 2077 and 2078 and two `post_likes` rows sit under deleted post
+    47. They are the parent-delete evidence: physically retained but
+    unreachable and not counted.
+- Final physical state: posts 50 (11 deleted), comments 2,084 (87 deleted),
+  `post_likes` 2 (0 on readable posts), seed history 1. Seed-deleted posts
+  `9,30,31` and all 81 seed-deleted comment IDs are unchanged.
+- The immutable seed baseline `42|2076` therefore now includes these
+  runtime-generated acceptance rows. A fresh volume still reseeds exactly
+  (V-003).
 
 ---
 
@@ -437,6 +694,12 @@ Call a requester-sensitive endpoint without `x-user-id` header or cookie.
 - Resolver tests verified the no-header/no-cookie fallback.
 - Runtime detail read without header/cookie remained `isLiked: false` while a different temporary requester had a like row.
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- A toggle with no header or cookie stored `post_likes.user_id = apr_tester`,
+  was visible to header `apr_tester` only, and a post created without identity
+  had author `apr_tester`.
+
 **Result:** `PASS`
 
 ---
@@ -461,6 +724,13 @@ x-user-id: <known-author>
 
 - Resolver tests covered header-only and header-over-cookie precedence.
 - Runtime detail read returned `isLiked: true` only when `x-user-id` matched the temporary like requester; a different header over the matching cookie returned false.
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- With header only, the like requester read true. Header precedence held in
+  both directions when a cookie was also present, and a blank header fell back
+  to the cookie. Header requesters also drove ownership (403 for non-owner
+  PATCH/DELETE).
 
 **Result:** `PASS`
 
@@ -507,6 +777,16 @@ x-user-id: <known-author>
 
 - With the post menu in place, every requester-dependent behavior is now observed in a real browser session after `/dev-user`. Across P4–P6 this covers the credentialed cookie, the requester's like state, comment ownership, and post ownership. `mintcream` sees their own post menu and `apr_tester` does not, and the backend returns 403 for `apr_tester` PATCH/DELETE on mintcream's post.
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The earlier partial notes ("remains open") are historical; this combined
+  scenario is closed.
+- On the current candidate, a direct cookie-only API read resolved the cookie
+  requester. In the browser, `/dev-user` → `mintcream` sent
+  `x-user-id=mintcream` on product requests, and like state, comment
+  authorship, and `삭제` followed it. `/dev-user` → `Roidl_08` showed the
+  post-2 owner menu, and `apr_tester` did not see it.
+
 **Result:** `PASS`
 
 ---
@@ -540,6 +820,15 @@ x-user-id: <known-author>
 
 - The browser list loaded 39 posts as 10/10/10/9 through `IntersectionObserver`-triggered `fetchNextPage`, with no duplicate, no skip, API-identical order, and no request after the last page. See "P4 Post List Evidence".
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The "remains `TODO`" note above is historical: P4 closed the frontend
+  portion.
+- Current API traversals at limits 7/10/50 matched PostgreSQL order exactly
+  with total 39 and a null final cursor. Invalid limit and cursor returned 400.
+  The browser re-verified 10/10/10/9 through four chained requests with no
+  request after the end, including on the no-cache rebuilt image.
+
 **Result:** `PASS`
 
 ---
@@ -563,6 +852,13 @@ x-user-id: <known-author>
 
 - Full post traversal excluded all seed-deleted IDs `9`, `30`, and `31`.
 - Detail and comments endpoints returned HTTP 404 for each of those IDs.
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Seed-deleted 9, 30, and 31 were absent from every traversal. Post 9 detail
+  and comments returned 404 `POST_NOT_FOUND`. Posts deleted during P8-B
+  disappeared from the list and total, and the browser showed not-found on
+  direct visit.
 
 **Result:** `PASS`
 
@@ -599,6 +895,18 @@ x-user-id: <known-author>
 
 - UI: invalid title/content (blank, whitespace-only, over 20 code points including emoji) disables `작성 완료` / `수정 완료` and sends no request; 20 ASCII and 20 emoji code points are accepted. See "P6 Post CRUD Evidence".
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The P2B "not marked PASS" note is historical: P6 closed the UI portion.
+- On the current candidate, the backend rejected 10 invalid payloads with 400
+  JSON and created no row: empty, missing, whitespace, or U+3000 title; empty,
+  missing, or whitespace content; and 21 ASCII, 21 emoji, or 21 Korean code
+  points. It accepted 20 ASCII, 20 emoji, and 20 Korean code points (201).
+  PATCH rejected a 21-emoji title.
+- The UI disabled `작성 완료` for the same invalid cases, a forced
+  `requestSubmit()` sent 0 requests, and the three 20-code-point titles
+  enabled it.
+
 **Result:** `PASS`
 
 ---
@@ -630,6 +938,14 @@ x-user-id: <known-author>
 ### P6 UI Evidence — 2026-09-29
 
 - UI: the FAB opens the create screen; success returns to the list with the new post first and a one-time toast; failures keep input and create nothing; same-tick double submit sends one POST. See "P6 Post CRUD Evidence".
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The P2B "remains open" note is historical.
+- Current browser run: FAB → `/posts/new` → one POST (201) with a
+  20-code-point title → `/` with the new post first, list total +1, and the
+  completion toast once, which then expired. The server post had author
+  `apr_tester` and zero counts. The continuous 375px path repeated this.
 
 **Result:** `PASS`
 
@@ -665,6 +981,14 @@ x-user-id: <known-author>
 
 - UI: own-post trigger → sheet → edit form with exact prefill and the same validation; PATCH success updates detail and cached list, reload matches; failures keep values. See "P6 Post CRUD Evidence".
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The P2B "remains open" note is historical.
+- Current browser run: own-post menu → sheet → `수정하기` → exact
+  title/content prefill → one PATCH (200) → the detail updated, the list cache
+  showed the new title, and reload and the API matched with `createdAt`
+  unchanged. The API PATCH response was the full single post object.
+
 **Result:** `PASS`
 
 ---
@@ -691,6 +1015,14 @@ x-user-id: <known-author>
 ### P6 UI Evidence — 2026-09-29
 
 - The post menu is not rendered on other users' posts, `/posts/{other}/edit` shows no form, and direct PATCH/DELETE still returns 403 (checked for `apr_tester` → Roidl_08 and → mintcream).
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Non-owner PATCH on a readable post returned 403 and the title stayed
+  unchanged. This was shown for a P8-B post, the UI-created post (`mintcream`),
+  and seed post 2.
+- `apr_tester` saw no menu on post 2, and `/posts/2/edit` showed the
+  no-permission notice without a form.
 
 **Result:** `PASS`
 
@@ -754,6 +1086,16 @@ x-user-id: <known-author>
 
 - UI: sheet → confirmation → one DELETE → list without the post (cache and server), direct URL not found, DB row `is_deleted = true`; cancel and failures leave the post. See "P6 Post CRUD Evidence".
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The P2B "not marked PASS" note is historical.
+- Current browser run: sheet → dialog → one DELETE → `/` without the row,
+  total back to 39, direct URL not found, row `is_deleted = true`, and a
+  repeat DELETE returned 404.
+- Parent-delete matrix: the post row, child comments, and like rows were
+  retained. Every product route returned 404 for owner and non-owner, and none
+  of those calls changed the database.
+
 **Result:** `PASS`
 
 ---
@@ -780,6 +1122,13 @@ x-user-id: <known-author>
 ### P6 UI Evidence — 2026-09-29
 
 - The post menu is not rendered on other users' posts, `/posts/{other}/edit` shows no form, and direct PATCH/DELETE still returns 403 (checked for `apr_tester` → Roidl_08 and → mintcream).
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Non-owner DELETE returned 403 `FORBIDDEN` while the post stayed readable,
+  shown for a P8-B post, the UI-created post (`mintcream`), and seed post 2.
+  Once a post was deleted, non-owner calls returned 404 before any ownership
+  check.
 
 **Result:** `PASS`
 
@@ -817,6 +1166,15 @@ x-user-id: <known-author>
 
 - The detail like button toggles, updates the displayed count and the heart (`#FF8DA1` filled when liked), stays consistent with the backend after reload, guards against duplicate requests, and shows requester-specific state after `/dev-user` switching. See "P5A Post Detail / Like / Comment Read Evidence".
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The "not promoted" note above is historical: P5A closed the visual portion.
+- API on post 13: A and B went `856 → 857 → 858 → 857 → 856` with
+  independent `isLiked`, and the list reflected the requester state.
+- Browser: detail and list heart/count stayed in sync, and `mintcream` saw
+  independent state after switching.
+- Final state: 856 and 0 like rows on readable posts.
+
 **Result:** `PASS`
 
 ---
@@ -847,6 +1205,14 @@ Test posts with:
 - Posts 10 (0), 24 (1), 1 (2), 3 (3), and 4 (27) in Chromium at 375×778: at most 2 comments before More, newest-first matching the API, More only for 3 and 27, and exactly one initial `limit=2` comment request per post. The 0-comment state shows only `댓글 (0)`.
 - After the review fix, a same-session revisit of post 4 again showed at most 2 comments and made one fresh `limit=2` request (see "P5A Review Fix — Same-Session Revisit").
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- The browser re-verified posts 10/24/1/3/4 (0/1/2/3/27): one `limit=2`
+  request each, at most 2 visible in API newest-first order, and More only
+  for 3 and 27. Post 2 (1,411) also showed 2 with More.
+- A same-session revisit of post 4 again made one fresh `limit=2` request and
+  0 continuations.
+
 **Result:** `PASS`
 
 ---
@@ -873,6 +1239,15 @@ Test posts with:
 
 - No comment request beyond the initial `limit=2` page before More, even after scrolling the sentinel into view. After More, bounded `limit=20` pages chained by `nextCursor` loaded through the sentinel until `nextCursor: null`, with newest-first order, no duplicate, and no request after the end (posts 3, 4; incremental loading on post 2 with 1,411 comments).
 - The same gate holds on a same-session revisit after previously loading continuation pages: 0 continuation requests before More and no bulk exposure of cached comments on More (fix `ddc1a9d`).
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Browser: no request before More even after scrolling. After More, `limit=20`
+  pages chained by `nextCursor` rendered all 3 and all 27 comments in API
+  order, More disappeared, and nothing followed the null cursor. Post 2 loaded
+  in bounded `limit=20` pages.
+- API: complete bounded traversals of post 2 (1,411) at `2`→`50` (30 pages)
+  and `2`→`20` (72 pages) exactly matched PostgreSQL with no duplicate or skip.
 
 **Result:** `PASS`
 
@@ -902,6 +1277,15 @@ Test posts with:
 ### P5B UI Evidence — 2026-09-29
 
 - Browser creation through the fixed composer at 0→1, 1→2, 2→3 (More appears), 27→28, and while expanded over multiple pages. Server-confirmed only: failures keep the input and counts, and a same-tick double submit sends one POST. See "P5B Comment Mutation Evidence".
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Browser: `apr_tester` on post 1 made one POST, and the comment appeared
+  first with the requester as author. The heading went 2→3 with More, and the
+  list count went +1.
+- `mintcream` created a comment authored as `mintcream`.
+- API: 201 with the exact comment shape, newest-first, and derived
+  `commentCount` +1.
 
 **Result:** `PASS`
 
@@ -935,6 +1319,14 @@ Test posts with:
 
 - Browser delete through the confirmation dialog at 3→2 (More disappears), 2→1, 1→0, inside a continuation page, and at the cursor-boundary row. Each comment disappeared, and the comment total, detail count, and cached list count dropped by one and matched the server after reload. See "P5B Comment Mutation Evidence".
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Browser: cancel sent no DELETE, and confirm sent exactly one. The comment
+  disappeared and the heading and list count returned 3→2. The row stayed
+  `is_deleted = true`, and a repeat DELETE returned 404.
+- `mintcream` deleted their own comment through the UI and the count
+  returned.
+
 **Result:** `PASS`
 
 ---
@@ -962,6 +1354,13 @@ Test posts with:
 
 - The UI renders `삭제` only for the requester's own comments (checked for `apr_tester` and `mintcream`, including own comments on other users' posts). The backend still returns 403 for a cross-user DELETE.
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- `apr_tester` saw mintcream's comment without `삭제`. A direct `apr_tester`
+  DELETE returned 403 with the row unchanged.
+- The post owner's DELETE of another requester's comment and a non-owner's
+  DELETE of a seed comment both returned 403.
+
 **Result:** `PASS`
 
 ---
@@ -986,6 +1385,13 @@ Test posts with:
 
 - All 39 readable posts' API `commentCount` values matched PostgreSQL `comments WHERE is_deleted = FALSE` counts.
 - Full comment traversal for every readable post exactly matched PostgreSQL readable IDs/order; none of the 81 seed-deleted comment IDs appeared.
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Representative traversals (0/1/2/3/27/1,411) matched PostgreSQL readable
+  rows, and `total` and detail `commentCount` agreed.
+- Comments under a deleted post were unreachable (404) and absent from any
+  count. The 81 seed-deleted comment IDs are unchanged.
 
 **Result:** `PASS`
 
@@ -1013,6 +1419,14 @@ Test posts with:
 - P2B mutation requests and responses used JSON. Malformed JSON returned HTTP 400 with `{ "code": "INVALID_REQUEST", "message": "Request body is invalid." }`.
 - PATCH returned the same complete single-post object shape with updated content, requester-specific `isLiked`, and derived `commentCount`.
 
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Current list pages were exactly `{ items, total, nextCursor }` with items of
+  exactly the eight required fields and ISO-8601 `createdAt`. Detail was
+  byte-identical to the list item without an envelope. PATCH returned the full
+  updated object, and the like toggle returned exactly `{ isLiked, likeCount }`.
+- Errors were JSON `{ code, message }` without HTML.
+
 **Result:** `PASS`
 
 ---
@@ -1030,6 +1444,12 @@ Test posts with:
 
 - Every comment page used the `items`, full readable `total`, and `nextCursor` envelope.
 - All traversed comment items contained exactly `id`, `postId`, `content`, `author`, and ISO-8601 `createdAt`.
+
+### P8-B Current-Candidate Evidence — 2026-09-30
+
+- Every comment page in the representative and 1,411-comment traversals used
+  the `items`/`total`/`nextCursor` envelope. Every item had exactly the five
+  required fields with the matching `postId`.
 
 **Result:** `PASS`
 
@@ -1072,6 +1492,17 @@ Inspect required screens at 375px viewport:
 ### P6 Evidence — 2026-09-29
 
 - All required screens now exist and were checked at `375 × 778`: list, detail, own-post action sheet, post delete dialog, create (long content scrolled to the fixed action), and edit. Each had document `scrollWidth` 375 (no horizontal scroll), with usable fixed controls that do not cover content. Earlier partial evidence covered the list (P4), the detail (P5A), and the composer and comment dialog (P5B).
+
+### P8-B Regression Evidence — 2026-09-30
+
+- The earlier "not complete" partial notes are historical.
+- A continuous Chromium path with a true 375px viewport (`innerWidth` 375)
+  covered `/dev-user` → list → infinite scroll → detail → like → comment
+  create/delete → create → toast → edit → delete → list. Every screen,
+  including the comment dialog, action sheet, and post dialog, had
+  `scrollWidth` 375.
+- The FAB, comment composer, and form action bar stayed fixed inside the
+  viewport. There were no page or console errors and no 4xx/5xx responses.
 
 **Result:** `PASS`
 
@@ -1176,6 +1607,13 @@ Implementation matches official design as closely as practical, with any intenti
   `FUNCTIONAL_BUG`, `DESIGN_MISMATCH`, or `P7_A_REGRESSION` justified a product
   code change. This remains local PNG/SVG/runtime evidence only; V-081 stays
   `NOT_RUN`.
+
+### P8-B Status — 2026-09-30
+
+- P8-B was behavioral acceptance only and ran no fresh comparison against the
+  official Figma file `Ee1gp5NC6G1sQIvssuu4Sr`. Its 375px runtime regression
+  is not design-fidelity evidence.
+- V-081 remains the outstanding final-sign-off item.
 
 **Result:** `NOT_RUN`
 

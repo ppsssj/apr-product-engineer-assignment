@@ -5,8 +5,8 @@ This document is the operational state for the assignment. Keep it concise and c
 ## Current State
 
 - Current Phase: `P8 — Full Integration & Acceptance Verification`
-- Status: P7 `COMPLETE`; P8 `IN_PROGRESS`. P8-A fixed the seed-readiness health gate and verified startup, alternate ports, idempotency, and starter contracts; P8-B has not started.
-- Last Verified Commit: `d51d9ec45827aca5f4395b4e5de7be5beaa434d6` (P7-B merge base; P8-A candidate evidence is recorded in `docs/VERIFICATION.md`).
+- Status: P7 `COMPLETE`; P8 `IN_PROGRESS`. P8 behavioral acceptance is complete; final sign-off still has V-081 design-comparison evidence outstanding. P8-A fixed the seed-readiness health gate and verified startup, alternate ports, idempotency, and starter contracts. P8-B verified every behavioral scenario on the current candidate without a product change.
+- Last Verified Commit: `79ebd67cbe6334bdf4ec50e8c8eb4d82c19938f9` (P8-A merge; P8-B evidence is recorded in `docs/VERIFICATION.md`).
 - Last Updated: `2026-09-30`
 - Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
 
@@ -17,8 +17,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review P8-A release-environment evidence and readiness fix on `feat/p8a-release-environment`.
-2. P8-B remains the next acceptance scope and has not started.
+1. Review the P8-B behavioral acceptance evidence on `feat/p8b-full-acceptance`.
+2. Close V-081 with a fresh comparison against the official Figma source, then continue to P9 (not started).
 
 ### P7 Backlog (recorded, not implemented)
 
@@ -496,10 +496,25 @@ Verify the application the way an evaluator is likely to run it.
 
 ### Status
 
-`IN_PROGRESS` — P8-A is complete and ready for review: it reproduced the
-first-boot readiness gap, changed health readiness to follow seed transaction
-commit, and verified clean-volume boot, alternate ports, idempotency, and
-starter contracts. P8-B and P9 have not started.
+`IN_PROGRESS` — P8 behavioral acceptance complete; final sign-off still has
+V-081 design-comparison evidence outstanding.
+
+- **P8-A (merged):** reproduced the first-boot readiness gap, changed health
+  readiness to follow the seed transaction commit, and verified clean-volume
+  boot, alternate ports, idempotency, and starter contracts.
+- **P8-B:** re-verified on `79ebd67`, without a product change:
+  - requester resolution and pagination;
+  - response shapes;
+  - requester-specific likes;
+  - comment read and mutation flows;
+  - post validation, CRUD, and ownership;
+  - soft delete and error paths;
+  - a continuous 375px end-to-end path;
+  - backend tests, typecheck, and clean local and no-cache Docker builds.
+
+  All mandatory behavioral requirements are `VERIFIED`. The remaining items
+  are `UI-004` (V-081) and the P9 `DOC-*`, `SUB-*`, `ENV-012`, and `UI-008`
+  items. P9 has not started.
 
 ---
 
