@@ -270,6 +270,64 @@ window; the initial image-build time is intentionally outside those values.
 
 ---
 
+## Post Discovery (search + sort) Evidence — 2026-09-30
+
+- **Scope:** branch `feat/post-list-search-sort`, stacked on the P8-C branch.
+  This is a `PRODUCT_DECISION` beyond the assignment; the design is in
+  `docs/ARCHITECTURE.md` "Post Discovery Update" and `docs/UI_SPEC.md` §13.
+  Its temporary verifiers stayed in the session scratchpad.
+- **Backend tests:** `gradlew clean test` passed 60 tests, 0 failures (51
+  before). New tests cover:
+  - default sort and query normalization;
+  - `INVALID_SORT` and `INVALID_QUERY`;
+  - cross-sort cursor rejection;
+  - `PostLikeCursorCodec` round-trip and malformed payloads;
+  - LIKE escaping.
+- **API against PostgreSQL, 31/31.** It seeded a marker dataset (like ties,
+  `%`/`_` decoys, a soft-deleted match, a deleted comment). Results:
+  - Default equals `sort=latest` and PostgreSQL newest-first order.
+  - Full likes traversals match `(base + likes) DESC, created_at DESC, id DESC`.
+  - Search at `limit=2` matched PostgreSQL in both sorts with no duplicate or
+    skip, and ties were ordered by created_at then id.
+  - The filtered `total` equals the readable matches.
+  - `100%` and `a_b` match literally (decoys `1000` and `axb` excluded), and
+    `\` is safe. Matching is case-insensitive.
+  - Content-only matches are found and soft-deleted posts are excluded.
+  - Every cursor misuse returns 400 `INVALID_CURSOR`. `INVALID_LIMIT`,
+    `INVALID_SORT` and `INVALID_QUERY` (over 100 code points) are enforced.
+  - Requester `isLiked` and `commentCount` are correct.
+  - Query plan: one statement for the likes page with a single `post_likes`
+    aggregate, and the comment subplan ran `loops=11` for an 11-row page (no
+    N+1).
+- **Browser at a true 375×778, 29/29:**
+  - The initial load is exactly one list request.
+  - The toolbar is one 44px row; when scrolled it is sticky at top 0 and the
+    title scrolls away. No overflow in either mode.
+  - A sort switch starts a new first page. Likes infinite scroll equals the
+    API, and no latest/likes cursor crossed lists.
+  - The viewport returns under the toolbar after a sort change from a deep
+    scroll.
+  - Typing 5 characters sent one debounced request. A slow older search was
+    cancelled (`net::ERR_ABORTED`) and did not overwrite the newer results.
+  - Title, content and no-result searches work; clear, Escape and ← close
+    work; the sort survives closing.
+  - Search with likes sorts correctly, and a like moved a post up after
+    returning.
+  - Create, edit-out and delete refreshed search membership after returning.
+  - No page errors and no failed responses.
+- **Regression:** 160/160 across list, like/requester switch, comments,
+  comment mutations, post CRUD, E2E, the post-action popover, and comment
+  identity with the delete dialog.
+- **Static:**
+  - `npm run typecheck`, a clean `npm run build`, and `git diff --check`
+    pass.
+  - No dependency, schema, Compose, seed, or README change.
+- **Data:** all temporary likes were reverted, and temporary posts and
+  comments were soft-deleted.
+- **V-081:** stays `NOT_RUN`; the toolbar is an intentional deviation.
+
+---
+
 ## P8-B Full Behavioral Acceptance — 2026-09-30
 
 - **Candidate:** `feat/p8b-full-acceptance` at `79ebd67` (P8-A merge). No product

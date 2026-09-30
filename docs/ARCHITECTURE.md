@@ -184,6 +184,105 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 
 ---
 
+# Post Discovery Update (search + sort) — 2026-09-30
+
+A `PRODUCT_DECISION` beyond the assignment: the list can be searched and
+sorted by likes. The original contract is unchanged when the new parameters
+are absent.
+
+**API — `GET /api/posts`**
+
+| Param | Rule |
+| --- | --- |
+| `limit` | 1–50, default 20 (unchanged); otherwise 400 `INVALID_LIMIT` |
+| `cursor` | Opaque; must come from a page of the same `sort`, otherwise 400 `INVALID_CURSOR` |
+| `sort` | `latest` (default) or `likes`; anything else 400 `INVALID_SORT` |
+| `q` | Trimmed; blank means no search; at most 100 code points, otherwise 400 `INVALID_QUERY` |
+
+The response stays `{ items, total, nextCursor }`, and `total` counts readable
+posts that match `q`. `GET /api/posts?limit=10` is identical to
+`?limit=10&sort=latest`.
+
+**Ordering and cursors**
+
+- **latest:** `created_at DESC, id DESC`, with the unchanged
+  `(created_at, id)` row-value keyset and the existing `CursorCodec`. Latest
+  cursors are byte-identical to before.
+- **likes:** `effective_like_count DESC, created_at DESC, id DESC`, where
+  `effective_like_count = base_like_count + post_likes rows`. The keyset is
+  `(like_count, created_at, id) < cursor`.
+  - The cursor is `PostLikeCursorCodec`, a tagged
+    `base64url("likes|count|createdAt|id")`, so neither sort can read the
+    other's cursor.
+  - No OFFSET is used.
+- Comment pagination (`PageRequestParser`, `CursorCodec`) is untouched; the
+  shared limit check was only extracted as `parseLimit`.
+
+**Search**
+
+- Case-insensitive substring match over title or content:
+  `ILIKE :pattern ESCAPE '\'`.
+- The user's text is a bound parameter. `\`, `%` and `_` are escaped
+  (`PostRepository.containsPattern`), so `100%` or `a_b` match literally.
+- Authors are not searched, and soft-deleted posts never match.
+
+**SQL shape.** Each page is two statements: the page itself (limit + 1 rows)
+and the filtered `COUNT(*)`. There are no per-post round trips.
+
+- **latest:** the existing query plus the search predicate. The like count,
+  comment count and requester like are correlated per returned row after
+  `LIMIT`.
+- **likes:** a single statement. A `like_counts` CTE runs one `GROUP BY`
+  over `post_likes`, and readable posts are joined to it. Then the search and
+  keyset are applied, followed by `ORDER BY` and `LIMIT` into a `page` CTE.
+  Comment count and requester like are attached to the page rows only; in
+  `EXPLAIN ANALYZE` the comment subplan ran `loops=11` for an 11-row page.
+- **Indexes:** none added. `ILIKE '%q%'` cannot use a B-tree index.
+  `pg_trgm`, a migration and an extension are not justified for this
+  dataset, and the likes order needs the computed count anyway.
+
+**Known limitation — live like counts.** Likes ordering is deterministic for
+a stable dataset, with no duplicates or skips across pages. There is no like
+snapshot, though. If other requesters like or unlike between page requests, a
+post can cross the cursor boundary:
+
+- it may appear on two pages (the frontend renders each post ID once, without
+  reordering);
+- or it may be skipped until the list is refetched.
+
+The requester's own likes refetch likes-ordered lists (below). A historical
+snapshot was not built for this assignment.
+
+**Frontend**
+
+- **Query key:** `postKeys.list({ limit, sort, query })` becomes
+  `["posts","list",{ limit, sort, query }]`, where `query` is trimmed or
+  `null`. The cursor is the `pageParam`, so each sort/search combination is
+  its own infinite query starting from page 1, and no cursor crosses lists.
+- **Cancellation:** `getPosts(params, signal)` passes React Query's
+  `AbortSignal` to `fetch`. A superseded or unmounted read is cancelled, and
+  `request()` rethrows an abort as-is, so it never becomes `NETWORK_ERROR`.
+- **Search input:** `searchInput` updates on every keystroke. The committed
+  `query` follows it after a 300 ms debounce, or immediately on Enter, clear
+  or close.
+- **Scroll reset:** a sort or search change scrolls back under the sticky
+  toolbar when it is stuck.
+- **Remembered view:** `lib/postListView.ts` keeps the last sort/search for
+  in-app back navigation, as module memory like `lib/flash.ts`.
+
+**Cache matrix** (`lib/query/postListCache.ts`; lists are no longer one
+shared collection):
+
+| Mutation | Edited in place (exact) | Invalidated (refetch from page 1 when shown) |
+| --- | --- | --- |
+| Create post | Prepended, with `total + 1`, in unfiltered latest lists only | Every other list (search match or likes position unknown) |
+| Edit post | Loaded copies replaced everywhere; order is unchanged | Search lists (membership can change with the text) |
+| Delete post | Row removed everywhere; `total − 1` in unfiltered lists and wherever the row was loaded | Search lists (total or membership where not loaded) |
+| Like toggle | `isLiked`/`likeCount` on loaded copies everywhere | Likes-ordered lists (order may change) |
+| Comment create/delete | `commentCount` on loaded copies everywhere | None (ordering and search membership are unaffected) |
+
+---
+
 # Deletion Consistency Model
 
 One model covers posts, comments, and likes. It was verified against the running backend and PostgreSQL without any backend or schema change (`docs/VERIFICATION.md` "Deletion Consistency Evidence").
@@ -217,7 +316,7 @@ A deleted resource therefore never reveals that it existed through a `403`.
 **5. Mutation serialization.** Post edit, delete, and like toggle, and comment create, each lock the readable post (`SELECT … FOR UPDATE`, `is_deleted = FALSE`). Comment delete locks the readable comment together with its readable parent (`FOR UPDATE OF p, c`). A post delete racing a child mutation is therefore serialized. Either the child mutation commits first and becomes dormant, or it runs after the delete, finds no readable parent, and returns `404`. A 15-round concurrent smoke test (delete racing comment create, like toggle, edit, and comment delete) produced only those outcomes, with no 5xx.
 
 **6. Frontend consistency.** Nothing changes before the server confirms. After a `204`:
-- Every cached post-list query (all are the same readable collection, differing only in page size) gets `total − 1`, whether or not the post is among the loaded pages. The row is removed where it is loaded.
+- Every cached post-list query (all are the same readable collection, differing only in page size) gets `total − 1`, whether or not the post is among the loaded pages. The row is removed where it is loaded. *(Superseded for search lists by the Post Discovery Update: lists now differ by sort and search, see its cache matrix.)*
 - The deleted post's detail query and its descendant comment queries are evicted after the detail screen unmounts. TanStack partial key matching on `["posts","detail",id]` includes `[…,"comments",…]`.
 - Navigation uses `router.replace("/")`, so Back does not return to the deleted detail.
 - Keyset cursors stay valid because they are `(createdAt, id)` bounds, including when the deleted row was the cursor row.
