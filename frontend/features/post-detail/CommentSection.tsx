@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { avatarFor } from "@/lib/avatar";
 import { useInfiniteScrollTrigger } from "@/lib/hooks/useInfiniteScrollTrigger";
 import { readCurrentRequester } from "@/lib/requester";
 import { formatRelativeTime } from "@/lib/time/relativeTime";
 import { CommentComposer } from "./CommentComposer";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { CommentDeletePopover } from "./CommentDeletePopover";
 import { ChevronDownIcon } from "./icons";
 import { useDeleteComment } from "./useCommentMutations";
 import { INITIAL_COMMENT_COUNT, useComments } from "./useComments";
@@ -36,16 +36,24 @@ export function CommentSection({ postId, commentCount }: Props) {
   const [requester] = useState(readCurrentRequester);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const removal = useDeleteComment(postId);
+  // Only one comment can be in the delete-confirm state; the ref follows it.
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null);
 
-  function closeDialog() {
+  function closeConfirm() {
     setDeleteTarget(null);
     removal.reset();
   }
 
+  function toggleConfirm(commentId: number) {
+    if (removal.isPending) return;
+    removal.reset();
+    setDeleteTarget((current) => (current === commentId ? null : commentId));
+  }
+
   async function confirmDelete() {
     if (deleteTarget === null) return;
-    // Closed only after the server confirms; on failure the dialog stays open
-    // with an error and the comment stays listed.
+    // Closed only after the server confirms; on failure the confirmation stays
+    // open with an error and the comment stays listed.
     if (await removal.remove(deleteTarget)) setDeleteTarget(null);
   }
 
@@ -108,8 +116,13 @@ export function CommentSection({ postId, commentCount }: Props) {
         <ul className={styles.list}>
           {comments.map((comment) => {
             const relativeTime = formatRelativeTime(comment.createdAt, now);
+            const confirming = deleteTarget === comment.id;
+            const popoverId = `comment-delete-${comment.id}`;
             return (
-              <li key={comment.id} className={styles.comment}>
+              <li
+                key={comment.id}
+                className={confirming ? `${styles.comment} ${styles.commentActive}` : styles.comment}
+              >
                 {/* Decorative: the author name follows as text. */}
                 <img
                   src={avatarFor(comment.author)}
@@ -129,16 +142,32 @@ export function CommentSection({ postId, commentCount }: Props) {
                   </p>
                   <p className={styles.content}>{comment.content}</p>
                   {comment.author === requester && (
-                    <button
-                      type="button"
-                      className={styles.delete}
-                      onClick={() => {
-                        removal.reset();
-                        setDeleteTarget(comment.id);
-                      }}
-                    >
-                      삭제
-                    </button>
+                    <div className={styles.deleteAnchor}>
+                      <button
+                        ref={confirming ? deleteTriggerRef : undefined}
+                        type="button"
+                        className={styles.delete}
+                        aria-expanded={confirming}
+                        aria-controls={confirming ? popoverId : undefined}
+                        onClick={() => toggleConfirm(comment.id)}
+                      >
+                        삭제
+                      </button>
+                      {confirming && (
+                        <CommentDeletePopover
+                          id={popoverId}
+                          triggerRef={deleteTriggerRef}
+                          pending={removal.isPending}
+                          error={
+                            removal.isError
+                              ? "댓글을 삭제하지 못했습니다. 다시 시도해 주세요."
+                              : null
+                          }
+                          onConfirm={() => void confirmDelete()}
+                          onClose={closeConfirm}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               </li>
@@ -176,17 +205,6 @@ export function CommentSection({ postId, commentCount }: Props) {
       <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
 
       <CommentComposer postId={postId} />
-
-      {deleteTarget !== null && (
-        <ConfirmDialog
-          title="삭제하기"
-          body={"삭제한 댓글은 복구할 수 없습니다.\n정말 삭제 하시겠습니까?"}
-          pending={removal.isPending}
-          error={removal.isError ? "댓글을 삭제하지 못했습니다. 다시 시도해 주세요." : null}
-          onCancel={closeDialog}
-          onConfirm={() => void confirmDelete()}
-        />
-      )}
     </section>
   );
 }

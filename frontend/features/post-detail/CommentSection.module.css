@@ -41,9 +41,37 @@
 }
 
 .comment {
+  position: relative;
+  isolation: isolate;
   display: flex;
   gap: 10px;
   padding: 16px var(--space-page-inset) 8px;
+  transition: transform 140ms ease;
+}
+
+/* EXPERIMENTAL P8-C: the comment whose delete confirmation is open appears
+   lifted (2px, soft card surface). Transform and a pseudo-element only, so
+   its height and the surrounding comments do not move. */
+.comment::before {
+  position: absolute;
+  inset: 6px 8px -4px;
+  z-index: -1;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  content: "";
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.commentActive {
+  z-index: 1;
+  transform: translateY(-2px);
+}
+
+.commentActive::before {
+  opacity: 1;
 }
 
 .avatar {
@@ -95,10 +123,17 @@
 /* PRODUCT_DECISION (PNG-estimated): "삭제" 12/16 #979EA9 text below the
    content, shown only for the requester's own comments. The 8px padding is
    offset by negative margins, so the text keeps its 8px/2px placement while
-   the touch target grows to about 32×40. */
+   the touch target grows to about 32×40. The wrapper carries those margins
+   and anchors the contextual delete confirmation. */
+.deleteAnchor {
+  position: relative;
+  width: fit-content;
+  margin: 0 0 -6px -8px;
+}
+
 .delete {
   display: block;
-  margin: 0 0 -6px -8px;
+  margin: 0;
   padding: 8px;
   border: 0;
   border-radius: 6px;
@@ -154,6 +189,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .comment,
+  .comment::before,
   .delete,
   .more {
     transition: none;

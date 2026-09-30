@@ -1,0 +1,84 @@
+/*
+ * EXPERIMENTAL P8-C PRODUCT_DECISION (design/design-retouch/readme.md): a
+ * 104×40 confirmation anchored to the right of the comment's "삭제", on the
+ * same line, so it overlays neither the comment text nor the next comment.
+ * White surface, light border, soft shadow, 10px radius, no scrim. The label
+ * reuses the app's existing red (#C2102F, the FAB); the idle "삭제" stays grey.
+ */
+
+.popover {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 104px;
+  padding: 3px;
+  border: 1px solid #eaecee;
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transform: translateY(-50%);
+  animation: popover-in 130ms ease-out;
+}
+
+/* A failed DELETE widens the popover for the existing error copy; it still
+   overlays the page instead of growing the comment. */
+.popover[data-error="true"] {
+  width: 184px;
+}
+
+.error {
+  margin: 4px 6px 2px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-support);
+}
+
+.confirm {
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #c2102f;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+
+.confirm:enabled:active {
+  background-color: var(--color-disabled-surface);
+}
+
+.confirm:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.confirm:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: -2px;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 2px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover {
+    animation: none;
+  }
+
+  .confirm {
+    transition: none;
+  }
+}

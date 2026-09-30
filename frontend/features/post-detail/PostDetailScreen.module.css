@@ -22,7 +22,8 @@
 .nav {
   position: sticky;
   top: 0;
-  z-index: 1;
+  /* Above a lifted comment (z-index 1) when scrolled under the app bar. */
+  z-index: 2;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
