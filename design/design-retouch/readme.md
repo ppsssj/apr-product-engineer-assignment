@@ -52,6 +52,15 @@
 - 댓글 heading: `댓글`은 Bold 16/24 #292828, 개수 `(1,411)`은 보조 정보로
   Medium 14/20 #979EA9 (간격 4px). 이미지 없이 코드에서만 적용한 refinement다.
 
+## 보류한 아이디어
+
+향후 사용자가 직접 댓글을 작성한 게시글은 목록의 댓글 아이콘을
+참여 상태로 강조하는 방안을 고려할 수 있다. 현재 목록 API에는
+requester-specific comment participation 정보(`hasCommented` 등)가 없으며,
+이를 정확히 표현하려면 API 계약 변경 또는 비효율적인 추가 조회(row별 댓글 조회, N+1)가
+필요하므로 이번 과제 범위에서는 제외한다. `commentCount > 0`은 "누군가 댓글을 달았다"이지
+"내가 댓글을 달았다"가 아니므로 대체 신호로 쓰지 않는다.
+
 ## Important
 
 이 이미지는 official Figma fidelity 증거가 아니다.

@@ -402,6 +402,13 @@ and details are in `design/design-retouch/readme.md`.
     transform only; close is immediate).
   - `prefers-reduced-motion` disables the motion.
   - The comment-delete target is enlarged without moving its text.
+- **Deferred:** a list comment-icon accent for posts the requester commented
+  on. It was considered and deferred.
+  - The list API exposes no requester-specific participation state (such as
+    `hasCommented`).
+  - `commentCount > 0` means someone commented, not the requester.
+  - Showing it accurately would require an API change or per-row comment
+    fetches (N+1), so neither faked state nor API expansion was accepted.
 - **Comment heading (code-level refinement, no reference image):** `댓글`
   stays Bold 16/24 `#292828`; the count becomes Medium 14/20 `#979EA9` with
   a 4px gap. The 49px heading box and comment positions are unchanged.
