@@ -82,17 +82,30 @@
 }
 
 /* PRODUCT_DECISION (PNG-estimated): "삭제" 12/16 #979EA9 text below the
-   content, shown only for the requester's own comments. */
+   content, shown only for the requester's own comments. The 8px padding is
+   offset by negative margins, so the text keeps its 8px/2px placement while
+   the touch target grows to about 32×40. */
 .delete {
-  margin-top: 6px;
-  padding: 2px 0;
+  display: block;
+  margin: 0 0 -6px -8px;
+  padding: 8px;
   border: 0;
+  border-radius: 6px;
   background: none;
   font: inherit;
   font-size: 12px;
   line-height: 16px;
   color: var(--color-text-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.delete:active {
+  background-color: var(--color-disabled-surface);
+  color: var(--color-text-support);
 }
 
 .delete:focus-visible {
@@ -116,6 +129,24 @@
   line-height: 18px;
   color: var(--color-text-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+/* The label keeps the design's #979EA9; the bordered pill plus a pressed tint
+   make it read as an active control rather than a disabled one. */
+.more:active {
+  border-color: var(--color-text-secondary);
+  background-color: var(--color-disabled-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delete,
+  .more {
+    transition: none;
+  }
 }
 
 .more:focus-visible,

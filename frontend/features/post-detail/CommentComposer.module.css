@@ -36,8 +36,10 @@
   border: 1px solid var(--color-border-light);
   border-radius: 20px;
   background: var(--color-surface);
+  transition: border-color 120ms ease;
 }
 
+/* Focus: the border darkens (no size change, so nothing moves). */
 .field:focus-within {
   border-color: var(--color-text-secondary);
 }
@@ -60,6 +62,12 @@
   color: var(--color-text-secondary);
 }
 
+/* The input is read-only only while a create is pending: dim the text as a
+   submitting cue (the button is disabled at the same time). */
+.input:read-only {
+  color: var(--color-text-secondary);
+}
+
 .submit {
   flex: none;
   padding: 6px 8px;
@@ -71,6 +79,22 @@
   line-height: 18px;
   color: var(--color-text-primary);
   cursor: pointer;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.submit:enabled:active {
+  background-color: var(--color-disabled-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field,
+  .submit {
+    transition: none;
+  }
 }
 
 .submit:disabled {

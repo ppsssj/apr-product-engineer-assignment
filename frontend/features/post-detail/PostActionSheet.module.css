@@ -73,3 +73,58 @@
   outline: 2px solid var(--color-text-primary);
   outline-offset: -2px;
 }
+
+/* PRODUCT_DECISION: entrance only (the sheet unmounts on close), 180ms, no
+   overshoot; pressed rows tint. Disabled under reduced motion. */
+.scrim {
+  animation: sheet-scrim-in 180ms ease-out;
+}
+
+.sheet {
+  animation: sheet-in 180ms ease-out;
+}
+
+.item,
+.cancel {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 120ms ease,
+    filter 120ms ease;
+}
+
+.item {
+  border-radius: 12px;
+}
+
+.item:active {
+  background-color: var(--color-disabled-surface);
+}
+
+.cancel:active {
+  filter: brightness(1.25);
+}
+
+@keyframes sheet-scrim-in {
+  from {
+    background-color: transparent;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .sheet {
+    animation: none;
+  }
+
+  .item,
+  .cancel {
+    transition: none;
+  }
+}

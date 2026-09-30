@@ -1,13 +1,16 @@
 /*
- * DESIGN_DEFINED (755-8831-post-list.svg): a 118px row with a 343×93 content
- * region at x=16/y=12. Its author/avatar, title, preview, and metadata rows
- * have 18px, 24px, 18px, and 16px heights with 6px, 2px, and 9px gaps.
- * PRODUCT_DECISION: one-line title/preview truncation and the existing divider
- * token; the SVG records #EAECEE but does not establish a global token choice.
+ * RETOUCH (design/design-retouch/svg/메디큐브톡.svg, PRODUCT_DECISION): a 98px
+ * row whose content is title → preview → metadata. 12 + title 24 + 4 +
+ * preview 18 + 9 + metadata 18 + 12 + 1px divider = 98. The metadata row is
+ * [18px avatar + author] [comment · like] … [time], with the time pinned right.
+ * Kept from the official design (755-8831-post-list.svg): title Medium 16/24,
+ * preview 14/18 #979EA9, 12/16 metadata, author #5E5E5E, 14px neutral glyphs.
+ * PRODUCT_DECISION: one-line title/preview truncation, bounded author width,
+ * and the existing divider token.
  */
 
 .row {
-  height: 118px;
+  height: 98px;
   padding: 0 var(--space-page-inset);
 }
 
@@ -19,6 +22,12 @@
   border-bottom: 1px solid var(--color-border-light);
   color: inherit;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+
+.link:active {
+  background-color: rgba(41, 40, 40, 0.03);
 }
 
 .link:focus-visible {
@@ -28,7 +37,7 @@
 
 .title {
   flex: none;
-  margin: 6px 0 0;
+  margin: 0;
   overflow: hidden;
   font-size: 16px;
   font-weight: 500;
@@ -41,7 +50,7 @@
 .preview {
   flex: none;
   height: 18px;
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   overflow: hidden;
   font-size: 14px;
   font-weight: 400;
@@ -56,8 +65,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  height: 16px;
+  height: 18px;
   margin-top: 9px;
   min-width: 0;
   font-size: 12px;
@@ -66,13 +74,16 @@
   color: var(--color-text-secondary);
 }
 
+/* Slightly stronger than counts/time, far weaker than the title. A long name
+   shrinks and truncates first so the counts and time stay on screen. */
 .author {
   display: inline-flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
   gap: 6px;
   height: 18px;
   min-width: 0;
+  max-width: 132px;
   color: var(--color-text-support);
 }
 
@@ -86,16 +97,25 @@
 
 .authorName {
   display: block;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.engagement {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  margin-left: 20px;
 }
 
 .count {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .icon,
@@ -112,6 +132,7 @@
 .time {
   flex: none;
   margin-left: auto;
+  padding-left: 8px;
 }
 
 .srOnly {

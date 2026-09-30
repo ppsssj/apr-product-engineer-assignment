@@ -97,3 +97,53 @@
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
 }
+
+/* PRODUCT_DECISION: entrance only (the dialog unmounts on close), 160ms fade
+   with a 4px settle; pressed buttons darken slightly. Disabled under reduced
+   motion. */
+.scrim {
+  animation: dialog-scrim-in 160ms ease-out;
+}
+
+.dialog {
+  animation: dialog-in 160ms ease-out;
+}
+
+.cancel,
+.confirm {
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 120ms ease;
+}
+
+.cancel:enabled:active {
+  filter: brightness(0.95);
+}
+
+.confirm:enabled:active {
+  filter: brightness(1.25);
+}
+
+@keyframes dialog-scrim-in {
+  from {
+    background-color: transparent;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrim,
+  .dialog {
+    animation: none;
+  }
+
+  .cancel,
+  .confirm {
+    transition: none;
+  }
+}

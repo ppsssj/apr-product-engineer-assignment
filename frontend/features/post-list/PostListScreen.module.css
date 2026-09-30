@@ -2,9 +2,12 @@
  * DESIGN_DEFINED (docs/UI_SPEC.md §6.1–6.2): 48px header, Pretendard Bold
  * 20/28 #292828 app title, 16px inset, list starting at y=56, and a 50×50
  * write control whose 375×778 reference position is x=310, y=679.
- * PRODUCT_DECISION: sticky header, left-aligned title, loading/empty/error
- * presentation, and the FAB red and shadow (Figma values were not extracted,
- * so they stay local here instead of becoming global tokens).
+ * RETOUCH (design/design-retouch, PRODUCT_DECISION): the title is centered so
+ * list and detail share one app bar; a 1px #EAECEE divider closes the header
+ * (also present in the official frame). FAB fill #C2102F as in both the
+ * official and retouch SVGs.
+ * PRODUCT_DECISION: sticky header, loading/empty/error presentation, FAB
+ * shadow, and pressed/entrance feedback.
  */
 
 .screen {
@@ -18,8 +21,10 @@
   z-index: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   height: 48px;
   padding: 0 var(--space-page-inset);
+  border-bottom: 1px solid #eaecee;
   background: var(--color-surface);
 }
 
@@ -97,9 +102,18 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #f5364f;
+  background: #c2102f;
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+.fab:active {
+  filter: brightness(0.92);
+  transform: scale(0.96);
 }
 
 .fab:focus-visible {
@@ -108,8 +122,8 @@
 }
 
 /* DESIGN_DEFINED (SCREEN-006): 181×40 at x=97.5, y=657 in 375×778; white
-   14/18 on black 70%; 6px radius. PRODUCT_DECISION: 2.5 s, no motion, does not
-   block list interaction. Bottom = 778 − 657 − 40 = 81px. */
+   14/18 on black 70%; 6px radius. PRODUCT_DECISION: 2.5 s, a 160ms fade/rise
+   entrance (none under reduced motion), does not block list interaction. Bottom = 778 − 657 − 40 = 81px. */
 .toast {
   position: fixed;
   bottom: 81px;
@@ -127,4 +141,22 @@
   white-space: nowrap;
   pointer-events: none;
   transform: translateX(-50%);
+  animation: toast-in 160ms ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+
+  .fab {
+    transition: none;
+  }
 }

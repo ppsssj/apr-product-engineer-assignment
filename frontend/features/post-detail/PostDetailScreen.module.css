@@ -3,10 +3,15 @@
  * navigation, content from y=56, 16px inset, title Bold 18/26 #292828,
  * author Bold 15/22 #292828, body Regular 14/18 #292828, liked accent
  * #FF8DA1 only in the liked state.
+ * RETOUCH (design/design-retouch/svg/메디큐브톡_상세(본인 글).svg and
+ * (타인 글).svg, PRODUCT_DECISION): centered `메디큐브톡` app-bar title; a
+ * compact 24px author row at y=78 (name at x=50) that carries the own-post
+ * `⋮` at its right edge; title → body; then a footer with the like action
+ * on the left and the 12/16 post date on the right. Own and other posts
+ * share the same row height, so the menu never shifts the content.
  * PRODUCT_DECISION (estimated from the local 375×778 PNG exports, not Figma
- * node values): 24px title offset, 36px author avatar, byline/body/like-row
- * spacing, 14/18 secondary date and like label, 24px heart, and the 8px
- * section band, which reuses --color-disabled-surface.
+ * node values): 14/18 like label, 24px heart, and the 8px section band, which
+ * reuses --color-disabled-surface.
  */
 
 .screen {
@@ -18,12 +23,28 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
-  justify-content: space-between;
   height: 48px;
   padding: 0 8px;
   background: var(--color-surface);
+}
+
+.appTitle {
+  margin: 0;
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--color-text-primary);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.navSpacer {
+  width: 40px;
 }
 
 .back {
@@ -43,13 +64,66 @@
   padding-top: 8px;
 }
 
+/* 56 + 22 = author row at y=78. */
 .post {
-  padding: 24px var(--space-page-inset) 12px;
+  padding: 22px var(--space-page-inset) 12px;
   border-bottom: 8px solid var(--color-disabled-surface);
 }
 
-.title {
+.byline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+}
+
+.avatar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.author {
+  flex: 1;
+  min-width: 0;
   margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A 40×40 target around the 24px glyph; negative margins keep the row at
+   24px and put the dots at x≈353, as in the retouch. */
+.menu {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: -8px -14px -8px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+
+.menu:active {
+  background-color: var(--color-disabled-surface);
+}
+
+.title {
+  margin: 16px 0 0;
   font-size: 18px;
   font-weight: 700;
   line-height: 26px;
@@ -57,38 +131,8 @@
   overflow-wrap: anywhere;
 }
 
-.byline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.avatar {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.author {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 22px;
-  color: var(--color-text-primary);
-}
-
-.date {
-  display: block;
-  font-size: 14px;
-  line-height: 18px;
-  color: var(--color-text-secondary);
-}
-
 .content {
-  margin: 24px 0 0;
+  margin: 12px 0 0;
   font-size: 14px;
   line-height: 18px;
   color: var(--color-text-primary);
@@ -97,7 +141,10 @@
 }
 
 .likeRow {
-  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 28px;
 }
 
 .like {
@@ -105,7 +152,7 @@
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0;
+  padding: 0 8px 0 0;
   border: 0;
   background: none;
   font: inherit;
@@ -113,6 +160,7 @@
   line-height: 18px;
   color: var(--color-text-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .like:disabled {
@@ -121,6 +169,7 @@
 
 .like:focus-visible,
 .back:focus-visible,
+.menu:focus-visible,
 .action:focus-visible {
   outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
@@ -129,13 +178,29 @@
 .heart {
   display: flex;
   color: var(--color-text-secondary);
+  transition:
+    color 160ms ease,
+    transform 120ms ease;
+}
+
+.like:active .heart {
+  transform: scale(0.88);
 }
 
 .like[data-liked="true"] .heart {
   color: var(--color-liked);
 }
 
+.date {
+  flex: none;
+  margin-left: auto;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+}
+
 .likeError {
+  flex-basis: 100%;
   margin: 4px 0 0;
   font-size: 12px;
   line-height: 16px;
@@ -168,4 +233,26 @@
   color: var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
+}
+
+.back {
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+
+.back:active {
+  background-color: var(--color-disabled-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back,
+  .menu,
+  .heart {
+    transition: none;
+  }
+
+  .like:active .heart {
+    transform: none;
+  }
 }

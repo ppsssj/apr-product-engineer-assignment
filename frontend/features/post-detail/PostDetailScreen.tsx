@@ -68,17 +68,10 @@ export function PostDetailScreen({ postId }: Props) {
         >
           <BackIcon />
         </button>
-        {isOwnPost && (
-          <button
-            type="button"
-            className={styles.back}
-            onClick={() => setMenu("sheet")}
-            aria-label="게시글 메뉴"
-            aria-haspopup="dialog"
-          >
-            <MoreIcon />
-          </button>
-        )}
+        {/* Screen identity, not the post heading (the post title is the h1). */}
+        <p className={styles.appTitle}>메디큐브톡</p>
+        {/* Keeps the title centered; post actions live on the post itself. */}
+        <span className={styles.navSpacer} aria-hidden="true" />
       </header>
 
       <main className={styles.main}>
@@ -106,7 +99,10 @@ export function PostDetailScreen({ postId }: Props) {
           </div>
         ) : (
           <>
-            <PostBody post={post} />
+            <PostBody
+              post={post}
+              onOpenMenu={isOwnPost ? () => setMenu("sheet") : undefined}
+            />
             <CommentSection postId={post.id} commentCount={post.commentCount} />
           </>
         )}
@@ -142,32 +138,43 @@ export function PostDetailScreen({ postId }: Props) {
   );
 }
 
-function PostBody({ post }: { post: Post }) {
+type PostBodyProps = {
+  post: Post;
+  // Present only for the requester's own post; edit/delete act on this post,
+  // so the trigger sits in the post's author row rather than the app bar.
+  onOpenMenu?: () => void;
+};
+
+function PostBody({ post, onOpenMenu }: PostBodyProps) {
   const like = useTogglePostLike(post.id);
 
   const date = formatShortDate(post.createdAt);
 
   return (
     <article className={styles.post}>
-      <h1 className={styles.title}>{post.title}</h1>
       <div className={styles.byline}>
         {/* Decorative: the author name follows as text. */}
         <img
           src={avatarFor(post.author)}
           alt=""
-          width={36}
-          height={36}
+          width={24}
+          height={24}
           className={styles.avatar}
         />
-        <div>
-          <p className={styles.author}>{post.author}</p>
-          {date && (
-            <time dateTime={post.createdAt} className={styles.date}>
-              {date}
-            </time>
-          )}
-        </div>
+        <p className={styles.author}>{post.author}</p>
+        {onOpenMenu && (
+          <button
+            type="button"
+            className={styles.menu}
+            onClick={onOpenMenu}
+            aria-label="게시글 메뉴"
+            aria-haspopup="dialog"
+          >
+            <MoreIcon />
+          </button>
+        )}
       </div>
+      <h1 className={styles.title}>{post.title}</h1>
       <p className={styles.content}>{post.content}</p>
 
       <div className={styles.likeRow}>
@@ -184,6 +191,11 @@ function PostBody({ post }: { post: Post }) {
           </span>
           좋아요 {post.likeCount.toLocaleString("ko-KR")}
         </button>
+        {date && (
+          <time dateTime={post.createdAt} className={styles.date}>
+            {date}
+          </time>
+        )}
         {like.isError && (
           <p className={styles.likeError} role="alert">
             좋아요를 반영하지 못했습니다. 다시 시도해 주세요.
