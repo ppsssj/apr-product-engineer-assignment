@@ -372,3 +372,31 @@ These are `PRODUCT_DECISION` and do not claim Figma evidence.
 ## 11. Traceability
 
 SCREEN-001 through SCREEN-006 retain their existing functional meaning. Figma frame IDs above provide the design evidence for their visual states. `ASSIGNMENT_DEFINED` behavior prevails on conflict; `DESIGN_DEFINED` values guide presentation; unspecified product states remain `PRODUCT_DECISION`; API, state, pagination, and authorization mechanisms remain `ARCHITECTURE_DECISION`.
+
+## 12. P8-C Intentional UX Retouch
+
+`design/design-retouch/` holds intentional `PRODUCT_DECISION` references, not
+official Figma evidence. Where they deliberately differ from
+`design/design-export/`, they supersede the list and detail values above for
+the implementation. Everything else keeps the official values. The rationale
+and details are in `design/design-retouch/readme.md`.
+
+- **SCREEN-001 list:**
+  - 98px rows ordered title → preview → metadata; the author row above the
+    title is removed.
+  - Metadata is [18px avatar + author, max 132px] [comment · like] … [time].
+  - Counts use thousands separators, as in both references.
+  - The app title is centered with a 1px `#EAECEE` header divider.
+  - The FAB fill is `#C2102F`, matching both references.
+- **SCREEN-002 detail:**
+  - Centered `메디큐브톡` app-bar title.
+  - A 24px author row at y=78 carries the own-post `⋮` (40×40 target).
+  - Title → body.
+  - The footer has the like action on the left and a 12/16 date on the right.
+  - Other users' posts keep the same geometry without `⋮`.
+- **Interaction:**
+  - Pressed states throughout.
+  - 120–180ms entrance motion for the sheet, dialog, and toast (opacity and
+    transform only; close is immediate).
+  - `prefers-reduced-motion` disables the motion.
+  - The comment-delete target is enlarged without moving its text.
