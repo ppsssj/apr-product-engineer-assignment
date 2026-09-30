@@ -47,7 +47,7 @@ export function PostListToolbar({
     wasOpen.current = searchOpen;
   }, [searchOpen]);
 
-  // Handled on the whole search row, so Escape works from the field, ← or ×.
+  // Handled on the search row, so Escape closes search whether focus is in the field or on ←.
   function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
