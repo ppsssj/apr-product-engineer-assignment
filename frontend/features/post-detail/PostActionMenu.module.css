@@ -1,0 +1,80 @@
+/*
+ * P8-C PRODUCT_DECISION (design/design-retouch/readme.md): the official design
+ * shows the own-post actions as a 375×224 bottom sheet over a scrim (830:139).
+ * With only two short commands, they are anchored under the post's `⋮`
+ * instead: a 144px popover with two 44px rows, white surface, a light border
+ * and soft shadow, 12px radius, no scrim. Delete still opens the modal
+ * confirmation dialog.
+ * Positioned from the trigger's wrapper (PostDetailScreen .menuAnchor): its
+ * right edge sits on the 16px page inset (x=359 at 375px) and its top 4px
+ * below the 40px trigger.
+ */
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 14px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  width: 144px;
+  padding: 4px;
+  border: 1px solid #eaecee;
+  border-radius: 12px;
+  background: var(--color-surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  animation: menu-in 140ms ease-out;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms ease;
+}
+
+/* The shared 24px glyphs, drawn at 20px to suit the compact rows. */
+.item svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.item:active {
+  background-color: var(--color-disabled-surface);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: -2px;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+
+  .item {
+    transition: none;
+  }
+}

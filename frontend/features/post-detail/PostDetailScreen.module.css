@@ -103,15 +103,21 @@
 }
 
 /* A 40×40 target around the 24px glyph; negative margins keep the row at
-   24px and put the dots at x≈353, as in the retouch. */
+   24px and put the dots at x≈353, as in the retouch. The wrapper is the
+   positioning context for the anchored action popover (PostActionMenu). */
+.menuAnchor {
+  position: relative;
+  flex: none;
+  margin: -8px -14px -8px 0;
+}
+
 .menu {
   display: flex;
-  flex: none;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
-  margin: -8px -14px -8px 0;
+  margin: 0;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -122,7 +128,8 @@
   transition: background-color 120ms ease;
 }
 
-.menu:active {
+.menu:active,
+.menu[aria-expanded="true"] {
   background-color: var(--color-disabled-surface);
 }
 

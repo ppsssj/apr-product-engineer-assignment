@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ApiError } from "@/lib/api/client";
 import type { Post } from "@/lib/api/types";
 import { avatarFor } from "@/lib/avatar";
@@ -13,7 +13,7 @@ import { formatShortDate } from "@/lib/time/shortDate";
 import { CommentSection } from "./CommentSection";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { BackIcon, HeartIcon, MoreIcon } from "./icons";
-import { PostActionSheet } from "./PostActionSheet";
+import { PostActionMenu } from "./PostActionMenu";
 import { useDeletePost } from "./useDeletePost";
 import { usePostDetail, useTogglePostLike } from "./usePostDetail";
 import styles from "./PostDetailScreen.module.css";
@@ -31,7 +31,9 @@ export function PostDetailScreen({ postId }: Props) {
   // Presentation only: the backend rejects another user's PATCH/DELETE (403).
   const [requester] = useState(readCurrentRequester);
   const isOwnPost = post !== undefined && !notFound && post.author === requester;
-  const [menu, setMenu] = useState<"closed" | "sheet" | "confirmDelete">("closed");
+  const [menu, setMenu] = useState<"closed" | "actions" | "confirmDelete">("closed");
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => setMenu("closed"), []);
   const removal = useDeletePost(postId ?? 0);
   const deleted = useRef(false);
 
@@ -101,26 +103,35 @@ export function PostDetailScreen({ postId }: Props) {
           <>
             <PostBody
               post={post}
-              onOpenMenu={isOwnPost ? () => setMenu("sheet") : undefined}
+              ownerMenu={
+                isOwnPost
+                  ? {
+                      open: menu === "actions",
+                      triggerRef: menuTriggerRef,
+                      onToggle: () =>
+                        setMenu((current) => (current === "actions" ? "closed" : "actions")),
+                      onClose: closeMenu,
+                      onEdit: () => {
+                        setMenu("closed");
+                        rememberFormOrigin(routes.postDetail(post.id));
+                        router.push(routes.postEdit(post.id));
+                      },
+                      onDelete: () => {
+                        removal.reset();
+                        // The pressed item unmounts with the menu; focusing the
+                        // trigger first lets the dialog return focus to it.
+                        menuTriggerRef.current?.focus();
+                        setMenu("confirmDelete");
+                      },
+                    }
+                  : undefined
+              }
             />
             <CommentSection postId={post.id} commentCount={post.commentCount} />
           </>
         )}
       </main>
 
-      {isOwnPost && menu === "sheet" && (
-        <PostActionSheet
-          onEdit={() => {
-            rememberFormOrigin(routes.postDetail(post.id));
-            router.push(routes.postEdit(post.id));
-          }}
-          onDelete={() => {
-            removal.reset();
-            setMenu("confirmDelete");
-          }}
-          onClose={() => setMenu("closed")}
-        />
-      )}
       {isOwnPost && menu === "confirmDelete" && (
         <ConfirmDialog
           title="삭제하기"
@@ -138,14 +149,26 @@ export function PostDetailScreen({ postId }: Props) {
   );
 }
 
+type OwnerMenu = {
+  open: boolean;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+  onToggle: () => void;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+};
+
 type PostBodyProps = {
   post: Post;
   // Present only for the requester's own post; edit/delete act on this post,
-  // so the trigger sits in the post's author row rather than the app bar.
-  onOpenMenu?: () => void;
+  // so the trigger and its popover sit in the post's author row rather than
+  // the app bar.
+  ownerMenu?: OwnerMenu;
 };
 
-function PostBody({ post, onOpenMenu }: PostBodyProps) {
+const POST_ACTION_MENU_ID = "post-action-menu";
+
+function PostBody({ post, ownerMenu }: PostBodyProps) {
   const like = useTogglePostLike(post.id);
 
   const date = formatShortDate(post.createdAt);
@@ -162,16 +185,29 @@ function PostBody({ post, onOpenMenu }: PostBodyProps) {
           className={styles.avatar}
         />
         <p className={styles.author}>{post.author}</p>
-        {onOpenMenu && (
-          <button
-            type="button"
-            className={styles.menu}
-            onClick={onOpenMenu}
-            aria-label="게시글 메뉴"
-            aria-haspopup="dialog"
-          >
-            <MoreIcon />
-          </button>
+        {ownerMenu && (
+          <div className={styles.menuAnchor}>
+            <button
+              ref={ownerMenu.triggerRef}
+              type="button"
+              className={styles.menu}
+              onClick={ownerMenu.onToggle}
+              aria-label="게시글 메뉴"
+              aria-expanded={ownerMenu.open}
+              aria-controls={ownerMenu.open ? POST_ACTION_MENU_ID : undefined}
+            >
+              <MoreIcon />
+            </button>
+            {ownerMenu.open && (
+              <PostActionMenu
+                id={POST_ACTION_MENU_ID}
+                triggerRef={ownerMenu.triggerRef}
+                onEdit={ownerMenu.onEdit}
+                onDelete={ownerMenu.onDelete}
+                onClose={ownerMenu.onClose}
+              />
+            )}
+          </div>
         )}
       </div>
       <h1 className={styles.title}>{post.title}</h1>
