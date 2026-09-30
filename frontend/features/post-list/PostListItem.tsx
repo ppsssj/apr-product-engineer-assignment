@@ -17,33 +17,36 @@ export function PostListItem({ post, now }: Props) {
   return (
     <li className={styles.row}>
       <Link href={routes.postDetail(post.id)} className={styles.link}>
-        <div className={styles.author}>
-          {/* Decorative: the author name follows as text. */}
-          <img
-            src={avatarFor(post.author)}
-            alt=""
-            width={18}
-            height={18}
-            className={styles.avatar}
-          />
-          <span className={styles.authorName}>{post.author}</span>
-        </div>
+        {/* Retouch: content first; the author is part of the metadata row. */}
         <h2 className={styles.title}>{post.title}</h2>
         <p className={styles.preview}>{post.content}</p>
         <div className={styles.meta}>
-          <span className={styles.count}>
-            <span className={styles.icon}>
-              <CommentIcon />
-            </span>
-            <span className={styles.srOnly}>댓글</span>
-            {post.commentCount}
+          <span className={styles.author}>
+            {/* Decorative: the author name follows as text. */}
+            <img
+              src={avatarFor(post.author)}
+              alt=""
+              width={18}
+              height={18}
+              className={styles.avatar}
+            />
+            <span className={styles.authorName}>{post.author}</span>
           </span>
-          <span className={styles.count}>
-            <span className={post.isLiked ? styles.likedIcon : styles.icon}>
-              <LikeIcon />
+          <span className={styles.engagement}>
+            <span className={styles.count}>
+              <span className={styles.icon}>
+                <CommentIcon />
+              </span>
+              <span className={styles.srOnly}>댓글</span>
+              {post.commentCount.toLocaleString("ko-KR")}
             </span>
-            <span className={styles.srOnly}>좋아요</span>
-            {post.likeCount}
+            <span className={styles.count}>
+              <span className={post.isLiked ? styles.likedIcon : styles.icon}>
+                <LikeIcon />
+              </span>
+              <span className={styles.srOnly}>좋아요</span>
+              {post.likeCount.toLocaleString("ko-KR")}
+            </span>
           </span>
           {relativeTime && (
             <time dateTime={post.createdAt} className={styles.time}>

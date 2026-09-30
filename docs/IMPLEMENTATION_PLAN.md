@@ -17,8 +17,8 @@ This document is the operational state for the assignment. Keep it concise and c
 
 ### Next Action
 
-1. Review the P8-B behavioral acceptance evidence on `feat/p8b-full-acceptance`.
-2. Close V-081 with a fresh comparison against the official Figma source, then continue to P9 (not started).
+1. Review the P8-C UI/UX retouch on `feat/p8c-ui-ux-retouch` (presentation layer only; see `design/design-retouch/readme.md` and `docs/UI_SPEC.md` §12).
+2. Close V-081 with a fresh comparison against the official Figma source, then continue to P9 (not started). The intentional retouch deviations must be documented, not counted as fidelity evidence.
 
 ### P7 Backlog (recorded, not implemented)
 

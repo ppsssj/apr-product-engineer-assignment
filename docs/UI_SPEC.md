@@ -372,3 +372,54 @@ These are `PRODUCT_DECISION` and do not claim Figma evidence.
 ## 11. Traceability
 
 SCREEN-001 through SCREEN-006 retain their existing functional meaning. Figma frame IDs above provide the design evidence for their visual states. `ASSIGNMENT_DEFINED` behavior prevails on conflict; `DESIGN_DEFINED` values guide presentation; unspecified product states remain `PRODUCT_DECISION`; API, state, pagination, and authorization mechanisms remain `ARCHITECTURE_DECISION`.
+
+## 12. P8-C Intentional UX Retouch
+
+`design/design-retouch/` holds intentional `PRODUCT_DECISION` references, not
+official Figma evidence. Where they deliberately differ from
+`design/design-export/`, they supersede the list and detail values above for
+the implementation. Everything else keeps the official values. The rationale
+and details are in `design/design-retouch/readme.md`.
+
+- **SCREEN-001 list:**
+  - Rows ordered title → preview → metadata; the author row above the title
+    is removed.
+  - Rows are 108px, not the retouch's 98px. Visual review found 98px too
+    dense, so only spacing grew (14/6/13/14); type sizes are unchanged.
+  - Metadata is [18px avatar + author, max 132px] [comment · like] … [time].
+  - Counts use thousands separators, as in both references.
+  - The app title is centered with a 1px `#EAECEE` header divider.
+  - The FAB fill is `#C2102F`, matching both references.
+- **SCREEN-002 detail:**
+  - Centered `메디큐브톡` app-bar title.
+  - A 24px author row at y=78 carries the own-post `⋮` (40×40 target).
+  - Title → body.
+  - The footer has the like action on the left and a 12/16 date on the right.
+  - Other users' posts keep the same geometry without `⋮`.
+- **SCREEN-005 post actions:** P8-C replaces the official bottom action sheet
+  (830:139) with a non-modal popover anchored 4px under the post `⋮`.
+  - It is 144px wide with two 44px rows (수정하기 / 삭제하기), and its right
+    edge sits at x=359.
+  - There is no scrim and no `취소` row. An outside press, Escape (focus
+    returns to `⋮`), or either action closes it.
+  - Rationale: with only two commands, keeping them next to the trigger
+    improves action locality and removes unnecessary modal weight.
+  - Delete still opens the modal confirmation dialog, which keeps its scrim.
+  - The §7 sheet values above describe the official design, not the P8-C
+    implementation.
+- **Interaction:**
+  - Pressed states throughout.
+  - 120–180ms entrance motion for the post-action popover, dialog, and toast
+    (opacity and transform only; close is immediate).
+  - `prefers-reduced-motion` disables the motion.
+  - The comment-delete target is enlarged without moving its text.
+- **Deferred:** a list comment-icon accent for posts the requester commented
+  on. It was considered and deferred.
+  - The list API exposes no requester-specific participation state (such as
+    `hasCommented`).
+  - `commentCount > 0` means someone commented, not the requester.
+  - Showing it accurately would require an API change or per-row comment
+    fetches (N+1), so neither faked state nor API expansion was accepted.
+- **Comment heading (code-level refinement, no reference image):** `댓글`
+  stays Bold 16/24 `#292828`; the count becomes Medium 14/20 `#979EA9` with
+  a 4px gap. The 49px heading box and comment positions are unchanged.

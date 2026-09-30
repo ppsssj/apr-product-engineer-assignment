@@ -23,6 +23,17 @@
   color: var(--color-text-primary);
 }
 
+/* P8-C code-level refinement (PRODUCT_DECISION, not Figma evidence): the
+   count is supporting metadata, so it steps down from the Bold 16 label.
+   Baseline-aligned inline text, so the 24px heading line does not grow. */
+.headingCount {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
 .list {
   margin: 0;
   padding: 0;
@@ -55,14 +66,21 @@
   margin: 0;
 }
 
+/* P8-C: SemiBold (was Bold) so the name does not outweigh the comment. */
 .author {
   overflow: hidden;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 22px;
   color: var(--color-text-primary);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* P8-C: the requester's own comments carry the app red on the name only
+   (same requester value that shows "삭제"); no badge or other accent. */
+.authorOwn {
+  color: #c2102f;
 }
 
 .time {
@@ -82,17 +100,30 @@
 }
 
 /* PRODUCT_DECISION (PNG-estimated): "삭제" 12/16 #979EA9 text below the
-   content, shown only for the requester's own comments. */
+   content, shown only for the requester's own comments. The 8px padding is
+   offset by negative margins, so the text keeps its 8px/2px placement while
+   the touch target grows to about 32×40. */
 .delete {
-  margin-top: 6px;
-  padding: 2px 0;
+  display: block;
+  margin: 0 0 -6px -8px;
+  padding: 8px;
   border: 0;
+  border-radius: 6px;
   background: none;
   font: inherit;
   font-size: 12px;
   line-height: 16px;
   color: var(--color-text-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.delete:active {
+  background-color: var(--color-disabled-surface);
+  color: var(--color-text-support);
 }
 
 .delete:focus-visible {
@@ -116,6 +147,24 @@
   line-height: 18px;
   color: var(--color-text-secondary);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+/* The label keeps the design's #979EA9; the bordered pill plus a pressed tint
+   make it read as an active control rather than a disabled one. */
+.more:active {
+  border-color: var(--color-text-secondary);
+  background-color: var(--color-disabled-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delete,
+  .more {
+    transition: none;
+  }
 }
 
 .more:focus-visible,
