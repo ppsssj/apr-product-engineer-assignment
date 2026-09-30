@@ -24,6 +24,8 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   query?: Record<string, QueryValue>;
   body?: unknown;
+  // Lets React Query cancel superseded reads (changed search/sort, unmount).
+  signal?: AbortSignal;
 };
 
 function buildUrl(path: string, query?: Record<string, QueryValue>): string {
@@ -67,7 +69,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 // credentials so the browser sends the `x-user-id` cookie set by /dev-user.
 export async function request<T>(
   path: string,
-  { method = "GET", query, body }: RequestOptions = {},
+  { method = "GET", query, body, signal }: RequestOptions = {},
 ): Promise<T> {
   const hasBody = body !== undefined;
   let response: Response;
@@ -80,8 +82,12 @@ export async function request<T>(
         ? { Accept: "application/json", "Content-Type": "application/json" }
         : { Accept: "application/json" },
       body: hasBody ? JSON.stringify(body) : undefined,
+      signal,
     });
-  } catch {
+  } catch (error) {
+    // A cancelled request is not a network failure: rethrow the abort as-is
+    // so React Query treats it as a cancellation, never as an error state.
+    if (signal?.aborted) throw error;
     throw new ApiError(0, "NETWORK_ERROR", "Network request failed");
   }
 

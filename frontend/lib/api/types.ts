@@ -49,3 +49,11 @@ export type PageParams = {
   limit?: number;
   cursor?: string;
 };
+
+export type PostSort = "latest" | "likes";
+
+// `cursor` stays opaque: the backend encodes it for the selected sort.
+export type PostListParams = PageParams & {
+  sort?: PostSort;
+  query?: string;
+};

@@ -1,16 +1,12 @@
 "use client";
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type InfiniteData,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import { ApiError } from "@/lib/api/client";
 import { getPost, togglePostLike } from "@/lib/api/community";
-import type { PageResponse, Post } from "@/lib/api/types";
+import type { Post } from "@/lib/api/types";
 import { postKeys } from "@/lib/query/keys";
+import { setPostLike } from "@/lib/query/postListCache";
 
 // 404 means the post is missing or soft-deleted; retrying cannot help.
 function retryUnlessNotFound(failureCount: number, error: Error): boolean {
@@ -30,7 +26,7 @@ export function usePostDetail(postId: number | null) {
 // Non-optimistic toggle: the server response is the only source of the new
 // like state, so a failed request never leaves a false success on screen.
 // On success the same values are written into the detail cache and into any
-// cached post-list page that contains this post.
+// cached post-list page that contains this post; likes-ordered lists refetch.
 export function useTogglePostLike(postId: number) {
   const queryClient = useQueryClient();
   // `isPending` reaches the render one scheduler tick after `mutate`, so a
@@ -43,19 +39,7 @@ export function useTogglePostLike(postId: number) {
       queryClient.setQueryData<Post>(postKeys.detail(postId), (post) =>
         post ? { ...post, isLiked, likeCount } : post,
       );
-      queryClient.setQueriesData<InfiniteData<PageResponse<Post>>>(
-        { queryKey: postKeys.lists() },
-        (data) =>
-          data && {
-            ...data,
-            pages: data.pages.map((page) => ({
-              ...page,
-              items: page.items.map((post) =>
-                post.id === postId ? { ...post, isLiked, likeCount } : post,
-              ),
-            })),
-          },
-      );
+      setPostLike(queryClient, postId, { isLiked, likeCount });
     },
     onSettled: () => {
       inFlight.current = false;

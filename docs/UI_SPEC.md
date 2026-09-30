@@ -423,3 +423,45 @@ and details are in `design/design-retouch/readme.md`.
 - **Comment heading (code-level refinement, no reference image):** `댓글`
   stays Bold 16/24 `#292828`; the count becomes Medium 14/20 `#979EA9` with
   a 4px gap. The 49px heading box and comment positions are unchanged.
+
+## 13. Post Discovery Toolbar (PRODUCT_DECISION)
+
+This is not in the official Figma or the retouch images. It is an intentional
+product addition, so V-081 must record it as a deviation, not as fidelity.
+The API and cache design are in `docs/ARCHITECTURE.md`, "Post Discovery
+Update".
+
+- **Placement:** a 44px row directly under the 48px `메디큐브톡` title.
+  - The title scrolls away; only this row is `position: sticky; top: 0`,
+    with a white surface and a 1px `#EAECEE` bottom divider. The list never
+    spends about 92px on two sticky bands.
+  - List rows now start at y=92 (previously 56); the 108px row rhythm is
+    unchanged.
+- **Normal mode:** `최신순 좋아요순 │ 🔍 검색`.
+  - Sorting is the list's persistent state, so it comes first as one compact
+    group. Its labels are 18px apart and `최신순` starts at the 16px inset.
+    They are two plain text buttons with no pills and no dropdown.
+  - A short 16px `#EAECEE` divider follows.
+  - Then comes one search button (accessible name `게시글 검색`) that fills
+    the rest of the row to the right edge. Its icon and `검색` are
+    left-aligned 13px after the divider, and the blank remainder is part of
+    the same button, so it gets a wide hit area with no extra tab stop and no
+    visible box.
+  - Press feedback dims only the icon and label. Keyboard focus shows a ring
+    around the whole search target.
+  - The selected sort is `#292828` SemiBold; the other is `#979EA9` Medium.
+    Red is not used (it stays reserved for identity and destructive roles).
+  - Every control has a 44px-tall target and `aria-pressed` on the sorts.
+- **Search mode:** the same 44px row changes to ← (`검색 닫기`), a 32px
+  rounded field on `#F3F4F8` (`게시글 검색`, auto-focused), and a clear
+  button (`검색어 지우기`) while text exists.
+  - Escape or ← clears the query and returns to normal mode, and focus
+    returns to `검색`.
+  - The chosen sort stays applied to the results and is still selected after
+    closing.
+- **Behavior:**
+  - Typing is debounced 300 ms; Enter commits immediately.
+  - A sort or search change shows the new list from its first page and, if
+    the toolbar is stuck, scrolls back under it.
+  - An empty search says `검색 결과가 없습니다.`, separate from the empty
+    community copy.

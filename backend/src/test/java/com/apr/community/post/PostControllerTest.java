@@ -44,12 +44,14 @@ class PostControllerTest {
         postReadService = mock(PostReadService.class);
         postMutationService = mock(PostMutationService.class);
         commentMutationService = mock(CommentMutationService.class);
+        var pageRequestParser = new PageRequestParser(new CursorCodec());
         var controller = new PostController(
                 postReadService,
                 postMutationService,
                 commentMutationService,
                 new RequesterResolver(),
-                new PageRequestParser(new CursorCodec()));
+                pageRequestParser,
+                new PostListRequestParser(pageRequestParser, new CursorCodec(), new PostLikeCursorCodec()));
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -66,7 +68,7 @@ class PostControllerTest {
                 true,
                 "requester",
                 Instant.parse("2026-08-30T13:55:54.123456Z"));
-        when(postReadService.getPosts(eq("requester"), any(PageRequest.class)))
+        when(postReadService.getPosts(eq("requester"), any(PostListRequest.class)))
                 .thenReturn(new PageResponse<>(List.of(post), 39L, "next"));
 
         mockMvc.perform(get("/api/posts")
@@ -143,6 +145,63 @@ class PostControllerTest {
         mockMvc.perform(get("/api/posts").param("limit", "51"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_LIMIT"));
+
+        verifyNoInteractions(postReadService);
+    }
+
+    @Test
+    void defaultsToLatestWithoutSearch() throws Exception {
+        when(postReadService.getPosts(eq("apr_tester"), any(PostListRequest.class)))
+                .thenReturn(new PageResponse<>(List.of(), 0L, null));
+
+        mockMvc.perform(get("/api/posts").param("limit", "10"))
+                .andExpect(status().isOk());
+
+        verify(postReadService).getPosts("apr_tester", new PostListRequest(10, PostSort.LATEST, null, null, null));
+    }
+
+    @Test
+    void passesSortAndTrimmedQueryAndTreatsBlankQueryAsNone() throws Exception {
+        when(postReadService.getPosts(eq("apr_tester"), any(PostListRequest.class)))
+                .thenReturn(new PageResponse<>(List.of(), 0L, null));
+
+        mockMvc.perform(get("/api/posts").param("sort", "likes").param("q", "  레이저  "))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/posts").param("sort", "latest").param("q", "   "))
+                .andExpect(status().isOk());
+
+        verify(postReadService).getPosts("apr_tester", new PostListRequest(20, PostSort.LIKES, "레이저", null, null));
+        verify(postReadService).getPosts("apr_tester", new PostListRequest(20, PostSort.LATEST, null, null, null));
+    }
+
+    @Test
+    void rejectsUnknownSortAndOverlongQuery() throws Exception {
+        mockMvc.perform(get("/api/posts").param("sort", "popular"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SORT"));
+        mockMvc.perform(get("/api/posts").param("sort", "LIKES"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_SORT"));
+        mockMvc.perform(get("/api/posts").param("q", "가".repeat(101)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_QUERY"));
+
+        verifyNoInteractions(postReadService);
+    }
+
+    @Test
+    void rejectsCursorFromTheOtherSort() throws Exception {
+        String latestCursor = new CursorCodec().encode(
+                new com.apr.community.common.pagination.CursorPosition(Instant.parse("2026-08-30T13:55:54Z"), 5L));
+        String likesCursor = new PostLikeCursorCodec().encode(
+                new PostLikeCursor(12L, Instant.parse("2026-08-30T13:55:54Z"), 5L));
+
+        mockMvc.perform(get("/api/posts").param("sort", "likes").param("cursor", latestCursor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
+        mockMvc.perform(get("/api/posts").param("cursor", likesCursor))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
 
         verifyNoInteractions(postReadService);
     }

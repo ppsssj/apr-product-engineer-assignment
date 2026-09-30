@@ -10,6 +10,7 @@ import { createComment, deleteComment } from "@/lib/api/community";
 import type { Comment, PageResponse, Post } from "@/lib/api/types";
 import { useSingleFlight } from "@/lib/hooks/useSingleFlight";
 import { postKeys } from "@/lib/query/keys";
+import { setPostCommentCountInLists } from "@/lib/query/postListCache";
 
 type CommentPages = InfiniteData<PageResponse<Comment>>;
 
@@ -20,7 +21,8 @@ type CommentPages = InfiniteData<PageResponse<Comment>>;
 //   `nextCursor` values stay valid because a keyset cursor is a (createdAt, id)
 //   bound, not a position, so no row is skipped or repeated.
 // - The resulting `total` is copied as an absolute value into the post detail
-//   and into every cached post-list page, so all three caches show one number.
+//   and into every cached post-list page (any sort or search), so all caches
+//   show one number.
 // - If the comment list has not loaded, only the counts move (from the detail
 //   cache) and the comment list is refetched from the server.
 
@@ -28,19 +30,8 @@ function setPostCommentCount(queryClient: QueryClient, postId: number, count: nu
   queryClient.setQueryData<Post>(postKeys.detail(postId), (post) =>
     post ? { ...post, commentCount: count } : post,
   );
-  queryClient.setQueriesData<InfiniteData<PageResponse<Post>>>(
-    { queryKey: postKeys.lists() },
-    (data) =>
-      data && {
-        ...data,
-        pages: data.pages.map((page) => ({
-          ...page,
-          items: page.items.map((post) =>
-            post.id === postId ? { ...post, commentCount: count } : post,
-          ),
-        })),
-      },
-  );
+  // Counts change neither ordering nor search membership: no list refetch.
+  setPostCommentCountInLists(queryClient, postId, count);
 }
 
 function detailCount(queryClient: QueryClient, postId: number): number | undefined {

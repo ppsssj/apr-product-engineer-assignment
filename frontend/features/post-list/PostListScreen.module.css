@@ -6,8 +6,9 @@
  * list and detail share one app bar; a 1px #EAECEE divider closes the header
  * (also present in the official frame). FAB fill #C2102F as in both the
  * official and retouch SVGs.
- * PRODUCT_DECISION: sticky header, loading/empty/error presentation, FAB
- * shadow, and pressed/entrance feedback.
+ * PRODUCT_DECISION: loading/empty/error presentation, FAB shadow, and
+ * pressed/entrance feedback. The header scrolls away; the discovery toolbar
+ * (search/sort) below it is the sticky band.
  */
 
 .screen {
@@ -15,10 +16,9 @@
   background: var(--color-surface);
 }
 
+/* Scrolls away with the page; the discovery toolbar below is the only sticky
+   band (PostListToolbar.module.css). */
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -37,9 +37,10 @@
 }
 
 .main {
-  /* 48px header + 8px = list starts at y=56. Bottom space keeps the last row
-     clear of the floating write control. */
-  padding: 8px 0 120px;
+  /* The list starts directly under the 44px toolbar's divider (y=92); rows
+     carry their own 14px top padding. Bottom space keeps the last row clear
+     of the floating write control. */
+  padding: 0 0 120px;
 }
 
 .list {
