@@ -17,6 +17,12 @@ public class PageRequestParser {
     }
 
     public PageRequest parse(Integer requestedLimit, String encodedCursor) {
+        int limit = parseLimit(requestedLimit);
+        CursorPosition cursor = encodedCursor == null ? null : cursorCodec.decode(encodedCursor);
+        return new PageRequest(limit, cursor);
+    }
+
+    public int parseLimit(Integer requestedLimit) {
         int limit = requestedLimit == null ? DEFAULT_LIMIT : requestedLimit;
         if (limit < 1 || limit > MAX_LIMIT) {
             throw new ApiException(
@@ -24,8 +30,6 @@ public class PageRequestParser {
                     "INVALID_LIMIT",
                     "Limit must be between 1 and 50.");
         }
-
-        CursorPosition cursor = encodedCursor == null ? null : cursorCodec.decode(encodedCursor);
-        return new PageRequest(limit, cursor);
+        return limit;
     }
 }

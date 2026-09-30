@@ -19,31 +19,40 @@ public class PostReadService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final CursorCodec cursorCodec;
+    private final PostLikeCursorCodec postLikeCursorCodec;
 
     public PostReadService(
             PostRepository postRepository,
             CommentRepository commentRepository,
-            CursorCodec cursorCodec) {
+            CursorCodec cursorCodec,
+            PostLikeCursorCodec postLikeCursorCodec) {
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.cursorCodec = cursorCodec;
+        this.postLikeCursorCodec = postLikeCursorCodec;
     }
 
-    public PageResponse<PostResponse> getPosts(String requester, PageRequest pageRequest) {
-        var rows = postRepository.findReadablePage(
-                requester,
-                pageRequest.cursor(),
-                pageRequest.limit() + 1);
-        boolean hasNextPage = rows.size() > pageRequest.limit();
-        var pageRows = rows.subList(0, Math.min(rows.size(), pageRequest.limit()));
+    // Two SQL round trips per page: the page itself (limit + 1 rows to detect a
+    // next page) and the readable total for the same search filter.
+    public PageResponse<PostResponse> getPosts(String requester, PostListRequest request) {
+        String searchPattern = PostRepository.containsPattern(request.query());
+        int fetchSize = request.limit() + 1;
+        var rows = switch (request.sort()) {
+            case LATEST -> postRepository.findReadableLatestPage(
+                    requester, searchPattern, request.latestCursor(), fetchSize);
+            case LIKES -> postRepository.findReadableLikesPage(
+                    requester, searchPattern, request.likesCursor(), fetchSize);
+        };
+        boolean hasNextPage = rows.size() > request.limit();
+        var pageRows = rows.subList(0, Math.min(rows.size(), request.limit()));
         List<PostResponse> items = pageRows.stream()
                 .map(this::toPostResponse)
                 .toList();
 
         return new PageResponse<>(
                 items,
-                postRepository.countReadable(),
-                nextCursor(pageRows, hasNextPage));
+                postRepository.countReadable(searchPattern),
+                nextCursor(request.sort(), pageRows, hasNextPage));
     }
 
     public PostResponse getPost(long postId, String requester) {
@@ -73,12 +82,19 @@ public class PostReadService {
                 nextCommentCursor(pageRows, hasNextPage));
     }
 
-    private String nextCursor(List<PostRepository.ReadablePost> rows, boolean hasNextPage) {
+    private String nextCursor(
+            PostSort sort,
+            List<PostRepository.ReadablePost> rows,
+            boolean hasNextPage) {
         if (!hasNextPage || rows.isEmpty()) {
             return null;
         }
         var last = rows.get(rows.size() - 1);
-        return cursorCodec.encode(new CursorPosition(last.createdAt(), last.id()));
+        return switch (sort) {
+            case LATEST -> cursorCodec.encode(new CursorPosition(last.createdAt(), last.id()));
+            case LIKES -> postLikeCursorCodec.encode(
+                    new PostLikeCursor(last.likeCount(), last.createdAt(), last.id()));
+        };
     }
 
     private String nextCommentCursor(

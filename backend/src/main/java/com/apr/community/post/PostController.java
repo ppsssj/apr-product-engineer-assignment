@@ -28,28 +28,35 @@ public class PostController {
     private final CommentMutationService commentMutationService;
     private final RequesterResolver requesterResolver;
     private final PageRequestParser pageRequestParser;
+    private final PostListRequestParser postListRequestParser;
 
     public PostController(
             PostReadService postReadService,
             PostMutationService postMutationService,
             CommentMutationService commentMutationService,
             RequesterResolver requesterResolver,
-            PageRequestParser pageRequestParser) {
+            PageRequestParser pageRequestParser,
+            PostListRequestParser postListRequestParser) {
         this.postReadService = postReadService;
         this.postMutationService = postMutationService;
         this.commentMutationService = commentMutationService;
         this.requesterResolver = requesterResolver;
         this.pageRequestParser = pageRequestParser;
+        this.postListRequestParser = postListRequestParser;
     }
 
+    // `sort` (latest | likes, default latest) and `q` (title/content search)
+    // extend the original limit/cursor contract without changing its default.
     @GetMapping
     public PageResponse<PostResponse> getPosts(
             @RequestParam(required = false) Integer limit,
             @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String q,
             HttpServletRequest request) {
         return postReadService.getPosts(
                 requesterResolver.resolve(request),
-                pageRequestParser.parse(limit, cursor));
+                postListRequestParser.parse(limit, cursor, sort, q));
     }
 
     @PostMapping
