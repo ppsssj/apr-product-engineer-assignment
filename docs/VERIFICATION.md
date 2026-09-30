@@ -1621,7 +1621,10 @@ Implementation matches official design as closely as practical, with any intenti
   (`PRODUCT_DECISION`, not official Figma evidence). Those list and detail
   changes deliberately deviate from `design/design-export/`, so they are not
   fidelity evidence.
-- A later V-081 comparison must record them as intentional deviations.
+- A later V-081 comparison must record them as intentional deviations. These
+  include replacing the official own-post bottom sheet (830:139) with a
+  non-modal popover anchored to the post `⋮`; the delete confirmation dialog
+  and its scrim are unchanged.
 - Focused 375px regression on the retouched build passed (list and infinite
   scroll, like sync, More gate, comment and post CRUD, ownership menu,
   `/dev-user` switch, continuous E2E; no overflow and no errors). Behavior is

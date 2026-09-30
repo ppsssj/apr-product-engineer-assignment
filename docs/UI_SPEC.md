@@ -396,10 +396,21 @@ and details are in `design/design-retouch/readme.md`.
   - Title → body.
   - The footer has the like action on the left and a 12/16 date on the right.
   - Other users' posts keep the same geometry without `⋮`.
+- **SCREEN-005 post actions:** P8-C replaces the official bottom action sheet
+  (830:139) with a non-modal popover anchored 4px under the post `⋮`.
+  - It is 144px wide with two 44px rows (수정하기 / 삭제하기), and its right
+    edge sits at x=359.
+  - There is no scrim and no `취소` row. An outside press, Escape (focus
+    returns to `⋮`), or either action closes it.
+  - Rationale: with only two commands, keeping them next to the trigger
+    improves action locality and removes unnecessary modal weight.
+  - Delete still opens the modal confirmation dialog, which keeps its scrim.
+  - The §7 sheet values above describe the official design, not the P8-C
+    implementation.
 - **Interaction:**
   - Pressed states throughout.
-  - 120–180ms entrance motion for the sheet, dialog, and toast (opacity and
-    transform only; close is immediate).
+  - 120–180ms entrance motion for the post-action popover, dialog, and toast
+    (opacity and transform only; close is immediate).
   - `prefers-reduced-motion` disables the motion.
   - The comment-delete target is enlarged without moving its text.
 - **Deferred:** a list comment-icon accent for posts the requester commented
