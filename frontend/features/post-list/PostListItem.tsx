@@ -16,7 +16,11 @@ export function PostListItem({ post, now }: Props) {
 
   return (
     <li className={styles.row}>
-      <Link href={routes.postDetail(post.id)} className={styles.link}>
+      {/* No viewport prefetch: /posts/[postId] is dynamic, so each row's
+          prefetch returned only a tiny shell and every click still fetched the
+          route itself. In an infinite list that was one request per row for no
+          faster navigation. */}
+      <Link href={routes.postDetail(post.id)} className={styles.link} prefetch={false}>
         {/* Retouch: content first; the author is part of the metadata row. */}
         <h2 className={styles.title}>{post.title}</h2>
         <p className={styles.preview}>{post.content}</p>
