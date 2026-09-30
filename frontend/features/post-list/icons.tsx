@@ -29,15 +29,6 @@ export function SearchBackIcon({ size = 24 }: IconProps) {
   );
 }
 
-export function ClearIcon({ size = 18 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" aria-hidden="true" focusable="false">
-      <circle cx="9" cy="9" r="8" fill="currentColor" />
-      <path d="m6.2 6.2 5.6 5.6m0-5.6-5.6 5.6" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function CommentIcon({ size = 14 }: IconProps) {
   return (
     <svg
