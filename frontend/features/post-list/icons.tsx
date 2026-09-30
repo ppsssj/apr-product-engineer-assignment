@@ -4,6 +4,40 @@
 
 type IconProps = { size?: number };
 
+// Toolbar glyphs (PRODUCT_DECISION; not in the official frames). Stroke icons
+// that inherit color like the rest of the list.
+export function SearchIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="m12.2 12.2 3.6 3.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function SearchBackIcon({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M20 12H4.5M10.5 5.5 4 12l6.5 6.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function ClearIcon({ size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+      <circle cx="9" cy="9" r="8" fill="currentColor" />
+      <path d="m6.2 6.2 5.6 5.6m0-5.6-5.6 5.6" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function CommentIcon({ size = 14 }: IconProps) {
   return (
     <svg

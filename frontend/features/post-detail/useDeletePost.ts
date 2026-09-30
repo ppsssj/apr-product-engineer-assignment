@@ -6,8 +6,9 @@ import { useSingleFlight } from "@/lib/hooks/useSingleFlight";
 import { removePost } from "@/lib/query/postListCache";
 import { postKeys } from "@/lib/query/keys";
 
-// Server-confirmed delete. On 204 the post leaves every cached list page and
-// the list totals drop by one. The detail and comment caches are dropped by
+// Server-confirmed delete. On 204 the post leaves every cached list page;
+// totals drop where membership is certain and search lists refetch
+// (see removePost). The detail and comment caches are dropped by
 // the caller after it has navigated away (`forgetDeletedPost`), so the
 // still-mounted detail screen does not refetch a now-missing post.
 export function useDeletePost(postId: number) {

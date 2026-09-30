@@ -6,12 +6,22 @@ import type {
   PageParams,
   PageResponse,
   Post,
+  PostListParams,
   PostMutationInput,
 } from "./types";
 
-export function getPosts(params: PageParams = {}): Promise<PageResponse<Post>> {
+export function getPosts(
+  params: PostListParams = {},
+  signal?: AbortSignal,
+): Promise<PageResponse<Post>> {
   return request("/posts", {
-    query: { limit: params.limit, cursor: params.cursor },
+    query: {
+      limit: params.limit,
+      cursor: params.cursor,
+      sort: params.sort,
+      q: params.query || undefined,
+    },
+    signal,
   });
 }
 

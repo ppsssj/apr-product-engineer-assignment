@@ -1,0 +1,141 @@
+/*
+ * PRODUCT_DECISION (not in the official Figma; see docs/UI_SPEC.md §13): a
+ * 44px discovery row directly under the app title. The title scrolls away;
+ * only this row sticks at top 0 (white, 1px #EAECEE bottom divider), so the
+ * list keeps one 44px sticky band instead of two.
+ * Normal: search action left (secondary), sorts right. The selected sort is
+ * #292828 SemiBold, the other #979EA9 Medium; red is kept for identity and
+ * destructive roles. Search mode reuses the same row: back, field, clear.
+ * Every control keeps a 44px-tall touch target.
+ */
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--space-page-inset);
+  border-bottom: 1px solid #eaecee;
+  background: var(--color-surface);
+}
+
+.searchTrigger,
+.sort,
+.back,
+.clear {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.searchTrigger {
+  gap: 6px;
+  height: 43px;
+  margin-left: -8px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.sorts {
+  display: flex;
+  margin-left: auto;
+  margin-right: -8px;
+}
+
+.sort {
+  height: 43px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+  transition: color 120ms ease;
+}
+
+.sort[aria-pressed="true"] {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.back {
+  justify-content: center;
+  width: 40px;
+  height: 43px;
+  margin-left: -10px;
+  padding: 0;
+  color: var(--color-text-primary);
+}
+
+.field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 32px;
+  margin-left: 2px;
+  padding: 0 4px 0 12px;
+  border-radius: 16px;
+  background: var(--color-disabled-surface);
+}
+
+.field:focus-within {
+  box-shadow: inset 0 0 0 1px var(--color-text-secondary);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.clear {
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  color: #c6ccd3;
+}
+
+.searchTrigger:active,
+.sort:active,
+.back:active {
+  opacity: 0.6;
+}
+
+.searchTrigger:focus-visible,
+.sort:focus-visible,
+.back:focus-visible,
+.clear:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sort {
+    transition: none;
+  }
+}
