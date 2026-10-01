@@ -103,6 +103,19 @@ export function PostListScreen() {
     setQuery(null);
   }
 
+  function scrollToTop() {
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+    window.scrollTo({ top: 0, behavior });
+  }
+
+  const canScrollToTop =
+    posts.length > 0 &&
+    hasNextPage === false &&
+    isFetchingNextPage === false &&
+    isFetchNextPageError === false;
+
   return (
     <div className={styles.screen}>
       <header ref={headerRef} className={styles.header}>
@@ -153,6 +166,13 @@ export function PostListScreen() {
             {posts.map((post) => (
               <PostListItem key={post.id} post={post} now={now} />
             ))}
+            {canScrollToTop && (
+              <li className={styles.backToTopItem}>
+                <button type="button" className={styles.backToTop} onClick={scrollToTop}>
+                  위로 가기
+                </button>
+              </li>
+            )}
           </ul>
         )}
 

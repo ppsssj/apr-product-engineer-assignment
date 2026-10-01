@@ -29,6 +29,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         <button type="button" className={styles.back} onClick={goBack} aria-label="뒤로 가기">
           <BackIcon />
         </button>
+        <p className={styles.appTitle}>메디큐브톡</p>
+        <span className={styles.navSpacer} aria-hidden="true" />
       </header>
       <main>{children}</main>
     </div>
