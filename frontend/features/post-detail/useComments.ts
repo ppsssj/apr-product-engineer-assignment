@@ -25,8 +25,12 @@ type CommentPageParam = { cursor?: string; limit: number };
 export function useComments(postId: number) {
   return useInfiniteQuery({
     queryKey: postKeys.commentList(postId),
-    queryFn: ({ pageParam }) =>
-      getComments(postId, { limit: pageParam.limit, cursor: pageParam.cursor }),
+    queryFn: ({ pageParam, signal }) =>
+      getComments(
+        postId,
+        { limit: pageParam.limit, cursor: pageParam.cursor },
+        signal,
+      ),
     initialPageParam: { limit: INITIAL_COMMENT_COUNT } as CommentPageParam,
     getNextPageParam: (lastPage): CommentPageParam | undefined =>
       lastPage.nextCursor
