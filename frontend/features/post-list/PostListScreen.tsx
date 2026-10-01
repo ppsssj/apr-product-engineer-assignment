@@ -169,7 +169,8 @@ export function PostListScreen() {
             {canScrollToTop && (
               <li className={styles.backToTopItem}>
                 <button type="button" className={styles.backToTop} onClick={scrollToTop}>
-                  위로 가기
+                  <span aria-hidden="true">↑</span>
+                  <span>위로 가기</span>
                 </button>
               </li>
             )}

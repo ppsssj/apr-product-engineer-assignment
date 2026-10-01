@@ -390,7 +390,7 @@ values. The rationale and details are in `design/design-retouch/readme.md`.
   - Counts use thousands separators, as in both references.
   - The app title is centered with a 1px `#EAECEE` header divider.
   - The FAB fill is `#C2102F`, matching both references.
-  - After the final paginated item only, a centered inline `위로 가기`
+  - After the final paginated item only, a centered inline `↑ 위로 가기`
     control appears before the existing bottom FAB clearance. It scrolls to
     the top, using no smooth motion when reduced motion is requested. This is
     a `PRODUCT_ADDITION`: the official Figma has no such control.
@@ -405,9 +405,9 @@ values. The rationale and details are in `design/design-retouch/readme.md`.
   `design/design-retouch/png/메디큐브톡 작성(내용O).png`,
   `design/design-retouch/svg/메디큐브톡 작성.svg`, and
   `design/design-retouch/svg/메디큐브톡 작성(내용O).svg` add a 48px app bar
-  with the existing 40×40 back target, a centered `메디큐브톡` title, and an
-  equal right spacer. The existing form geometry and fixed action remain
-  unchanged. This is an
+  with a 1px `#EAECEE` bottom divider, the existing 40×40 back target, a
+  centered `메디큐브톡` title, and an equal right spacer. The existing form
+  geometry and fixed action remain unchanged. This is an
   `INTENTIONAL_DEVIATION / UX_CONSISTENCY`, not an official create-frame
   fidelity claim.
 - **SCREEN-004 edit:** No edit-specific Figma or retouch reference exists.

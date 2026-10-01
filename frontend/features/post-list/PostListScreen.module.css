@@ -56,6 +56,10 @@
 }
 
 .backToTop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   min-width: 88px;
   min-height: 44px;
   padding: 0 12px;
@@ -64,7 +68,7 @@
   font: inherit;
   font-size: 14px;
   line-height: 18px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-support);
   cursor: pointer;
 }
 
