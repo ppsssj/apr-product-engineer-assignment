@@ -7,7 +7,7 @@ import { postKeys } from "@/lib/query/keys";
 // The detail screen shows at most 2 comments until "More" is activated.
 export const INITIAL_COMMENT_COUNT = 2;
 // Page size for the continuation after "More" (PRODUCT_DECISION; backend max 50).
-export const COMMENT_PAGE_SIZE = 20;
+export const COMMENT_PAGE_SIZE = 30;
 
 type CommentPageParam = { cursor?: string; limit: number };
 
