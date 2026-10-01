@@ -33,7 +33,7 @@ FRONTEND_PORT=13000 BACKEND_PORT=18080 DB_PORT=25432 docker compose up --build
 
 이 과제의 출발점은 완성된 커뮤니티를 다듬는 일이 아니라, 실행 골격과 데이터·디자인을 받아 제품의 빈 경계를 스스로 정의하는 일이었습니다. 따라서 화면 개수만 채우기보다 빈 DB가 같은 상태로 재현되는지, 읽기 규칙이 API와 SQL에서 일관적인지, 긴 목록을 모바일 네트워크에서 끝까지 탐색할 수 있는지, mutation 뒤 여러 화면이 같은 사실을 보여 주는지를 먼저 설계 기준으로 삼았습니다.
 
-제품 성격은 사람을 팔로우하고 프로필을 소비하는 SNS보다 글과 댓글을 중심으로 대화를 다시 찾는 커뮤니티로 해석했습니다. 제공 API와 seed에는 팔로우·팔로워, 프로필 상세, 인플루언서 등급, 개인화 신호가 없었기 때문에 이를 새로 발명하지 않았습니다. 대신 제목과 본문을 먼저 읽게 하는 목록, 최신순을 보존한 검색·좋아요순 탐색, 댓글 흐름에 집중했습니다. 이 해석은 뒤의 UI hierarchy와 검색·정렬 범위를 정하는 기준이 됐습니다.
+공식 AGE-R 앱 소개는 나만의 루틴과 전·후 사진 기록뿐 아니라, 메디큐브 톡에서 AGE-R 유저들과 다양한 정보를 확인하고 공유하는 기능을 주요 기능으로 제시합니다.[^age-r-app] 이 제품 맥락을 참고해 이번 과제의 커뮤니티는 사람을 팔로우하고 프로필을 소비하는 SNS보다 제품 사용 경험과 질문을 공유·축적하는 공간에 가깝다고 해석했습니다. 실제 제품을 그대로 복제하기보다, 이 과제에서 제공한 데이터와 API 범위 안에서 그 맥락을 반영했습니다. 제공 API와 seed에는 팔로우·팔로워, 프로필 상세, 인플루언서 등급, 개인화 신호가 없었기 때문에 이를 새로 발명하지 않았습니다. 대신 제목과 본문을 먼저 읽게 하는 목록, 최신순을 보존한 검색·좋아요순 탐색, 댓글 흐름에 집중했습니다. 이 해석은 뒤의 UI hierarchy와 검색·정렬 범위를 정하는 기준이 됐습니다.
 
 #### 제공된 출발점과 구현한 범위
 
@@ -308,6 +308,7 @@ keyboard focus, Escape 종료, popover·dialog를 연 trigger로의 focus 복귀
 더 자세한 결정 배경은 `docs/ARCHITECTURE.md`, 요구사항 traceability는 `docs/REQUIREMENTS.md`, 검증 절차와 결과는 `docs/VERIFICATION.md`를 참고할 수 있습니다.
 
 [^spring-jdbc-client]: [Spring Framework — Unified JDBC Query/Update Operations: `JdbcClient`](https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html#jdbc-JdbcClient)
+[^age-r-app]: [Google Play 앱 페이지 — 에이지알 - 메디큐브 디지털클리닉 AGE-R](https://play.google.com/store/apps/details?hl=ko&id=com.apr.digitalclinic)
 [^spring-flyway]: [Spring Boot — Database Initialization: Execute Flyway Database Migrations on Startup](https://docs.spring.io/spring-boot/how-to/data-initialization.html#howto.data-initialization.migration-tool.flyway)
 [^flyway-history]: [Redgate Flyway — Schema History Table](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/flyway-schema-history-table)
 [^tanstack-infinite]: [TanStack Query — Infinite Queries](https://tanstack.com/query/latest/docs/framework/react/guides/infinite-queries)
