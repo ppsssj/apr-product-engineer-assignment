@@ -5,7 +5,7 @@ import { getPosts } from "@/lib/api/community";
 import type { PostSort } from "@/lib/api/types";
 import { normalizePostQuery, postKeys } from "@/lib/query/keys";
 
-export const POST_LIST_PAGE_SIZE = 10;
+export const POST_LIST_PAGE_SIZE = 15;
 
 // One infinite query per (page size, sort, search). The opaque backend cursor
 // is the pageParam, so a new sort or search always starts from its own first
