@@ -377,9 +377,9 @@ SCREEN-001 through SCREEN-006 retain their existing functional meaning. Figma fr
 
 `design/design-retouch/` holds intentional `PRODUCT_DECISION` references, not
 official Figma evidence. Where they deliberately differ from
-`design/design-export/`, they supersede the list and detail values above for
-the implementation. Everything else keeps the official values. The rationale
-and details are in `design/design-retouch/readme.md`.
+`design/design-export/`, they supersede the relevant list, detail, and create
+values above for the implementation. Everything else keeps the official
+values. The rationale and details are in `design/design-retouch/readme.md`.
 
 - **SCREEN-001 list:**
   - Rows ordered title → preview → metadata; the author row above the title
@@ -390,12 +390,30 @@ and details are in `design/design-retouch/readme.md`.
   - Counts use thousands separators, as in both references.
   - The app title is centered with a 1px `#EAECEE` header divider.
   - The FAB fill is `#C2102F`, matching both references.
+  - After the final paginated item only, a centered inline `↑ 위로 가기`
+    control appears before the existing bottom FAB clearance. It scrolls to
+    the top, using no smooth motion when reduced motion is requested. This is
+    a `PRODUCT_ADDITION`: the official Figma has no such control.
 - **SCREEN-002 detail:**
   - Centered `메디큐브톡` app-bar title.
   - A 24px author row at y=78 carries the own-post `⋮` (40×40 target).
   - Title → body.
   - The footer has the like action on the left and a 12/16 date on the right.
   - Other users' posts keep the same geometry without `⋮`.
+- **SCREEN-003 create:** The user-provided
+  `design/design-retouch/png/메디큐브톡 작성.png`,
+  `design/design-retouch/png/메디큐브톡 작성(내용O).png`,
+  `design/design-retouch/svg/메디큐브톡 작성.svg`, and
+  `design/design-retouch/svg/메디큐브톡 작성(내용O).svg` add a 48px app bar
+  with a 1px `#EAECEE` bottom divider, the existing 40×40 back target, a
+  centered `메디큐브톡` title, and an equal right spacer. The existing form
+  geometry and fixed action remain unchanged. This is an
+  `INTENTIONAL_DEVIATION / UX_CONSISTENCY`, not an official create-frame
+  fidelity claim.
+- **SCREEN-004 edit:** No edit-specific Figma or retouch reference exists.
+  Edit reuses the shared create shell, so it inherits the centered app title
+  as a `PRODUCT_DECISION / UX_CONSISTENCY`; it makes no edit-specific Figma
+  fidelity claim.
 - **SCREEN-005 post actions:** P8-C replaces the official bottom action sheet
   (830:139) with a non-modal popover anchored 4px under the post `⋮`.
   - It is 144px wide with two 44px rows (수정하기 / 삭제하기), and its right
