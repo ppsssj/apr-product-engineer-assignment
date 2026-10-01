@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { isBlank } from "@/lib/validation/post";
 import { useCreateComment } from "./useCommentMutations";
 import styles from "./CommentComposer.module.css";
 
@@ -9,11 +10,11 @@ export function CommentComposer({ postId }: { postId: number }) {
   const create = useCreateComment(postId);
   // Same rule as the backend (`isBlank`): whitespace-only cannot be sent. The
   // content itself is sent unchanged.
-  const canSubmit = content.trim().length > 0 && !create.isPending;
+  const canSubmit = !isBlank(content) && !create.isPending;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (content.trim().length === 0) return;
+    if (isBlank(content)) return;
     // Cleared only after the server confirms; on failure the text stays.
     if (await create.submit(content)) setContent("");
   }
