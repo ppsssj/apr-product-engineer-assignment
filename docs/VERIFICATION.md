@@ -1826,6 +1826,18 @@ CI, read cancellation and dialog focus containment, then replaced
   anchors exist.
 - **Clean text:** no PR numbers, SHAs, phase names, requirement or scenario
   IDs, status labels, or staging text remain in `README.md`.
+- **Architecture document:** `docs/ARCHITECTURE.md` was audited against the
+  same code so it does not contradict the README.
+  - ADR-004 now shows the shipped `V1` schema: `is_deleted BOOLEAN`, no
+    `updated_at`, no `post_likes.created_at`, `TEXT` authors. The `deleted_at`
+    proposal is kept as a rejected alternative.
+  - ADR-002, 003, 010 and 013 move from `OPEN`/`PROVISIONAL` to `DECIDED`,
+    with implementation references.
+  - The early backend/frontend structure proposals are replaced by the actual
+    package and folder trees.
+  - P0 and phase-update sections are marked as history, and the earlier P1–P3
+    open-decision table is reconciled. One item stays open: there is no
+    committed DB integration-test suite.
 - **Not covered:** this is a document-accuracy review. It does not re-run
   runtime acceptance, and it does not make `V-081` (official design fidelity)
   pass.
