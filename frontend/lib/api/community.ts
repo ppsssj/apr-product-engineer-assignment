@@ -25,8 +25,8 @@ export function getPosts(
   });
 }
 
-export function getPost(postId: number): Promise<Post> {
-  return request(`/posts/${postId}`);
+export function getPost(postId: number, signal?: AbortSignal): Promise<Post> {
+  return request(`/posts/${postId}`, { signal });
 }
 
 export function createPost(input: PostMutationInput): Promise<Post> {
@@ -51,9 +51,11 @@ export function togglePostLike(postId: number): Promise<LikeToggleResponse> {
 export function getComments(
   postId: number,
   params: PageParams = {},
+  signal?: AbortSignal,
 ): Promise<PageResponse<Comment>> {
   return request(`/posts/${postId}/comments`, {
     query: { limit: params.limit, cursor: params.cursor },
+    signal,
   });
 }
 

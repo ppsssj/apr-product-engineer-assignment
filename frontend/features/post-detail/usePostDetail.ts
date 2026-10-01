@@ -17,7 +17,7 @@ function retryUnlessNotFound(failureCount: number, error: Error): boolean {
 export function usePostDetail(postId: number | null) {
   return useQuery({
     queryKey: postKeys.detail(postId ?? 0),
-    queryFn: () => getPost(postId as number),
+    queryFn: ({ signal }) => getPost(postId as number, signal),
     enabled: postId !== null,
     retry: retryUnlessNotFound,
   });
