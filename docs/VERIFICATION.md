@@ -328,6 +328,74 @@ window; the initial image-build time is intentionally outside those values.
 
 ---
 
+## CI, Read Cancellation, and Dialog Focus Evidence — 2026-10-01
+
+Browser checks used headless Chromium at 375×778, driven by temporary
+Playwright scripts that stayed in the session scratchpad. Each branch build ran
+with `next start` against the Compose backend.
+
+- **CI (`.github/workflows/ci.yml`, PR #25):**
+  - Runs on pull requests to `main` and pushes to `main`, with read-only
+    `contents` permission.
+  - `backend` job: Ubuntu, Temurin 17, `./gradlew test` with the repository
+    wrapper. The job runs `chmod +x` first because `backend/gradlew` is
+    tracked as `100644`.
+  - `frontend` job: Ubuntu, Node.js 22, `npm ci` → `npm run typecheck` →
+    `npm run build`.
+  - No PostgreSQL service or Compose: the 12 backend test classes start no
+    Spring context and need no database (`HealthControllerTest` mocks
+    `DataSource`).
+  - Before push: `gradlew.bat test --rerun-tasks` ran 60 tests with 0
+    failures, and `npm ci`, typecheck and build exited 0.
+  - Actions: the first PR run (36852207676) passed both jobs. The `main` push
+    runs after the PR #25, #26 and #27 merges also succeeded (36852647774,
+    36855352902, 36856028261).
+- **Read cancellation (PR #26):** `getPost` and `getComments` accept an
+  optional `AbortSignal`, and `usePostDetail`/`useComments` pass the query
+  function's signal, as `usePostList` already did.
+  - Method: the target GET to post 2 was held 4 s by route interception. The
+    test navigated from the list to `/posts/2` and went back after 0.7 s. A
+    page marker confirmed client-side navigation, not a document reload.
+  - Detail `GET /api/posts/2`: the fetch carried a signal, the signal fired,
+    the fetch rejected with `AbortError`, and Chromium reported
+    `net::ERR_ABORTED`. The detail query was left `pending`/`idle` with no
+    error. No alert, console error or page error.
+  - Initial comments `GET /api/posts/2/comments?limit=2`: the same result; the
+    detail query stayed `success`.
+  - Control: on the pre-change build, the same steps sent both requests
+    without a signal and both completed with 200.
+  - Regression: the list requested `limit=15&sort=latest`. Comments requested
+    `limit=2`, then `limit=30` with a cursor after More. Like toggles were
+    sent without a signal and returned 200 (net zero). A missing post sent one
+    request, got 404 and was not retried.
+  - Not browser-tested: leaving while a continuation page is loading.
+- **ConfirmDialog focus containment (audit at `754abc4`, fix PR #27):**
+  - Before:
+    - In both the post and comment dialogs, Tab past `예` and Shift+Tab before
+      `취소` reached the controls behind: back, post menu, like, comment
+      delete, More and the comment input.
+    - While a delete was pending, both buttons were disabled and Chromium
+      moved focus to `<body>`. After the failed DELETE, the first Tab reached
+      the back button.
+  - After, 44/44 checks:
+    - Focus starts on `취소` whether the dialog is opened by keyboard or
+      mouse.
+    - Tab ×6 and Shift+Tab ×6 alternate only between `예` and `취소`.
+    - Escape, `취소` and the scrim close the dialog and return focus to
+      `게시글 메뉴` or to that comment's `삭제`.
+    - While pending: both buttons are disabled, Escape and the scrim are
+      ignored, and 4 Tab plus 4 Shift+Tab never reach the background.
+    - After a held DELETE was answered with 500: the error text appears, the
+      buttons re-enable, focus is on `취소` and the next Tab goes to `예`.
+  - Data: every DELETE was intercepted and answered by the script. Post 5 and
+    comment 1527 still existed afterwards.
+  - Background scroll is not locked (`scrollY` 0 → 800 on a wheel over the
+    scrim). It is classified as polish and left out of scope.
+- **Static:** `npm run typecheck`, `npm run build` and `git diff --check`
+  passed for each change, and each PR's CI passed.
+
+---
+
 ## P8-B Full Behavioral Acceptance — 2026-09-30
 
 - **Candidate:** `feat/p8b-full-acceptance` at `79ebd67` (P8-A merge). No product
@@ -1712,7 +1780,69 @@ Review README against the final code.
 - Trade-offs reflect actual decisions.
 - UX deviations/improvements are documented if applicable.
 
-**Result:** `NOT_RUN`
+### Execution Evidence — 2026-10-01
+
+The README was reviewed against `main` at `ef8bb75`. It was synchronized with
+CI, read cancellation and dialog focus containment, then replaced
+`README.md`; the staging draft was removed.
+
+- **Files and functions:** every named class exists:
+  - `PostController`, `CommentController`;
+  - `PostReadService`, `PostMutationService`, `CommentMutationService`;
+  - `PostRepository`, `CommentRepository`, `PostLikeRepository`;
+  - `IdentitySequenceRepository.synchronizeWithSeededRows()`;
+  - `SeedInitializer`, `SeedHistoryRepository`, `SeedReadiness`;
+  - `RequesterResolver`, `MutationValidator`, `ApiExceptionHandler`.
+
+  The named frontend files also exist: `keys.ts`, `postListCache.ts`,
+  `useInfiniteScrollTrigger`, `features/post-form`, `client.ts`,
+  `community.ts` and `ConfirmDialog.tsx`.
+- **Behavioral claims match the code:**
+  - `@Transactional` `SeedInitializer.run()` and the `assignment-v1` marker;
+  - readiness opened in `afterCommit`, and `/health` 503 `starting`;
+  - `V1` identity columns, `is_deleted`, `base_like_count`, and the
+    `post_likes(post_id, user_id)` primary key;
+  - row-value `(created_at, id) < (…)` in both repositories;
+  - `ILIKE … ESCAPE`, `limit + 1`, and the 20-code-point title rule;
+  - `FOR UPDATE` before the ownership checks;
+  - the `postListCache.ts` invalidation rules;
+  - page sizes 15, 2 and 30, the 200px `rootMargin`, and the 300 ms
+    debounce;
+  - `gcTime: 0`, `prefetch={false}` on detail links only, and the 108px row,
+    44px toolbar and 144px popover;
+  - the likes-list dedupe;
+  - the `AbortSignal` path from query function to `request()` to `fetch`;
+  - the `ConfirmDialog` Tab and pending focus handling;
+  - the CI job steps.
+- **Measurements:**
+  - SQL-plan figures match `docs/PERFORMANCE.md`.
+  - Page-size request counts follow from the data: 39 posts give 4/3/2, and
+    1,409 continuation comments give 141/71/47. The applied `15/15/9`
+    traversal is in PR #23.
+  - The comparison-only figures (p95 248 ms, 424 B, the 250 ms pause, 8 vs
+    13 rows below the fold) come from the earlier measurement session and are
+    not recorded elsewhere in the repository.
+- **Links:** all 11 external references returned 200, and their 4 fragment
+  anchors exist.
+- **Clean text:** no PR numbers, SHAs, phase names, requirement or scenario
+  IDs, status labels, or staging text remain in `README.md`.
+- **Architecture document:** `docs/ARCHITECTURE.md` was audited against the
+  same code so it does not contradict the README.
+  - ADR-004 now shows the shipped `V1` schema: `is_deleted BOOLEAN`, no
+    `updated_at`, no `post_likes.created_at`, `TEXT` authors. The `deleted_at`
+    proposal is kept as a rejected alternative.
+  - ADR-002, 003, 010 and 013 move from `OPEN`/`PROVISIONAL` to `DECIDED`,
+    with implementation references.
+  - The early backend/frontend structure proposals are replaced by the actual
+    package and folder trees.
+  - P0 and phase-update sections are marked as history, and the earlier P1–P3
+    open-decision table is reconciled. One item stays open: there is no
+    committed DB integration-test suite.
+- **Not covered:** this is a document-accuracy review. It does not re-run
+  runtime acceptance, and it does not make `V-081` (official design fidelity)
+  pass.
+
+**Result:** `PASS`
 
 ---
 
