@@ -11,6 +11,7 @@ import { normalizePostQuery } from "@/lib/query/keys";
 import { routes } from "@/lib/routes";
 import { PencilIcon } from "./icons";
 import { PostListItem } from "./PostListItem";
+import { POST_LIST_PREFETCH_ROOT_MARGIN } from "./postListConfig";
 import { PostListToolbar } from "./PostListToolbar";
 import { usePostList } from "./usePostList";
 import styles from "./PostListScreen.module.css";
@@ -76,6 +77,7 @@ export function PostListScreen({ initialPage }: Props) {
       !isFetchingNextPage &&
       !isFetchNextPageError,
     onIntersect: () => void fetchNextPage(),
+    rootMargin: POST_LIST_PREFETCH_ROOT_MARGIN,
   });
 
   // One-shot message from the previous screen (the create toast).
