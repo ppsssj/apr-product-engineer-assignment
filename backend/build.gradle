@@ -21,6 +21,10 @@ configurations {
     mockitoAgent
 }
 
+// Boot 3.5.0 manages Testcontainers 1.21.0, whose Docker client requests API
+// 1.32; Docker Engine 29 rejects API versions below 1.44. 1.21.4 negotiates.
+ext['testcontainers.version'] = '1.21.4'
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
@@ -29,10 +33,14 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:postgresql'
     mockitoAgent('org.mockito:mockito-core') { transitive = false }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
     jvmArgs "-javaagent:${configurations.mockitoAgent.asPath}"
+    // Integration tests seed from the repository's seed file, resolved
+    // independently of the test JVM's working directory.
+    systemProperty 'app.seed-path', file('../seed/seed.json').absolutePath
 }
