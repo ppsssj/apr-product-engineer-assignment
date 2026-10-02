@@ -117,7 +117,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 - `rootMargin 100/200/400px`: 100px은 loading UI가 노출됐고, 400px은 사용자 scroll 전 page 2를 요청했습니다. 두 현상이 없었던 200px을 유지했습니다. 이후 게시글 batch size 재측정에서는 빠른 scroll의 대기가 page size보다 다음 page 요청 시점의 영향을 받는 정황이 보여, `rootMargin`은 별도 재검증 대상으로 남겼습니다.
 - 검색 debounce `200/300/500ms`: 같은 검색어를 사람처럼 연속 입력했을 때 200ms는 짧은 250ms 멈춤에도 요청을 시작했고, 500ms는 최종 입력 뒤 결과가 그만큼 늦게 보였습니다. 300ms는 중간 pause를 흡수하면서 500ms보다 최종 결과에 약 200ms 빨리 도달했습니다.
 
-측정 결과 게시글과 댓글 page size만 `10 → 15`, `20 → 30`으로 바꾸고, `rootMargin=200px`와 debounce 300ms는 유지했습니다. 적용 뒤 게시글은 `15/15/9`의 3회 응답으로 39개, 댓글은 최초 2개 뒤 30개 단위로 1,411개를 끝까지 순회해 중복·누락과 종료 후 추가 요청이 없음을 다시 확인했습니다. 값 하나가 모든 환경의 정답이라는 뜻은 아니며, 이 seed·viewport·network profile에서 사용자에게 loading gap을 보이지 않으면서 선조회와 요청 반복을 줄인 균형점입니다.
+당시 측정으로 게시글 page size를 `10 → 15`, 댓글 continuation을 `20 → 30`으로 조정했고, `rootMargin=200px`와 debounce 300ms는 유지했습니다. 적용 뒤 게시글은 `15/15/9`의 3회 응답으로 39개, 댓글은 최초 2개 뒤 30개 단위로 1,411개를 끝까지 순회해 중복·누락과 종료 후 추가 요청이 없음을 다시 확인했습니다. 값 하나가 모든 환경의 정답이라는 뜻은 아니며, 당시 seed·viewport·network profile에서 사용자에게 loading gap을 보이지 않으면서 선조회와 요청 반복을 줄인 균형점이었습니다. 게시글 batch size는 이후 첫 page SSR을 도입한 뒤 아래 재측정에서 첫 SSR과 후속 page를 따로 검증해 `15/15` 유지 근거를 다시 확인했습니다.
 
 #### 게시글 batch size 재측정
 
