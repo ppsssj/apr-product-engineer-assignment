@@ -10,6 +10,8 @@ Verdict: **`OPTIMIZATION_RECOMMENDED`** — for one specific change only.
 
 A non-performance readiness finding (§9) is recorded for a separate decision.
 
+§13 is a separate, later frontend benchmark (2026-10-02) of the post-list batch sizes; it does not change the backend audit above.
+
 ## 0. Audit Narrative
 
 | Stage | Content |
@@ -274,3 +276,131 @@ The first run right after the backend restart was slower on every endpoint, incl
 ### Decision
 
 The selected optimization is `COMPLETE`. Everything else stays as decided in §10: seed batching and the EXISTS + COUNT merge remain `DEFERRED`; denormalized `comment_count`, cached totals, the partial index, and omitting `total` remain `REJECTED`. COUNT is cheap (≈0.39 ms), the seed cost is one-time, denormalization adds consistency risk, and the partial index showed no measured benefit.
+
+---
+
+## 13. Frontend List Batch Size Benchmark — 2026-10-02
+
+Measurement only; no product code, dependency, or API change. Base: `main` at `e12dce5` (first-page SSR merged). Verdict: **`KEEP_15_15`** — `SSR_SIZE = 15`, `CONTINUATION_SIZE = 15`.
+
+### 13.1 Why
+
+The post list had one constant, `POST_LIST_PAGE_SIZE = 15`, chosen earlier by traversing the 39 readable seed posts (`4/3/2` requests for `10/15/20`). Two weaknesses remained:
+
+- With only 39 readable posts, every candidate soon hits the end of the data, so the last-page effect mixes into the comparison and 15 can look like "39 split into three requests".
+- After first-page SSR, "how many posts the HTML carries" (`SSR_SIZE`) and "how many each later cursor request fetches" (`CONTINUATION_SIZE`) are separate technical decisions that act on different phases (first render vs. scrolling).
+
+This benchmark measures the two independently on a dataset long enough that no candidate reaches its end.
+
+### 13.2 Environment
+
+| Item | Value |
+| --- | --- |
+| Base | `main` `e12dce5f1e73b5047e5c6689a0ff052cddd4691c` |
+| Viewport | 375×778, DPR 2, mobile emulation |
+| CPU | 4× slowdown |
+| Network | Lighthouse devtools mobile throttling: request latency 562.5 ms, download 1.47 Mbps |
+| Tools | Lighthouse 13.5.0 (`--throttling-method=devtools`); Playwright with the same conditions applied over CDP |
+| Build | One production Docker image of a temporary copy of `main` in which only the two sizes were read from environment variables |
+| Persistent compose DB | Not touched: posts 42, comments 2,076, post_likes 1 before and after |
+
+### 13.3 Disposable dataset
+
+A separate PostgreSQL + backend stack was seeded with **160 visible posts and 9,147 comments**, then removed.
+
+- Built from the 39 readable seed posts, preserving their title length (12–21), content length (63–77), 9 authors, `likeCount` distribution, `commentCount` distribution (0–1,411), and `createdAt` spacing.
+- Every `id` and `createdAt` is unique.
+- 160 is not an input to the page-size choice. It only removes the end-of-data effect so that every candidate is compared at the same **fixed consumption depth of 30 and 45 posts**; the 160 posts were never read to the end. Page size is not derived from the total row count (see 13.7).
+
+### 13.4 SSR_SIZE benchmark
+
+`CONTINUATION_SIZE` fixed at 15. Lighthouse devtools, 5 runs per candidate (median, range). Backend fetch and Next TTFB are 20-sample medians measured without throttling.
+
+| Metric | SSR 10 | SSR 15 | SSR 20 |
+| --- | ---: | ---: | ---: |
+| Backend fetch | 13.1 ms | 10.3 ms | 10.8 ms |
+| Next TTFB | 27.7 ms | 22.9 ms | 22.7 ms |
+| HTML transfer | 7.7 KB | 8.7 KB | 9.6 KB |
+| HTML resource | 33.0 KB | 45.6 KB | 58.2 KB |
+| SSR API payload | 3,583 B | 5,308 B | 7,032 B |
+| DOM elements | 230 | 330 | 430 |
+| Fully + partly visible posts | 6 + 1 | 6 + 1 | 6 + 1 |
+| Off-screen SSR rows | 3 | 8 | 13 |
+| LCP median | 2,278 ms | 2,260 ms | 2,372 ms |
+| LCP range | 2,243–2,401 | 2,103–2,345 | 2,162–2,665 |
+| TBT median | 180 ms | 156 ms | 164 ms |
+| CLS | 0.0003 | 0.0003 | 0.0003 |
+| JS complete | 2,532 ms | 2,520 ms | 2,526 ms |
+| Browser initial `GET /api/posts` | 0 | 0 | 0 |
+
+- Each 5 extra SSR rows add about 0.9 KB of compressed HTML and about 100 DOM elements, but the LCP ranges overlap: the difference is within measurement noise.
+- The first viewport shows 6 full posts and 1 partial post for every candidate. SSR 15 keeps 8 rows (about 1.2 screens) ready below the fold.
+
+**Phase A verdict: `SSR_SIZE_EQUIVALENT`.** 10 is smaller but showed no LCP or server-cost gain. 20 adds initial data and DOM without a consistent LCP gain and had a run with an outlying longest task. The current 15 was kept for Phase B.
+
+### 13.5 CONTINUATION_SIZE benchmark
+
+`SSR_SIZE` fixed at 15. Two automated scroll profiles, identical for every candidate, starting after hydration:
+
+- **Fast skim:** 300 px every 500 ms (≈600 px/s), 5 runs.
+- **Reading:** 150 px every 500 ms (≈300 px/s), 3 runs.
+
+"Consumed" means the post's row has entered the viewport. Overfetch is `loaded − consumed`.
+
+**Consume 30 — fast skim (median)**
+
+| Metric | cont 10 | cont 15 | cont 20 |
+| --- | ---: | ---: | ---: |
+| Next-page requests | 2 | 1 | 1 |
+| API bytes | 7.7 KB | 5.6 KB | 7.3 KB |
+| HTML + API bytes | 16.4 KB | 14.3 KB | 16.0 KB |
+| Loaded | 35 | 30 | 35 |
+| Overfetch | 5 | 0 | 5 |
+| Elapsed | 4,668 ms | 4,644 ms | 4,668 ms |
+| Longest wait at the list end | 224 ms | 275 ms | 277 ms |
+| Loading text visible | 417 ms | 749 ms | 277 ms |
+
+**Consume 45 (fast / reading)**
+
+| Metric | cont 10 | cont 15 | cont 20 |
+| --- | ---: | ---: | ---: |
+| Next-page requests | 3 / 4 | 2 / 3 | 2 / 2 |
+| API bytes | 11.6 / 15.5 KB | 11.2 / 16.8 KB | 14.7 / 14.7 KB |
+| Overfetch | 0 / 10 | 0 / 15 | 10 / 10 |
+| Elapsed (fast) | 7,788 ms | 7,763 ms | 7,248 ms |
+| Longest wait (fast) | 229 ms | 275 ms | 277 ms |
+| Cumulative wait (fast) | 590 ms | 489 ms | 277 ms |
+| Loading text visible (reading) | 188 ms, blank area seen | 165 ms | 236 ms |
+| Wait at the list end (reading) | 0 | 0 | 0 |
+| DOM elements (fast) | 950 | 950 | 1,149 |
+| Scripting (fast) | 394 ms | 346 ms | 318 ms |
+| Longest task (fast) | 55 ms | 58 ms | 73 ms |
+
+No duplicate posts and no request errors in any run. Each next-page response took about 600–623 ms and its rows reached the DOM about 47–71 ms later. The list is not virtualized, so loaded rows stay in the DOM.
+
+### 13.6 Interpretation
+
+- **Continuation 10:** more requests at both depths, and the only candidate whose loading text and blank area appeared even at reading speed. Its smaller payload does not offset the more frequent page boundaries.
+- **Continuation 20:** fast skimming sometimes crossed one boundary fewer, lowering the cumulative wait, but the reading profile showed no consistent gain; which candidate overfetched more or sent more bytes flipped with scroll timing, and more rows accumulate in the DOM. Pairing it with SSR 15 would also need a separate first-page size and branch rules.
+- **Continuation 15:** fewer requests than 10, no consistent disadvantage against 20, and the same size as the SSR page, so the cache, query key, and pagination stay uniform.
+
+**Observation (not a conclusion).** A next page became visible about 650 ms after its request (≈600–623 ms response + ≈47–71 ms to the DOM). The current `rootMargin` of 200 px gives about 0.33 s of lead at 600 px/s and about 0.67 s at 300 px/s. The fast-skim waits therefore look more sensitive to how early the next page is requested (prefetch distance) than to the page size. This was identified as a follow-up to verify; it does not show that 200 px is wrong or that another value is better.
+
+### 13.7 Decision
+
+**`KEEP_15_15`.** 15 was not chosen to split the seed's 39 readable posts into three requests. Measured on a dataset large enough to avoid the end of the data, with first-render cost and fixed-depth scrolling separated, the 10/15/20 candidates gave no reason to change 15/15.
+
+- `SSR_SIZE` and `CONTINUATION_SIZE` are technically independent; these results gave no performance reason to make them differ, so the simpler equal value stays.
+- Page size is not derived from the total number of posts. Cursor pagination reads only `limit + 1` rows per request; the total only changes how many requests a user who reads to the end makes. What matters for a typical session is the consumption depth, which is why the comparison used fixed depths of 30 and 45.
+
+### 13.8 Limitations
+
+- One emulated device, viewport, CPU factor, and network profile; it does not represent all user devices.
+- Two scripted scroll profiles; they do not represent all real scroll behavior.
+- HTTP/1.1 `next start` in Docker; an HTTP/2 production network was not measured.
+- Only 10/15/20 were compared. This establishes the most reasonable of the compared candidates under these conditions, not an absolute or global optimum.
+- The benchmark scripts, the patched copy, and the synthetic seed lived outside the repository and are not committed.
+
+### 13.9 Next hypothesis
+
+Benchmark `rootMargin` 200 px against larger values (for example 300/400/500 px) at the same fixed depths, measuring waits at the list end, loading-text exposure, and requests sent before the user scrolls. No `rootMargin` change is made or recommended until that is measured.

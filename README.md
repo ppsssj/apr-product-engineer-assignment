@@ -112,12 +112,25 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 
 첫 구현은 동작을 완성하기 위한 보수적 초기값으로 게시글 10개, 댓글 continuation 20개, `rootMargin` 200px, 검색 debounce 300ms를 사용했습니다. 이 값들은 일반적인 관례를 근거로 확정한 것이 아니므로 기능이 안정된 뒤 375×778 Chromium, 고정 4G(지연 200ms, 다운로드 1.6Mbps), clean seed 39 readable posts 조건에서 후보를 한 번에 하나씩 바꿔 비교했습니다. 최초 댓글 `limit=2`는 과제 계약이므로 실험 대상에서 제외했습니다.
 
-- 게시글 `10/15/20`: 전체 순회 요청은 각각 `4/3/2`회였습니다. 15는 10보다 요청 경계를 하나 줄이면서, 최초 화면 아래 항목이 8개로 20의 13개보다 적었습니다. 20이 15보다 아낀 것은 요청 1회와 약 424B의 envelope/header overhead였으므로 초기 선조회를 더 늘리지 않았습니다.
+- 게시글 `10/15/20`: 처음에는 39개 전체 순회의 요청 수로 15를 골랐습니다. 이 비교에는 seed 끝에 도달하는 효과가 섞여 있어, 첫 page SSR 적용 뒤 [게시글 batch size 재측정](#게시글-batch-size-재측정)으로 다시 확인했습니다.
 - 댓글 continuation `10/20/30`: readable 댓글 1,411개인 seed 게시글(`id=2`)에서 각각 `141/71/47`회였습니다. 20→30은 continuation 요청을 약 34% 줄였고 p95는 248ms로 유지됐으며 30개 append에서 관찰 가능한 rendering pause가 없었습니다. 같은 최종 댓글을 받되 요청/envelope/header 반복만 줄인 결과입니다.
-- `rootMargin 100/200/400px`: 100px은 loading UI가 노출됐고, 400px은 사용자 scroll 전 page 2를 요청했습니다. 두 현상이 없었던 200px을 유지했습니다.
+- `rootMargin 100/200/400px`: 100px은 loading UI가 노출됐고, 400px은 사용자 scroll 전 page 2를 요청했습니다. 두 현상이 없었던 200px을 유지했습니다. 이후 게시글 batch size 재측정에서는 빠른 scroll의 대기가 page size보다 다음 page 요청 시점의 영향을 받는 정황이 보여, `rootMargin`은 별도 재검증 대상으로 남겼습니다.
 - 검색 debounce `200/300/500ms`: 같은 검색어를 사람처럼 연속 입력했을 때 200ms는 짧은 250ms 멈춤에도 요청을 시작했고, 500ms는 최종 입력 뒤 결과가 그만큼 늦게 보였습니다. 300ms는 중간 pause를 흡수하면서 500ms보다 최종 결과에 약 200ms 빨리 도달했습니다.
 
 측정 결과 게시글과 댓글 page size만 `10 → 15`, `20 → 30`으로 바꾸고, `rootMargin=200px`와 debounce 300ms는 유지했습니다. 적용 뒤 게시글은 `15/15/9`의 3회 응답으로 39개, 댓글은 최초 2개 뒤 30개 단위로 1,411개를 끝까지 순회해 중복·누락과 종료 후 추가 요청이 없음을 다시 확인했습니다. 값 하나가 모든 환경의 정답이라는 뜻은 아니며, 이 seed·viewport·network profile에서 사용자에게 loading gap을 보이지 않으면서 선조회와 요청 반복을 줄인 균형점입니다.
+
+#### 게시글 batch size 재측정
+
+readable post가 39개뿐인 seed에서는 어떤 후보든 곧 목록 끝에 닿고, 15가 "39개를 세 번에 나누는 값"처럼 보일 수도 있습니다. 또 첫 page SSR 이후에는 HTML에 넣는 개수(`SSR_SIZE`)와 scroll 중 cursor 요청 크기(`CONTINUATION_SIZE`)가 서로 다른 구간에 영향을 주는 별개의 결정입니다. 그래서 원본의 제목·본문 길이, 작성자, 좋아요·댓글 수 분포와 시간 간격을 유지한 일회용 DB(visible 게시글 160개)를 만들고, 375×778·CPU 4x·Lighthouse devtools mobile throttling 조건에서 두 값을 10/15/20으로 따로 측정했습니다. 160개를 끝까지 읽지 않고, 30개와 45개를 소비하는 고정 깊이로 비교했습니다.
+
+| 판단 | 후보 | 결과 |
+| --- | --- | --- |
+| 첫 SSR | 10 / 15 / 20 | LCP median 2,278 / 2,260 / 2,372ms로 범위가 겹치는 noise 수준 → 15 유지 |
+| 후속 page | 10 / 15 / 20 | 10은 요청이 늘고 읽는 속도에서도 loading 문구가 보임, 20은 일관된 이득 없음 → 15 유지 |
+
+결론은 현재 값 15/15 유지입니다. 두 값은 기술적으로 따로 정할 수 있지만 다르게 둘 성능상 이유가 측정되지 않았고, 15/20처럼 섞으면 첫 page와 후속 page 크기 분기가 query·cache·refetch 경로에 생깁니다. page size는 전체 게시글 수에 맞춰 정하는 값도 아닙니다. cursor pagination은 사용자가 읽은 만큼만 요청하므로, 게시글이 1,000개나 100,000개로 늘어도 한 session의 소비 깊이가 기준입니다.
+
+15는 비교한 10/15/20 중 바꿀 근거가 없었던 값이지 모든 기기·network의 최적값이 아닙니다. 실제 기기와 scroll 패턴, HTTP/2 환경은 측정하지 않았습니다. 상세 조건과 수치는 [docs/PERFORMANCE.md §13](docs/PERFORMANCE.md#13-frontend-list-batch-size-benchmark--2026-10-02)에 있습니다.
 
 ### 검색·정렬과 요청 제어
 
