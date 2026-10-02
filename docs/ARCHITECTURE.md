@@ -429,7 +429,18 @@ Evidence: `docs/PERFORMANCE.md` §13 (disposable 160-post dataset, 375×778, CPU
 - **Decision — keep 15/15:** SSR 10/15/20 differed in LCP only within measurement noise. Continuation 10 added requests and showed loading text even at reading speed; 20 gave no consistent gain over 15. With no measured benefit from different sizes, both stay at `POST_LIST_PAGE_SIZE = 15`. This is the most reasonable of the compared candidates under these conditions, not a universal optimum, and it was not chosen to split the seed's 39 readable posts into three requests.
 - **Why the size is not derived from the total:** the total number of posts and one user's consumption depth are different quantities. Cursor pagination requests only what the user scrolls to (`limit + 1` rows per request), so 42, 1,000, or 100,000 posts give no reason for the page size to grow; the total only matters to someone who reads to the end. A fixed-depth comparison is the relevant criterion.
 - **Mixed-size cost (not adopted):** a pair such as 15/20 is possible, but the key's `limit` would no longer describe every page, the first page and later pages would differ in size, the SSR-failure client fetch and refetch/invalidation paths would need a first-page branch, and cache tests would multiply. It was not adopted because no benefit was measured.
-- **Open item:** the benchmark suggested that waits during fast scrolling depend more on how early the next page is requested than on page size. `rootMargin` (200px) is a follow-up to measure; it is unchanged.
+- **Open item:** the benchmark suggested that waits during fast scrolling depend more on how early the next page is requested than on page size. `rootMargin` (200px) is a follow-up to measure; it is unchanged. *(Later: measured; see List Prefetch Distance Decision.)*
+
+---
+
+# List Prefetch Distance Decision — 2026-10-02
+
+Evidence: `docs/PERFORMANCE.md` §14 (same conditions as §13; 200/300/400/500 px compared).
+
+- **Separate parameter:** the prefetch distance (sentinel `rootMargin`) decides when the next page is requested; page size decides how much it carries. It is judged against request-to-rows latency (≈0.66s throttled) and scroll speed: ≈400px of travel at a ≈600px/s skim, ≈200px at ≈300px/s.
+- **Decision — post list 500px:** with 200px every page boundary of a fast skim waited (and 300px half of them); 400px removed the waits but still showed a blank area; 500px removed both. None of the candidates requested a page before the user scrolled, chained requests, or loaded more on an early exit, so the cost of 500px over 200px is at most one page (15 rows) fetched ahead. It is the most reasonable of the compared candidates under these conditions, not a general optimum.
+- **Scope:** `PostListScreen` passes `POST_LIST_PREFETCH_ROOT_MARGIN` explicitly. The hook default stays 200px because comment continuation shares the hook and was not measured.
+- **Trade-off:** on viewports about 1,212px or taller (not measured), the first page's sentinel would already be inside the 500px margin, so page 2 would be requested once before scrolling.
 
 ---
 
@@ -1041,7 +1052,7 @@ Guard the callback with `hasNextPage` and `isFetchingNextPage`.
 
 ## Implementation
 
-- `frontend/lib/hooks/useInfiniteScrollTrigger.ts` observes a sentinel with `rootMargin` `0px 0px 200px 0px`. It does not poll scroll positions.
+- `frontend/lib/hooks/useInfiniteScrollTrigger.ts` observes a sentinel with `rootMargin` `0px 0px 200px 0px` by default. It does not poll scroll positions. *(Later: the post list passes 500px; comment continuation keeps the default. See List Prefetch Distance Decision.)*
 - On the first intersection it disconnects and calls `onIntersect` once, so each enabled cycle sends one request. A new observer is created when `enabled` turns true again. That observer reports the current intersection, so a sentinel still visible after a page loads continues without another scroll.
 - Callers guard `enabled` with request state:
   - `PostListScreen`: `data !== undefined && hasNextPage && !isFetchingNextPage && !isFetchNextPageError`.

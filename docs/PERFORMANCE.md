@@ -10,7 +10,7 @@ Verdict: **`OPTIMIZATION_RECOMMENDED`** — for one specific change only.
 
 A non-performance readiness finding (§9) is recorded for a separate decision.
 
-§13 is a separate, later frontend benchmark (2026-10-02) of the post-list batch sizes; it does not change the backend audit above.
+§13 and §14 are separate, later frontend benchmarks (2026-10-02) of the post-list batch sizes and prefetch distance; they do not change the backend audit above.
 
 ## 0. Audit Narrative
 
@@ -403,4 +403,94 @@ No duplicate posts and no request errors in any run. Each next-page response too
 
 ### 13.9 Next hypothesis
 
-Benchmark `rootMargin` 200 px against larger values (for example 300/400/500 px) at the same fixed depths, measuring waits at the list end, loading-text exposure, and requests sent before the user scrolls. No `rootMargin` change is made or recommended until that is measured.
+Benchmark `rootMargin` 200 px against larger values (for example 300/400/500 px) at the same fixed depths, measuring waits at the list end, loading-text exposure, and requests sent before the user scrolls. No `rootMargin` change is made or recommended until that is measured. *(Later: measured in §14.)*
+
+---
+
+## 14. Infinite Scroll Prefetch Distance Benchmark — 2026-10-02
+
+Base: `main` at `b23d0df`. Verdict: **`CHANGE_TO_500`** for the post list — the most reasonable of the compared 200/300/400/500 px under these conditions, not a general optimum. Comment continuation was not measured and keeps the hook default (200 px).
+
+### 14.1 Why
+
+§13 kept the 15/15 page sizes but observed that fast-scroll waits looked more sensitive to when the next page is requested than to its size. The only variable here is the bottom `rootMargin` of the list sentinel (`0px 0px Npx 0px`); page sizes (15/15), SSR, debounce, `staleTime`, retry, the SSR timeout, the API, and the query key are unchanged.
+
+### 14.2 Environment
+
+Same as §13: 375×778, DPR 2, CPU 4×, request latency 562.5 ms / 1.47 Mbps download over CDP, production Docker build, SSR 15, continuation 15, and the same disposable 160-post / 9,147-comment dataset (persistent compose DB untouched: 42 / 2,076 / 1). One image of a temporary copy of `main` read the margin from an environment variable; four containers ran 200/300/400/500. Scroll profiles: fast skim 300 px / 500 ms (≈600 px/s, 5 runs), reading 150 px / 500 ms (≈300 px/s, 3 runs). A wait is time the page is scrolled to the document end; "blank" is more than 60 px of non-row space visible below the last row.
+
+### 14.3 Latency model
+
+Per next-page cycle (all cycles, all runs), medians were the same for every margin: API response 600–611 ms, response → DOM insertion 48–78 ms (≈0.66 s from request to rows). At 600 px/s that is ≈400 px of travel and at 300 px/s ≈200 px. With 200/300 px, the user reached the end of the loaded list ≈530 ms after the request started, before the ≈660 ms it needed: the wait came from a late request start, not from a slower API or DOM insertion.
+
+### 14.4 Candidate geometry
+
+Measured: viewport 778 px, header 48 px, toolbar 44 px, row 108 px, the first 15 rows 1,620 px, sentinel top 1,712 px (934 px below the first viewport). Lead in rows: 200 px ≈ 1.85, 300 px ≈ 2.78, 400 px ≈ 3.70, 500 px ≈ 4.63. Each appended page moves the sentinel another 1,620 px down.
+
+### 14.5 No-scroll and single-scroll
+
+| Metric (3 runs each) | 200 | 300 | 400 | 500 |
+| --- | ---: | ---: | ---: | ---: |
+| Continuation requests, no scroll (3.5 s) | 0 | 0 | 0 | 0 |
+| Continuation requests, one 300 px scroll then 4 s idle | 0 | 0 | 0 | 0 |
+| Loaded rows | 15 | 15 | 15 | 15 |
+
+The sentinel stayed 934 px (no scroll) and 634 px (after one scroll) below the viewport, beyond every candidate margin. The same held without throttling.
+
+### 14.6 Fast skim (5 runs, median)
+
+| Metric | 200 | 300 | 400 | 500 |
+| --- | ---: | ---: | ---: | ---: |
+| Requests to 30 / 45 / 60 | 2 / 3 / 4 | 2 / 3 / 4 | 2 / 3 / 4 | 2 / 3 / 4 |
+| Loaded at 30 / 45 / 60 | 30 / 45 / 60 | 45 / 45 / 75 | 45 / 60 / 75 | 45 / 60 / 75 |
+| Longest wait (to 60) | 305 ms | 245 ms | 0 | 0 |
+| Cumulative wait to 30 / 45 / 60 | 305 / 477 / 670 ms | 245 / 245 / 419 ms | 0 / 0 / 0 | 0 / 0 / 0 |
+| Loading text visible to 60 (events) | 2,105 ms (4) | 844 ms (4) | 382 ms (2) | 208 ms (1) |
+| Blank area visible to 60 | 670 ms | 419 ms | 192 ms | 0 |
+| API bytes at 60 | 16.8 KB | 22.4 KB | 22.4 KB | 22.4 KB |
+| Elapsed to 60 | 10,905 ms | 10,365 ms | 9,875 ms | 9,839 ms |
+| Cycles with a wait | 15 of 15 | 10 of 20 | 0 of 20 | 0 of 20 |
+
+Requests count those started by the checkpoint, including one in flight. No duplicates or request errors in any run. Ranges: 200 longest wait 256–321 ms, 300 224–262 ms; 400 blank 157–230 ms in every run; 500 loading text 171–272 ms.
+
+### 14.7 Reading (3 runs, median)
+
+No candidate waited at the list end or showed a blank area up to 60 posts. 200 px showed the loading text once (234 ms, range 192–234); 300/400/500 never showed it. Requests were 2 / 3 / 4 at 30 / 45 / 60 for every margin; loaded rows were the same except 200 at 60 (60 vs 75).
+
+### 14.8 Early exit (5 runs)
+
+The user skimmed until about 22 posts had entered the viewport, then opened a visible post (in-app navigation).
+
+| Metric | 200 | 300 | 400 | 500 |
+| --- | ---: | ---: | ---: | ---: |
+| Consumed | 23 | 23 | 24 | 24 |
+| Loaded | 30 | 30 | 30 | 30 |
+| Unused rows | 7 | 7 | 6 | 6 |
+| Continuation requests / API bytes | 1 / 5.6 KB | 1 / 5.6 KB | 1 / 5.6 KB | 1 / 5.6 KB |
+| In flight at exit / canceled | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+| Wait before exit | 240 ms | 247 ms | 0 | 0 |
+
+At this depth a larger margin cost nothing extra; 200/300 users had already waited once.
+
+### 14.9 Chained prefetch
+
+None. No candidate requested a page without scrolling, one scroll did not trigger a request, and no page was followed by another request without further scrolling: after an append the sentinel is 1,620 px further down, more than any candidate margin. Larger margins kept at most one page ahead (15 rows, 5.6 KB) at the checkpoints. Without throttling (3 runs each), no candidate waited; 200 px showed the loading text for 0–40 ms, and request and loaded counts were identical.
+
+### 14.10 Decision
+
+**`CHANGE_TO_500`** (list only).
+
+- Priority 1 (fast-scroll gap): 200 waited at every page boundary and 300 at half of them; 400 removed the waits but still exposed a blank area (157–230 ms) and the loading text in every run; 500 removed the waits and the blank area, leaving one short loading-text appearance.
+- Priority 2 (reading): no waits for any candidate; 500 showed no loading text.
+- Priorities 3–6 (premature fetch, early-exit overfetch, chaining, bytes): 400 and 500 were identical — no request before scrolling, the same single request and 6 unused rows on early exit, no chaining, and at most one page ahead (+5.6 KB at some checkpoints compared with 200).
+- Implementation: the list passes `POST_LIST_PREFETCH_ROOT_MARGIN = "0px 0px 500px 0px"`; the hook default (200 px) stays for comment continuation, which this benchmark did not measure.
+
+Branch verification on the disposable dataset: no request without scrolling (3/3), fast skim with no wait and no blank area (3/3, loading text 187–211 ms once), and a full traversal of 160 posts with no duplicate or missing post, 10 list requests, and no request after the end.
+
+### 14.11 Limitations
+
+- One emulated device, viewport, CPU factor, and network profile, and two scripted scroll speeds; real devices and scroll behavior vary.
+- Taller viewports were not measured. From the geometry, a viewport of about 1,212 px or more would reach the sentinel with a 500 px margin before scrolling and request page 2 once (1,312 px for 400 px).
+- HTTP/1.1 `next start` in Docker; HTTP/2 production networking was not measured.
+- Only 200/300/400/500 were compared; this is not a global optimum, and values above 500 px were not tested.
+- Benchmark scripts, the patched copy, and the synthetic seed stayed outside the repository.

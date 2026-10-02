@@ -94,7 +94,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 
 정렬은 `(created_at DESC, id DESC)`로 고정해 timestamp tie도 deterministic하게 만들고, cursor는 두 값을 URL-safe Base64로 감춰 client가 내부 형식에 의존하지 않게 했습니다. `PostReadService`는 `limit + 1`행으로 다음 page를 판정합니다. 이 방식은 deep page와 concurrent insert에 적합하지만 cursor가 page number처럼 읽기 쉽거나 임의 page 이동에 적합하지는 않습니다.
 
-브라우저에서는 별도 scroll listener 계산 대신 `IntersectionObserver` sentinel과 `useInfiniteQuery`를 연결했습니다. `useInfiniteScrollTrigger`는 진행 중 요청을 끄고 200px 여유에서 다시 arm해 한 cycle당 한 요청만 보냅니다.
+브라우저에서는 별도 scroll listener 계산 대신 `IntersectionObserver` sentinel과 `useInfiniteQuery`를 연결했습니다. `useInfiniteScrollTrigger`는 진행 중 요청을 끄고 선조회 여유(게시글 목록 500px, 댓글 200px)에서 다시 arm해 한 cycle당 한 요청만 보냅니다.
 
 현재 제품 값은 다음과 같습니다.
 
@@ -103,7 +103,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 | 게시글 목록 | `POST_LIST_PAGE_SIZE = 15` | 최초와 후속 페이지 모두 최대 15개 |
 | 댓글 최초 | `INITIAL_COMMENT_COUNT = 2` | 과제 요구대로 최초 정확히 최대 2개 |
 | 댓글 “더보기” 이후 | `COMMENT_PAGE_SIZE = 30` | cursor별 최대 30개씩 연속 로드 |
-| scroll 선조회 | `rootMargin = 200px` | sentinel 도달 전에 다음 요청 시작 |
+| scroll 선조회 | 게시글 `500px`, 댓글 `200px` (`rootMargin`) | sentinel 도달 전에 다음 요청 시작 |
 | 검색 입력 | `SEARCH_DEBOUNCE_MS = 300` | 입력이 멈춘 뒤 검색어 확정 |
 
 댓글의 최초 2개는 page-size 최적화 대상이 아니라 명시적 제품 계약입니다. 그래서 detail 재방문 때 query를 제거해 다시 `limit=2`부터 시작하고, 사용자가 “더보기”를 누르기 전에는 continuation sentinel을 활성화하지 않습니다. 그 이후 page만 30개씩 받습니다.
@@ -114,7 +114,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 
 - 게시글 `10/15/20`: 처음에는 39개 전체 순회의 요청 수로 15를 골랐습니다. 이 비교에는 seed 끝에 도달하는 효과가 섞여 있어, 첫 page SSR 적용 뒤 [게시글 batch size 재측정](#게시글-batch-size-재측정)으로 다시 확인했습니다.
 - 댓글 continuation `10/20/30`: readable 댓글 1,411개인 seed 게시글(`id=2`)에서 각각 `141/71/47`회였습니다. 20→30은 continuation 요청을 약 34% 줄였고 p95는 248ms로 유지됐으며 30개 append에서 관찰 가능한 rendering pause가 없었습니다. 같은 최종 댓글을 받되 요청/envelope/header 반복만 줄인 결과입니다.
-- `rootMargin 100/200/400px`: 100px은 loading UI가 노출됐고, 400px은 사용자 scroll 전 page 2를 요청했습니다. 두 현상이 없었던 200px을 유지했습니다. 이후 게시글 batch size 재측정에서는 빠른 scroll의 대기가 page size보다 다음 page 요청 시점의 영향을 받는 정황이 보여, `rootMargin`은 별도 재검증 대상으로 남겼습니다.
+- `rootMargin 100/200/400px`: 당시(게시글 page size 10, 39개 seed) 100px은 loading UI가 노출됐고, 400px은 사용자 scroll 전 page 2를 요청했습니다. 두 현상이 없었던 200px을 유지했습니다. 이후 게시글 batch size 재측정에서 빠른 scroll의 대기가 page size보다 다음 page 요청 시점의 영향을 받는 정황이 보여, 게시글 목록은 아래 [선조회 거리 재측정](#선조회-거리-재측정)으로 다시 정했습니다.
 - 검색 debounce `200/300/500ms`: 같은 검색어를 사람처럼 연속 입력했을 때 200ms는 짧은 250ms 멈춤에도 요청을 시작했고, 500ms는 최종 입력 뒤 결과가 그만큼 늦게 보였습니다. 300ms는 중간 pause를 흡수하면서 500ms보다 최종 결과에 약 200ms 빨리 도달했습니다.
 
 당시 측정으로 게시글 page size를 `10 → 15`, 댓글 continuation을 `20 → 30`으로 조정했고, `rootMargin=200px`와 debounce 300ms는 유지했습니다. 적용 뒤 게시글은 `15/15/9`의 3회 응답으로 39개, 댓글은 최초 2개 뒤 30개 단위로 1,411개를 끝까지 순회해 중복·누락과 종료 후 추가 요청이 없음을 다시 확인했습니다. 값 하나가 모든 환경의 정답이라는 뜻은 아니며, 당시 seed·viewport·network profile에서 사용자에게 loading gap을 보이지 않으면서 선조회와 요청 반복을 줄인 균형점이었습니다. 게시글 batch size는 이후 첫 page SSR을 도입한 뒤 아래 재측정에서 첫 SSR과 후속 page를 따로 검증해 `15/15` 유지 근거를 다시 확인했습니다.
@@ -131,6 +131,18 @@ readable post가 39개뿐인 seed에서는 어떤 후보든 곧 목록 끝에 �
 결론은 현재 값 15/15 유지입니다. 두 값은 기술적으로 따로 정할 수 있지만 다르게 둘 성능상 이유가 측정되지 않았고, 15/20처럼 섞으면 첫 page와 후속 page 크기 분기가 query·cache·refetch 경로에 생깁니다. page size는 전체 게시글 수에 맞춰 정하는 값도 아닙니다. cursor pagination은 사용자가 읽은 만큼만 요청하므로, 게시글이 1,000개나 100,000개로 늘어도 한 session의 소비 깊이가 기준입니다.
 
 15는 비교한 10/15/20 중 바꿀 근거가 없었던 값이지 모든 기기·network의 최적값이 아닙니다. 실제 기기와 scroll 패턴, HTTP/2 환경은 측정하지 않았습니다. 상세 조건과 수치는 [docs/PERFORMANCE.md §13](docs/PERFORMANCE.md#13-frontend-list-batch-size-benchmark--2026-10-02)에 있습니다.
+
+#### 선조회 거리 재측정
+
+같은 조건(375×778, CPU 4x, mobile throttling, 일회용 160개, 15/15)에서 `rootMargin`만 200/300/400/500px로 바꿔 측정했습니다. 다음 page는 요청부터 화면에 들어오기까지 약 0.66초가 걸렸고, 빠르게 훑는 속도(약 600px/s)에서는 그동안 약 400px을 이동합니다. 실제로 200px은 page 경계마다 사용자가 목록 끝에서 기다렸고(최대 약 0.3초), 300px은 절반에서 기다렸습니다. API와 DOM 삽입 시간은 네 후보가 같았으므로 대기의 원인은 요청이 늦게 시작된 것이었습니다.
+
+| 후보 | 빠른 scroll 대기 | 빈 영역 노출 | scroll 전 요청 | 일찍 떠날 때 추가 요청 |
+| --- | --- | --- | --- | --- |
+| 200 / 300px | 매 경계 / 절반의 경계 | 있음 | 없음 | 없음 |
+| 400px | 없음 | 짧게 있음 | 없음 | 없음 |
+| 500px | 없음 | 없음 | 없음 | 없음 |
+
+그래서 게시글 목록만 500px로 바꿨습니다. 비용은 checkpoint 시점에 최대 한 page(15개)를 미리 받아 두는 정도였고, 읽는 속도에서는 어느 후보도 대기가 없었습니다. 댓글 continuation은 같은 hook을 쓰지만 이번에 측정하지 않았으므로 기본 200px을 유지합니다. 500px은 비교한 네 후보 중 이 조건에서 가장 합리적인 값이지 모든 기기의 최적값이 아니며, 화면이 약 1,212px 이상으로 긴 기기에서는 scroll 전에 page 2를 한 번 요청할 수 있습니다(미측정). 상세는 [docs/PERFORMANCE.md §14](docs/PERFORMANCE.md#14-infinite-scroll-prefetch-distance-benchmark--2026-10-02)에 있습니다.
 
 ### 검색·정렬과 요청 제어
 
