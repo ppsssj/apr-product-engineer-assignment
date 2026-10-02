@@ -113,7 +113,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 첫 구현은 동작을 완성하기 위한 보수적 초기값으로 게시글 10개, 댓글 continuation 20개, `rootMargin` 200px, 검색 debounce 300ms를 사용했습니다. 이 값들은 일반적인 관례를 근거로 확정한 것이 아니므로 기능이 안정된 뒤 375×778 Chromium, 고정 4G(지연 200ms, 다운로드 1.6Mbps), clean seed 39 readable posts 조건에서 후보를 한 번에 하나씩 바꿔 비교했습니다. 최초 댓글 `limit=2`는 과제 계약이므로 실험 대상에서 제외했습니다.
 
 - 게시글 `10/15/20`: 처음에는 39개 전체 순회의 요청 수로 15를 골랐습니다. 이 비교에는 seed 끝에 도달하는 효과가 섞여 있어, 첫 page SSR 적용 뒤 [게시글 batch size 재측정](#게시글-batch-size-재측정)으로 다시 확인했습니다.
-- 댓글 continuation `10/20/30`: readable 댓글 1,411개인 seed 게시글(`id=2`)에서 각각 `141/71/47`회였습니다. 20→30은 continuation 요청을 약 34% 줄였고 p95는 248ms로 유지됐으며 30개 append에서 관찰 가능한 rendering pause가 없었습니다. 같은 최종 댓글을 받되 요청/envelope/header 반복만 줄인 결과입니다.
+- 댓글 continuation `10/20/30`: 당시에는 readable 댓글 1,411개인 seed 게시글(`id=2`)을 끝까지 읽는 요청 수(각각 `141/71/47`회)로 비교했습니다. 20→30은 continuation 요청을 약 34% 줄였고 p95는 248ms로 유지됐으며 30개 append에서 관찰 가능한 rendering pause가 없었습니다. 이 비교는 전체 댓글 수에 좌우되므로, 이후 고정 읽기 깊이로 [댓글 continuation 재측정](#댓글-continuation-재측정)을 했습니다.
 - `rootMargin 100/200/400px`: 당시(게시글 page size 10, 39개 seed) 100px은 loading UI가 노출됐고, 400px은 사용자 scroll 전 page 2를 요청했습니다. 두 현상이 없었던 200px을 유지했습니다. 이후 게시글 batch size 재측정에서 빠른 scroll의 대기가 page size보다 다음 page 요청 시점의 영향을 받는 정황이 보여, 게시글 목록은 아래 [선조회 거리 재측정](#선조회-거리-재측정)으로 다시 정했습니다.
 - 검색 debounce `200/300/500ms`: 같은 검색어를 사람처럼 연속 입력했을 때 200ms는 짧은 250ms 멈춤에도 요청을 시작했고, 500ms는 최종 입력 뒤 결과가 그만큼 늦게 보였습니다. 300ms는 중간 pause를 흡수하면서 500ms보다 최종 결과에 약 200ms 빨리 도달했습니다.
 
@@ -143,6 +143,19 @@ readable post가 39개뿐인 seed에서는 어떤 후보든 곧 목록 끝에 �
 | 500px | 없음 | 없음 | 없음 | 없음 |
 
 그래서 게시글 목록만 500px로 바꿨습니다. 비용은 checkpoint 시점에 최대 한 page(15개)를 미리 받아 두는 정도였고, 읽는 속도에서는 어느 후보도 대기가 없었습니다. 댓글 continuation은 같은 hook을 쓰지만 이번에 측정하지 않았으므로 기본 200px을 유지합니다. 500px은 비교한 네 후보 중 이 조건에서 가장 합리적인 값이지 모든 기기의 최적값이 아니며, 화면이 약 1,212px 이상으로 긴 기기에서는 scroll 전에 page 2를 한 번 요청할 수 있습니다(미측정). 상세는 [docs/PERFORMANCE.md §14](docs/PERFORMANCE.md#14-infinite-scroll-prefetch-distance-benchmark--2026-10-02)에 있습니다.
+
+#### 댓글 continuation 재측정
+
+최초 2개는 과제 계약이므로 바꾸지 않고, "댓글 더보기" 이후 page 크기만 10/20/30/50으로 비교했습니다. 같은 모바일 조건(375×778, CPU 4x, throttling)에서 실제 seed의 1,411개 댓글 게시글을 쓰되, 전체를 끝까지 읽는 대신 30·60·120개를 읽는 고정 깊이와 25개쯤 읽고 떠나는 경우로 측정했습니다. 모든 후보에서 최초 요청은 `limit=2`였고 더보기 전 추가 요청은 없었습니다.
+
+| 후보 | 첫 더보기 → 표시 | 120개까지 요청 | 빠르게 읽을 때 로딩 노출 | 25개 읽고 떠날 때 안 읽은 댓글 |
+| --- | ---: | ---: | ---: | ---: |
+| 10 | 639ms | 13회 | 8회 | 6개 |
+| 20 | 660ms | 7회 | 2회 | 16개 |
+| 30 (현재) | 670ms | 5회 | 1회 | 6개 |
+| 50 | 725ms | 3회 | 2회 | 26개 |
+
+읽는 속도에서는 네 후보 모두 대기가 없었습니다. 10은 요청과 로딩 노출이 가장 많았고, 50은 요청이 적은 대신 첫 더보기가 느리고 떠날 때 안 읽은 댓글을 가장 많이 받았습니다. 20은 30과 비슷했지만 요청이 더 많았습니다. 그래서 비교한 후보 중 30을 바꿀 근거가 없다고 판단해 유지했습니다. 1,411개를 끝까지 불러와도 스크롤 반응은 유지됐고, 재방문 시에는 `gcTime: 0` 덕분에 다시 `limit=2`부터 시작했습니다. 상세는 [docs/PERFORMANCE.md §15](docs/PERFORMANCE.md#15-comment-continuation--long-list-rendering-benchmark--2026-10-03)에 있습니다.
 
 ### 검색·정렬과 요청 제어
 
@@ -300,7 +313,7 @@ keyboard focus, Escape 종료, popover·dialog를 연 trigger로의 focus 복귀
 
 **긴 댓글의 rendering virtualization**
 
-현재 cursor pagination은 댓글 1,411개를 한 번에 받지 않게 해 network와 응답 크기를 제한합니다. 다만 사용자가 끝까지 읽으면 이미 받은 댓글의 DOM node는 계속 누적됩니다. 현재 데이터와 모바일 실행에서는 문제가 관찰되지 않았지만, 더 긴 대화가 일반화되거나 저사양 기기의 rendering 비용이 커진다면 보이는 범위와 작은 buffer만 mount하는 list virtualization을 검토하겠습니다. pagination은 data를 언제 얼마나 받을지, virtualization은 받은 data 중 무엇을 DOM에 남길지를 제어하므로 두 계층을 독립적으로 유지하는 방향입니다.
+현재 cursor pagination은 댓글 1,411개를 한 번에 받지 않게 해 network와 응답 크기를 제한합니다. 다만 사용자가 끝까지 읽으면 이미 받은 댓글의 DOM node는 계속 누적됩니다. 1,411개 전체를 CPU 4x 모바일 조건에서 실제로 불러와 확인했더니 DOM은 약 10,000개 요소까지 늘었고, 약 1,000개를 넘으면 page를 붙일 때마다 50ms를 넘는 작업(최대 약 80ms)이 반복됐지만 스크롤 반응은 모든 지점에서 유지됐습니다. 사용자에게 보이는 저하가 관찰되지 않아 지금은 도입하지 않았습니다. 더 긴 실제 대화나 저사양 기기에서 append 비용이 체감되는 근거가 생기면 보이는 범위와 작은 buffer만 mount하는 list virtualization을 다시 검토하겠습니다. pagination은 data를 언제 얼마나 받을지, virtualization은 받은 data 중 무엇을 DOM에 남길지를 제어하므로 두 계층을 독립적으로 유지하는 방향입니다.
 
 **변하는 좋아요 순위의 안정적인 pagination**
 
