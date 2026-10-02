@@ -10,7 +10,7 @@ Verdict: **`OPTIMIZATION_RECOMMENDED`** — for one specific change only.
 
 A non-performance readiness finding (§9) is recorded for a separate decision.
 
-§13 and §14 are separate, later frontend benchmarks (2026-10-02) of the post-list batch sizes and prefetch distance; they do not change the backend audit above.
+§13–§15 are separate, later frontend benchmarks (2026-10-02/03) of the post-list batch sizes and prefetch distance and of comment continuation and long-list rendering; they do not change the backend audit above.
 
 ## 0. Audit Narrative
 
@@ -494,3 +494,125 @@ Branch verification on the disposable dataset: no request without scrolling (3/3
 - HTTP/1.1 `next start` in Docker; HTTP/2 production networking was not measured.
 - Only 200/300/400/500 were compared; this is not a global optimum, and values above 500 px were not tested.
 - Benchmark scripts, the patched copy, and the synthetic seed stayed outside the repository.
+
+---
+
+## 15. Comment Continuation & Long-List Rendering Benchmark — 2026-10-03
+
+Base: `main` at `3514922`. Measurement only; no product code changed. Verdicts: continuation **`KEEP_30`**, rendering **`VIRTUALIZATION_NOT_NEEDED_NOW`**, comment prefetch **`KEEP_COMMENT_ROOT_MARGIN_200_FOR_NOW`**.
+
+### 15.1 Why
+
+`COMMENT_PAGE_SIZE = 30` was chosen earlier by traversing all 1,411 comments of post #2 (`141/71/47` requests for `10/20/30`), so the total size drove the comparison. This benchmark compares the size at fixed reading depths instead, and separately checks whether keeping every loaded comment in the DOM becomes a user-visible problem.
+
+### 15.2 Current contract
+
+- `INITIAL_COMMENT_COUNT = 2` is a product contract and was not varied: the first request is `limit=2`, at most 2 comments render, and nothing continues before "댓글 더보기".
+- After More, later pages use `COMMENT_PAGE_SIZE` (backend maximum 50, `PageRequestParser.MAX_LIMIT`; `limit=51` returns 400).
+- Comment continuation uses the hook's default `rootMargin` (200 px), held fixed here.
+- `gcTime: 0` drops the comment query when the detail screen unmounts.
+
+### 15.3 Environment
+
+375×778, DPR 2, CPU 4×, request latency 562.5 ms / 1.47 Mbps download over CDP, production Docker build. A disposable PostgreSQL + backend loaded the repository's own seed (42 posts, 2,076 comments; post #2 has 1,411 readable comments, 14–32 characters each). The persistent compose DB was not touched (42 / 2,076 / 1). One image of a temporary copy of `main` read the continuation size from an environment variable at request time; four containers ran 10/20/30/50.
+
+Geometry on post #2: the comment section starts at 272 px, the More button at 511 px, and the fixed composer covers the viewport from 692 px. Comment rows are 72 px (median; up to 120 px for the requester's own comments with a delete action). A comment counts as consumed when its row enters the area above the composer. Scroll profiles, identical for every candidate, start right after More: fast 216 px / 500 ms (3 rows, ≈432 px/s, 5 runs) and reading 72 px / 500 ms (1 row, ≈144 px/s, 3 runs).
+
+### 15.4 Initial contract check
+
+Across all 57 runs of every candidate: one `limit=2` request, 2 rendered comments, heading `댓글(1,411)`, More visible, and no continuation request even after scrolling the sentinel into view before More.
+
+### 15.5 First More latency (5 runs, median)
+
+| Metric | 10 | 20 | 30 | 50 |
+| --- | ---: | ---: | ---: | ---: |
+| Click → request | 9 ms | 10 ms | 11 ms | 10 ms |
+| API | 607 ms | 619 ms | 633 ms | 666 ms |
+| Response → DOM | 27 ms | 29 ms | 30 ms | 44 ms |
+| Click → new rows | 639 ms | 660 ms | 670 ms | 725 ms |
+| Loading text visible | 672 ms | 714 ms | 752 ms | 853 ms |
+| Response bytes | 1,914 B | 3,380 B | 4,906 B | 7,927 B |
+
+### 15.6 Fixed-depth results
+
+Waits below exclude the first-More wait (the page is at its end until the first continuation arrives; see 15.5).
+
+**Fast (5 runs, median)**
+
+| Metric | 10 | 20 | 30 | 50 |
+| --- | ---: | ---: | ---: | ---: |
+| Requests to 30 / 60 / 120 | 4 / 7 / 13 | 2 / 4 / 7 | 2 / 3 / 5 | 1 / 2 / 3 |
+| Loaded at 120 (overfetch) | 132 (12) | 122 (2) | 122 (2) | 152 (32) |
+| API bytes to 120 | 25.1 KB | 20.6 KB | 19.7 KB | 23.7 KB |
+| Scroll-time wait to 120 | 314 ms | 141 ms | 187 ms | 167 ms |
+| Extra loading-text appearances to 120 | 8 | 2 | 1 | 2 |
+| Blank area to 120 (excl. first More) | 451 ms | 277 ms | 187 ms | 167 ms |
+| DOM elements at 120 | 984 | 915 | 915 | 1,125 |
+| Scripting / style+layout to 120 | 780 / 362 ms | 745 / 347 ms | 672 / 353 ms | 679 / 354 ms |
+| Longest task after More | 213 ms | 222 ms | 254 ms | 264 ms |
+
+**Reading (3 runs, median)**
+
+| Metric | 10 | 20 | 30 | 50 |
+| --- | ---: | ---: | ---: | ---: |
+| Requests to 30 / 60 / 120 | 4 / 7 / 13 | 2 / 4 / 7 | 2 / 3 / 5 | 1 / 2 / 3 |
+| Loaded at 120 (overfetch) | 132 (12) | 142 (22) | 152 (32) | 152 (32) |
+| API bytes to 120 | 25.1 KB | 23.9 KB | 24.5 KB | 23.7 KB |
+| Scroll-time wait / extra loading text / blank | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |
+
+No duplicate comments and no request errors in any fixed-depth run. Per-page API time (all cycles) was 586–641 ms and response → DOM 20–38 ms (medians), rising slightly with page size.
+
+### 15.7 Early exit (5 runs)
+
+After More the user skimmed until about 25 comments were consumed and then left with the back button.
+
+| Metric | 10 | 20 | 30 | 50 |
+| --- | ---: | ---: | ---: | ---: |
+| Consumed | 26 | 26 | 26 | 26 |
+| Loaded | 32 | 42 | 32 | 52 |
+| Unused | 6 | 16 | 6 | 26 |
+| Continuation API bytes | 5.8 KB | 6.8 KB | 4.9 KB | 7.9 KB |
+| Continuation requests | 3 | 2 | 1 | 1 |
+| In flight at exit / canceled | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 |
+
+### 15.8 Full 1,411 stress (continuation 30)
+
+The page was scrolled to the end repeatedly until all 1,411 comments were loaded (3 runs; 47 continuation requests each). Script and style/layout times are totals for the window since the previous checkpoint (pages per window: 4, 6, 10, 14, 13). At each checkpoint the same probe ran with loading idle: `scrollBy(0, 400)`, then frame intervals were recorded for 1 s.
+
+| Metric (run medians) | 100 | 300 | 600 | 1,000 | 1,411 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Rendered comments | 122 | 302 | 602 | 1,022 | 1,411 |
+| DOM elements | 928 | 2,195 | 4,309 | 7,263 | 10,001 |
+| JS heap used | 6.1 MB | 7.9 MB | 9.3 MB | 11.9–14.4 MB | 11.3–13.7 MB |
+| Scripting in window | 316 ms | 519 ms | 1,117 ms | 2,056 ms | 2,639 ms |
+| Style + layout in window | 182 ms | 341 ms | 232 ms | 338 ms | 400 ms |
+| Long tasks (>50 ms) in window | 0–1 | 1 | 0 | 2–7 | 13–14 |
+| Longest task in window | 0–128 ms | 238–299 ms | 0 ms | 65–69 ms | 72–82 ms |
+| Response → DOM for the latest page | 27–32 ms | 22–34 ms | 32–42 ms | 43–59 ms | 65–88 ms |
+| Probe: scroll command → position update | 9–10 ms | 0–6 ms | 3–7 ms | 2–8 ms | 1–8 ms |
+| Probe: frames over 50 ms in 1 s | 1 | 0 | 0 | 0 | 0 |
+
+No duplicates; every run reached 1,411. One request in one run was recorded as failed without a stored reason (that run still loaded all 1,411 comments without duplicates); a repeat run with the reason recorded had no failures.
+
+### 15.9 gcTime revisit
+
+Entered from the list, loaded comments, went back in-app, and opened post #2 again from the list (2 runs after 122 comments, 3 runs after 1,411): every revisit sent exactly one `limit=2` request, rendered 2 comments, showed More, and sent no continuation request during 3.5 s with the sentinel scrolled into view. Neither the 122 nor the 1,411 loaded comments came back.
+
+### 15.10 Virtualization verdict
+
+**`VIRTUALIZATION_NOT_NEEDED_NOW`.** The DOM grows to about 10,000 elements and heap to about 14 MB at 1,411 comments, and the per-append cost rises: response → DOM roughly 30 ms → 65–88 ms, and 50 ms+ long tasks go from none or one per window up to 600 comments to 13–14 (72–82 ms at most) between 1,000 and 1,411. Scrolling itself did not degrade: at every checkpoint the probe updated position within 10 ms and had no frame over 50 ms after the first checkpoint. The measured cost is in appends past about 1,000 comments, not in scrolling, and stays under 100 ms per task on the emulated low-end CPU. That is not enough evidence to take on virtualization now; the growing append cost is the signal to recheck if longer conversations or slower devices appear.
+
+### 15.11 Decision
+
+- **Continuation: `KEEP_30`.** Among 10/20/30/50, there was no measured reason to change 30. 10 had the most requests and the most loading appearances while skimming. 50 made the first More about 55 ms slower than 30, loaded 26 unused comments on early exit (vs 6), and had the largest post-More task, in exchange for fewer requests. 20 was close to 30 but sent more requests, showed loading text more often at 30/60 comments, and left 16 unused comments on early exit.
+- **Comment prefetch: `KEEP_COMMENT_ROOT_MARGIN_200_FOR_NOW`.** Reading showed no wait, loading text, or blank area for any size. With 30 while skimming, one short wait (158–201 ms) occurred in 120 comments. This was not repeated enough to retest `rootMargin`.
+- **Rendering:** no virtualization (15.10).
+
+### 15.12 Limitations
+
+- One emulated device, viewport, CPU factor, and network profile; two scripted scroll speeds chosen from the measured 72 px row.
+- One real worst-case conversation (post #2); longer conversations were not generated.
+- Long tasks and heap come from Chrome's `PerformanceObserver` and `Performance.getMetrics`; FPS was not measured, only frame intervals during a fixed probe.
+- HTTP/1.1 `next start` in Docker; HTTP/2 was not measured.
+- Only 10/20/30/50 were compared; this is not a global optimum.
+- Benchmark scripts, the patched copy, and the disposable DB stayed outside the repository.
