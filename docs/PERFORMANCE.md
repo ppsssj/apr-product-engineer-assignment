@@ -616,3 +616,76 @@ Entered from the list, loaded comments, went back in-app, and opened post #2 aga
 - HTTP/1.1 `next start` in Docker; HTTP/2 was not measured.
 - Only 10/20/30/50 were compared; this is not a global optimum.
 - Benchmark scripts, the patched copy, and the disposable DB stayed outside the repository.
+
+## 16. Client Query Retry Failure UX Audit — 2026-10-03
+
+**Verdict: `CHANGE_TO_ONE_RETRY_CLASSIFIED`.** This audit changes only
+browser query retries. It does not change the 30 s SSR seed freshness, the
+1.5 s server-fetch timeout, page sizes, root margins, API/backend behavior,
+schema, or mutation strategy.
+
+### Current baseline
+
+`@tanstack/query-core` 5.104.0 was traced through `QueryObserver` with the
+same browser query default. Its default is three retries (four attempts), and
+its unchanged retry delay is `min(1000 * 2 ** failureCount, 30000)`: 1 s,
+2 s, then 4 s. The source's retry callback receives `failureCount === 0` on
+the first failed attempt. Mutations independently use `retry: 0` unless a
+mutation supplies an override; none of this application's mutations does.
+
+| Scenario | Attempts | Terminal / recovery time | Observation |
+| --- | ---: | ---: | --- |
+| list/search permanent network failure | 4 | 7.04 s to error | Same global default as list query |
+| list/search permanent 500 | 4 | 7.04 s to error | `ApiError(500)` is not specially classified before this change |
+| detail permanent network failure | 4 | 7.04 s to error | Detail's old override also allowed three retries |
+| detail permanent 500 | 4 | 7.04 s to error | Detail's old override also allowed three retries |
+| detail 404 | 1 | 2 ms to not-found error path | Old detail-specific callback excluded only 404 |
+| initial comments / continuation permanent failure | 4 | about 7 s to terminal state | Both inherit the global query default |
+| fail once, then success | 2 | 1.01 s | No terminal error state before recovery |
+| fail twice, then success | 3 | 3.02 s | The second automatic retry added about 2 s |
+
+The existing list and comment screens retain loaded pages when a continuation
+fails and expose their own `다시 시도` control; the infinite-scroll trigger is
+disabled until that explicit retry. Initial query UI appears only after the
+terminal state, so the long wait is not an error flash but a long loading
+period.
+
+### Cancellation and fault model
+
+`request()` rethrows an aborted fetch unchanged when its React Query signal is
+aborted. An observer cancellation trace produced one aborted attempt, zero
+retries, and no error state. Search/sort changes and detail unmounts already
+pass that signal through `getPosts`, `getPost`, and `getComments`; the retry
+policy does not intercept cancellation.
+
+The backend's read client represents completed HTTP failures as `ApiError`
+with `status` and `code`. For this service, all current 4xx read responses are
+deterministic request/resource failures; repeating an identical request cannot
+change the result. In particular, a missing or soft-deleted post's 404 must
+stay an immediate not-found path. Network failures, 5xx responses, and unknown
+query failures can plausibly recover after one retry.
+
+### Decision and trade-off
+
+`frontend/lib/query/retryPolicy.ts` now supplies one shared QueryClient policy:
+
+- `ApiError` 4xx: no retry;
+- network, 5xx, and unknown query failures: one retry;
+- retry delay: unchanged TanStack Query default (one retry waits 1 s);
+- mutations: unchanged, no automatic retry.
+
+This reduces a persistent failure from four requests and about seven seconds
+to two requests and about one second, while retaining the measured one-failure
+automatic recovery. A two-failure recovery now needs the user to choose the
+existing explicit retry; that is the accepted trade-off for not holding users
+in an uninformative loading state for another six seconds. SSR has a separate
+failure budget and is intentionally outside this decision.
+
+### Limitations
+
+The retry timings are deterministic runtime traces of the installed TanStack
+Query package with immediate injected failures, rather than a latency profile
+of the live backend. Browser route-interception tooling was not installed in
+this checkout, so the audit does not claim a new visual-timing measurement for
+each route. Typecheck, production build, live-stack smoke checks, and the same
+runtime fault traces are rerun after the code change.

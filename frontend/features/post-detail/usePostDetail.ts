@@ -2,24 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
-import { ApiError } from "@/lib/api/client";
 import { getPost, togglePostLike } from "@/lib/api/community";
 import type { Post } from "@/lib/api/types";
 import { postKeys } from "@/lib/query/keys";
 import { setPostLike } from "@/lib/query/postListCache";
-
-// 404 means the post is missing or soft-deleted; retrying cannot help.
-function retryUnlessNotFound(failureCount: number, error: Error): boolean {
-  if (error instanceof ApiError && error.status === 404) return false;
-  return failureCount < 3;
-}
 
 export function usePostDetail(postId: number | null) {
   return useQuery({
     queryKey: postKeys.detail(postId ?? 0),
     queryFn: ({ signal }) => getPost(postId as number, signal),
     enabled: postId !== null,
-    retry: retryUnlessNotFound,
   });
 }
 
