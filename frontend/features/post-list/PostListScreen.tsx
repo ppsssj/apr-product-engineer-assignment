@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { PostSort } from "@/lib/api/types";
+import type { InitialPostPage, PostSort } from "@/lib/api/types";
 import { takeFlash } from "@/lib/flash";
 import { rememberFormOrigin } from "@/lib/formOrigin";
 import { useInfiniteScrollTrigger } from "@/lib/hooks/useInfiniteScrollTrigger";
@@ -18,7 +18,12 @@ import styles from "./PostListScreen.module.css";
 const TOAST_DURATION_MS = 2500;
 const SEARCH_DEBOUNCE_MS = 300;
 
-export function PostListScreen() {
+type Props = {
+  // Server-fetched first page of the default view; null when that fetch failed.
+  initialPage?: InitialPostPage | null;
+};
+
+export function PostListScreen({ initialPage }: Props) {
   // Discovery state. `searchInput` follows every keystroke; `query` is the
   // committed (debounced) search that the list request uses. The sort is kept
   // while searching and after the search closes. The last view is remembered
@@ -62,7 +67,7 @@ export function PostListScreen() {
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = usePostList(sort, query);
+  } = usePostList(sort, query, initialPage);
 
   const sentinelRef = useInfiniteScrollTrigger<HTMLDivElement>({
     enabled:
@@ -94,8 +99,12 @@ export function PostListScreen() {
       .flatMap((page) => page.items)
       .filter((post) => (seen.has(post.id) ? false : (seen.add(post.id), true)));
   }, [data]);
-  // Data is fetched in the browser only, so the clock is read after hydration.
-  const now = Date.now();
+  // Relative times: the server render and the hydration render both use the
+  // server's fetch time so their text matches; after mount the live clock is
+  // used, as before.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const now = mounted || !initialPage ? Date.now() : initialPage.fetchedAt;
 
   function closeSearch() {
     setSearchOpen(false);
