@@ -456,6 +456,38 @@ Evidence: `docs/PERFORMANCE.md` §15 (post #2, 1,411 readable comments; 375×778
 
 ---
 
+# Client Query Retry Policy — 2026-10-03
+
+- **Decision:** all client reads use the QueryClient default
+  `retryOnceUnlessDeterministicClientError` from
+  `frontend/lib/query/retryPolicy.ts`; individual query hooks do not duplicate
+  a retry policy.
+- **Classification:** completed `ApiError` 4xx responses return `false` on the
+  first failure. Network errors (`ApiError` status 0), 5xx responses, and
+  unknown query failures return `failureCount < 1`, which is exactly one retry
+  because TanStack Query calls the predicate with zero for the initial failed
+  attempt.
+- **Why:** the installed v5.104.0 runtime's prior default made four attempts
+  with 1 s, 2 s, and 4 s delays: a permanent read failure waited about seven
+  seconds before UI could offer its existing manual retry. One retry preserves
+  the observed fail-once automatic recovery at about one second; its default
+  delay is not replaced with a product-specific value.
+- **404 and UI:** a missing/soft-deleted post now follows the shared 4xx rule,
+  so `usePostDetail` no longer owns a 404-only exception. The not-found UI
+  remains immediate. List/comment continuation pages retain their loaded data
+  and require their existing explicit retry after terminal failure.
+- **Cancellation:** read query functions keep passing the supplied
+  `AbortSignal` to `fetch`; `request()` rethrows an aborted error unchanged.
+  TanStack Query cancellation stops its retryer before the policy can schedule
+  another attempt, preserving no error UI and no stale overwrite.
+- **Mutation boundary:** no mutation supplies `retry`, so TanStack Query's
+  mutation default remains zero automatic retries. This keeps like toggle,
+  post create/update/delete, and comment create/delete non-optimistic and
+  server-confirmed.
+- **Separate SSR budget:** the browser retry policy does not modify
+  `SERVER_FETCH_TIMEOUT_MS`, SSR fallback, or the seed `staleTime`; server
+  render failure handling is a distinct budget.
+
 # P4 Post List Update — 2026-09-29
 
 - **Feature boundary:** `frontend/features/post-list/` holds the only P4 client code: `usePostList.ts` (query hook), `PostListScreen.tsx` (states, sentinel, FAB), `PostListItem.tsx` (row), their CSS Modules, and `icons.tsx`. `app/page.tsx` stays a Server Component that renders `PostListScreen`.
