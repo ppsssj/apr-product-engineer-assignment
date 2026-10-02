@@ -26,6 +26,13 @@ export type PageResponse<T> = {
   nextCursor: string | null;
 };
 
+// Server-fetched first page of the default list, handed to the client list as
+// its initial cache seed. `fetchedAt` is the server clock at response time.
+export type InitialPostPage = {
+  page: PageResponse<Post>;
+  fetchedAt: number;
+};
+
 export type LikeToggleResponse = {
   isLiked: boolean;
   likeCount: number;

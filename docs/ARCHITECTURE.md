@@ -46,7 +46,7 @@ or `OPEN` labels inside them are history. The current state is:
 | ADR-005 Likes | `DECIDED` | `posts.base_like_count` + `post_likes(post_id, user_id)` |
 | ADR-006 Pagination | `DECIDED` | `(created_at, id)` row-value keyset, opaque cursor, `limit + 1` |
 | ADR-007 Server state | `DECIDED` | TanStack Query v5; `frontend/lib/query/` |
-| ADR-008 Next.js boundary | `DECIDED` | thin Server Component routes; client `features/*` screens |
+| ADR-008 Next.js boundary | `DECIDED` | thin Server Component routes; client `features/*` screens; `/` seeds the default list's first page on the server (First Page SSR Update) |
 | ADR-009 Styling | `DECIDED` | `globals.css` tokens + CSS Modules |
 | ADR-010 Infinite-scroll trigger | `DECIDED` | `frontend/lib/hooks/useInfiniteScrollTrigger.ts` |
 | ADR-011 Relative time | `DECIDED` | `frontend/lib/time/relativeTime.ts` |
@@ -216,7 +216,7 @@ Existing external citations not listed above remain `NOT_EXTERNALLY_VERIFIED` in
 # P3 Frontend Foundation Update — 2026-09-29
 
 - **Server state (ADR-007):** `@tanstack/react-query` is the only added production dependency; `package-lock.json` resolves it to 5.104.0. `frontend/app/providers.tsx` is a `"use client"` `AppProviders` component that creates one `QueryClient` per browser session via `useState` and only renders `QueryClientProvider`. No Devtools, Redux, Zustand, SWR, or axios; no separate client global state store.
-- **Client/server boundary (ADR-008):** `app/layout.tsx` remains a Server Component and wraps `children` in `AppProviders`. Pages stay Server Components by default; wrapping in a client provider does not make them client components. Requester-sensitive product data will be fetched from focused client feature boundaries in P4–P6 so the browser sends the `/dev-user` cookie. No server-side cookie-forwarding API layer is introduced.
+- **Client/server boundary (ADR-008):** `app/layout.tsx` remains a Server Component and wraps `children` in `AppProviders`. Pages stay Server Components by default; wrapping in a client provider does not make them client components. Requester-sensitive product data will be fetched from focused client feature boundaries in P4–P6 so the browser sends the `/dev-user` cookie. No server-side cookie-forwarding API layer is introduced. *(Later: `lib/api/server.ts` forwards only the requester for the home list's first page; see First Page SSR Update.)*
 - **Shared API client:** `frontend/lib/api/client.ts` `request()` is the single fetch entry point. It resolves `NEXT_PUBLIC_API_BASE_URL` (fallback `http://localhost:8080/api`, matching the Compose build arg), joins paths, encodes query strings with `URLSearchParams`, always sends `credentials: "include"` and `cache: "no-store"`, sets `Content-Type: application/json` only when a body exists, returns `undefined` for 204 without parsing, and throws `ApiError { status, code, message }` using the backend `{ code, message }` body with an `HTTP_ERROR` / `NETWORK_ERROR` / `INVALID_RESPONSE` fallback.
 - **Transport types:** `frontend/lib/api/types.ts` mirrors the backend `PostResponse`, `CommentResponse`, `PageResponse`, `LikeToggleResponse`, `PostMutationRequest`, `CommentCreateRequest`, and `ApiErrorResponse` field names exactly. Timestamps remain ISO strings at the API boundary.
 - **Endpoint functions:** `frontend/lib/api/community.ts` defines all nine assignment endpoints. Feature hooks (`useQuery`/`useMutation`) and invalidation policy are deferred to P4–P6 where the cache requirements are concrete.
@@ -410,13 +410,24 @@ A deleted resource therefore never reveals that it existed through a `403`.
 
 ---
 
+# First Page SSR Update — 2026-10-02
+
+- **Why:** the list's LCP waited for HTML → JS/hydration → browser `GET /posts` → render. The API itself was fast; the request simply could not start before hydration. Fetching the first page on the server removes that chain (devtools-throttled Lighthouse, Docker: LCP median ≈3.47s → ≈2.36s; browser `GET /posts` on load 1 → 0).
+- **Scope:** only the default view's first page (`latest`, no search, `limit` 15). Later pages (`nextCursor`), likes order, and search remain client React Query requests; routing and URLs are unchanged.
+- **Server read:** `app/page.tsx` reads the `x-user-id` cookie and calls `lib/api/server.ts` (`server-only`). It uses `API_BASE_URL` (Compose: `http://backend:8080/api`), sends the requester only as the `x-user-id` header (re-encoded to the value the backend would read from the cookie; omitted without a cookie so the backend default applies), `cache: "no-store"`, and a 1.5s timeout. Any failure returns `null`: the page still renders and the existing client fetch / error / retry path runs.
+- **Client seed:** `usePostList` passes the page as `initialData` (`pages: [page]`, `pageParams: [undefined]`) under the unchanged key `["posts","list",{limit:15,sort:"latest",query:null}]`. `initialData` never replaces an existing cache entry, so remembered sort/search views and back navigation behave as before. `staleTime` is 30s only while `dataUpdateCount === 0` (the seed), which prevents a refetch on hydration; after any client fetch it is 0 again.
+- **Relative time:** the server render and the hydration render use the server's `fetchedAt` as `now`; after mount the live clock is used.
+- **Trade-off:** `/` is now a dynamic route (it reads the cookie and fresh data); TTFB includes the internal fetch (≈30–50ms, at most 1.5s on a hung backend).
+
+---
+
 # P4 Post List Update — 2026-09-29
 
 - **Feature boundary:** `frontend/features/post-list/` holds the only P4 client code: `usePostList.ts` (query hook), `PostListScreen.tsx` (states, sentinel, FAB), `PostListItem.tsx` (row), their CSS Modules, and `icons.tsx`. `app/page.tsx` stays a Server Component that renders `PostListScreen`.
 - **Infinite query (ADR-007):** `usePostList()` uses `useInfiniteQuery` with key `postKeys.list({ limit: 10 })`, `initialPageParam: undefined`, the backend `nextCursor` as the next `pageParam`, and `POST_LIST_PAGE_SIZE = 10`. 10 is a client choice within the backend's 1–50 range; the backend default of 20 is unchanged. *(Later measured and changed to `POST_LIST_PAGE_SIZE = 15`; the key now also carries sort and search.)*
 - **Sentinel (ADR-010):** `frontend/lib/hooks/useInfiniteScrollTrigger.ts` disconnects after one intersection and is re-armed only when `enabled` becomes true again (`data` loaded, `hasNextPage`, not fetching, no next-page error). A new observer reports the current intersection, so a still-visible sentinel continues without another scroll, and a failed page waits for an explicit retry instead of looping. P5 comment continuation can reuse the same hook.
 - **Next-page error:** TanStack Query v5 also sets `status: "error"` when only `fetchNextPage` fails. The screen therefore shows the full-screen error only while `data === undefined` and reports next-page failures below the loaded rows.
-- **Relative time (ADR-011):** list data is fetched only in the browser, so the server render contains no timestamp and `Date.now()` is read at client render time; no hydration mismatch arises.
+- **Relative time (ADR-011):** list data is fetched only in the browser, so the server render contains no timestamp and `Date.now()` is read at client render time; no hydration mismatch arises. *(Later: the first page is server-rendered, so the server render and hydration use the server fetch time; see First Page SSR Update.)*
 - **Avatar:** `frontend/lib/avatar.ts` `avatarFor()` maps `FNV-1a(author) % 3` to the three provided assets.
 - **Prefetch:** P4 set `prefetch={false}` on both list `Link`s while their routes were missing. P5A added `/posts/[postId]` and restored default prefetch on the detail row. The write FAB keeps `prefetch={false}` until P6 adds `/posts/new`; until then that path falls through to the `[postId]` segment and renders the not-found state. *(Final: the FAB uses default prefetch. The detail row link is `prefetch={false}` again, because a full scroll sent 40 detail prefetches that did not make navigation faster.)*
 
@@ -955,6 +966,8 @@ credentials: "include"
 ```
 
 Do not duplicate the same community data-fetching flow once on the server and again in TanStack Query without a demonstrated benefit.
+
+**Amendment — 2026-10-02:** the benefit was measured for the home list only (devtools-throttled LCP ≈3.47s → ≈2.36s), so `/` now fetches the default list's first page on the server and hands it to the client query as `initialData`; see "First Page SSR Update". Every other read stays a browser request.
 
 ## Evidence
 
