@@ -421,10 +421,22 @@ A deleted resource therefore never reveals that it existed through a `403`.
 
 ---
 
+# List Batch Size Decision — 2026-10-02
+
+Evidence: `docs/PERFORMANCE.md` §13 (disposable 160-post dataset, 375×778, CPU 4×, Lighthouse devtools mobile throttling, fixed consumption depths of 30 and 45 posts).
+
+- **Separate parameters:** with first-page SSR, the size of the server-rendered page (`SSR_SIZE`) and the size of each later cursor request (`CONTINUATION_SIZE`) are independent decisions; they affect first render and scrolling respectively and were measured separately (10/15/20 each).
+- **Decision — keep 15/15:** SSR 10/15/20 differed in LCP only within measurement noise. Continuation 10 added requests and showed loading text even at reading speed; 20 gave no consistent gain over 15. With no measured benefit from different sizes, both stay at `POST_LIST_PAGE_SIZE = 15`. This is the most reasonable of the compared candidates under these conditions, not a universal optimum, and it was not chosen to split the seed's 39 readable posts into three requests.
+- **Why the size is not derived from the total:** the total number of posts and one user's consumption depth are different quantities. Cursor pagination requests only what the user scrolls to (`limit + 1` rows per request), so 42, 1,000, or 100,000 posts give no reason for the page size to grow; the total only matters to someone who reads to the end. A fixed-depth comparison is the relevant criterion.
+- **Mixed-size cost (not adopted):** a pair such as 15/20 is possible, but the key's `limit` would no longer describe every page, the first page and later pages would differ in size, the SSR-failure client fetch and refetch/invalidation paths would need a first-page branch, and cache tests would multiply. It was not adopted because no benefit was measured.
+- **Open item:** the benchmark suggested that waits during fast scrolling depend more on how early the next page is requested than on page size. `rootMargin` (200px) is a follow-up to measure; it is unchanged.
+
+---
+
 # P4 Post List Update — 2026-09-29
 
 - **Feature boundary:** `frontend/features/post-list/` holds the only P4 client code: `usePostList.ts` (query hook), `PostListScreen.tsx` (states, sentinel, FAB), `PostListItem.tsx` (row), their CSS Modules, and `icons.tsx`. `app/page.tsx` stays a Server Component that renders `PostListScreen`.
-- **Infinite query (ADR-007):** `usePostList()` uses `useInfiniteQuery` with key `postKeys.list({ limit: 10 })`, `initialPageParam: undefined`, the backend `nextCursor` as the next `pageParam`, and `POST_LIST_PAGE_SIZE = 10`. 10 is a client choice within the backend's 1–50 range; the backend default of 20 is unchanged. *(Later measured and changed to `POST_LIST_PAGE_SIZE = 15`; the key now also carries sort and search.)*
+- **Infinite query (ADR-007):** `usePostList()` uses `useInfiniteQuery` with key `postKeys.list({ limit: 10 })`, `initialPageParam: undefined`, the backend `nextCursor` as the next `pageParam`, and `POST_LIST_PAGE_SIZE = 10`. 10 is a client choice within the backend's 1–50 range; the backend default of 20 is unchanged. *(Later measured and changed to `POST_LIST_PAGE_SIZE = 15`; the key now also carries sort and search. Re-measured after first-page SSR with the first page and later pages as separate parameters: kept 15/15; see List Batch Size Decision.)*
 - **Sentinel (ADR-010):** `frontend/lib/hooks/useInfiniteScrollTrigger.ts` disconnects after one intersection and is re-armed only when `enabled` becomes true again (`data` loaded, `hasNextPage`, not fetching, no next-page error). A new observer reports the current intersection, so a still-visible sentinel continues without another scroll, and a failed page waits for an explicit retry instead of looping. P5 comment continuation can reuse the same hook.
 - **Next-page error:** TanStack Query v5 also sets `status: "error"` when only `fetchNextPage` fails. The screen therefore shows the full-screen error only while `data === undefined` and reports next-page failures below the loaded rows.
 - **Relative time (ADR-011):** list data is fetched only in the browser, so the server render contains no timestamp and `Date.now()` is read at client render time; no hydration mismatch arises. *(Later: the first page is server-rendered, so the server render and hydration use the server fetch time; see First Page SSR Update.)*
