@@ -4,6 +4,7 @@ import { AppProviders } from "./providers";
 
 export const metadata: Metadata = {
   title: "메디큐브톡",
+  description: "AGE-R 사용 경험과 궁금한 점을 나누는 메디큐브 커뮤니티",
 };
 
 export const viewport: Viewport = {

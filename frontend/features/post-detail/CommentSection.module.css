@@ -31,7 +31,7 @@
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
 }
 
 .list {
@@ -87,7 +87,7 @@
   flex: none;
   font-size: 12px;
   line-height: 16px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
 }
 
 .content {
@@ -113,7 +113,7 @@
   font: inherit;
   font-size: 12px;
   line-height: 16px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -145,7 +145,7 @@
   font: inherit;
   font-size: 14px;
   line-height: 18px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -182,7 +182,7 @@
   padding: 16px var(--space-page-inset);
   font-size: 14px;
   line-height: 18px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   text-align: center;
 }
 

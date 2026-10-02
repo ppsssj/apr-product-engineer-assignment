@@ -57,7 +57,7 @@
   padding: 120px var(--space-page-inset) 0;
   font-size: 14px;
   line-height: 18px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   text-align: center;
 }
 

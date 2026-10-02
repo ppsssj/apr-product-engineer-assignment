@@ -56,7 +56,7 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 18px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow-wrap: anywhere;
@@ -72,7 +72,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
 }
 
 /* Slightly stronger than counts/time, far weaker than the title. A long name

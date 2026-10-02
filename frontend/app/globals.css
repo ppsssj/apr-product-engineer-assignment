@@ -13,6 +13,9 @@
   --color-surface: #ffffff;
   --color-text-primary: #292828;
   --color-text-secondary: #979ea9;
+  /* Accessibility adjustment (docs/UI_SPEC.md §6.3): same hue as the design
+     secondary, darkened to 4.53:1 on white for text users must read. */
+  --color-text-secondary-readable: #6e7785;
   --color-text-support: #5e5e5e;
   --color-border-light: #dde0e4;
   --color-disabled-surface: #f3f4f8;
