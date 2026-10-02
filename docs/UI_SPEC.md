@@ -127,6 +127,8 @@ Common exact solid colors observed in the audited nodes:
 - modal/sheet scrim: black at 60% opacity
 - toast surface: black at 70% opacity
 
+Accessibility adjustment (`PRODUCT_DECISION`): the design secondary `#979EA9` stays the source value, but it reaches only 2.70:1 on white, below WCAG AA 4.5:1 for normal text. Text users must read (list preview/counts/time, unselected sort, search label, dates, like count, comment time/count/actions, dialog body, status notices, placeholders) and the icons/focus borders that carry meaning use `--color-text-secondary-readable` `#6E7785` (same hue, 4.53:1). The dialog cancel label sits on `#EAECEE`, where that value is 3.82:1, so it uses supporting text `#5E5E5E` (5.47:1). Disabled, read-only (pending), and press-feedback states keep `#979EA9`.
+
 Observed non-zero corner-radius sets are:
 
 - list variants: 5px and 14px

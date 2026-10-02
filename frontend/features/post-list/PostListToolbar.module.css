@@ -57,7 +57,7 @@
   height: 43px;
   margin: 0 calc(-1 * var(--space-page-inset)) 0 4px;
   padding: 0 var(--space-page-inset) 0 13px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
 }
 
 /* Short role-separation divider, vertically centered (not a full-height
@@ -94,7 +94,7 @@
   font-size: 14px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   transition: color 120ms ease;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .searchMode:focus-within {
-  border-bottom-color: var(--color-text-secondary);
+  border-bottom-color: var(--color-text-secondary-readable);
 }
 
 /* Decorative, secondary grey like the normal-mode search icon. */
@@ -128,7 +128,7 @@
   display: flex;
   flex: none;
   margin-left: 6px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
 }
 
 /* Fills the rest of the row up to the page inset. 16px text keeps iOS Safari
@@ -150,7 +150,7 @@
 }
 
 .input::placeholder {
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
 }
 
 .sort:active,

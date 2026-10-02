@@ -49,7 +49,7 @@
   margin: 16px 0 0;
   font-size: 15px;
   line-height: 22px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-readable);
   white-space: pre-line;
 }
 
@@ -82,7 +82,7 @@
 
 .cancel {
   background: #eaecee;
-  color: var(--color-text-secondary);
+  color: var(--color-text-support);
 }
 
 /* Destructive action: the app red (also the FAB fill). */
