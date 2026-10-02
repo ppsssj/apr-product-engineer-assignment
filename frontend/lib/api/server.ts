@@ -12,7 +12,7 @@ const SERVER_API_BASE_URL = (
 
 // The first-page render is an optimization: a slow backend must not hold the
 // HTML longer than this.
-const SERVER_FETCH_TIMEOUT_MS = 1500;
+const SERVER_FETCH_TIMEOUT_MS = 2000;
 
 // First page of the default list (latest, no search) for the requester of the
 // incoming request. `requester` is the decoded `x-user-id` cookie value; it is
