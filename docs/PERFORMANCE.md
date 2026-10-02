@@ -761,6 +761,10 @@ browser first-page request and showed 15 posts. At the 1.8-second delay, the
 fallback. Its blackhole cost was 0.54 seconds. First useful *post* content,
 not the earlier loading-state FCP, is the decision metric.
 
+The immediate-failure path was also checked with an unreachable server-only
+upstream: the page returned HTTP 200 with no SSR posts, made one healthy browser
+request, rendered 15 posts, and emitted no page error.
+
 **Timeout verdict: `CHANGE_SERVER_TIMEOUT_TO_2000`.** It retains useful SSR
 responses through the measured 1.8-second boundary. The accepted trade-off is
 the additional half-second HTML wait for an unavailable upstream; this remains
