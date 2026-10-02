@@ -414,12 +414,34 @@ A deleted resource therefore never reveals that it existed through a `403`.
 
 - **Why:** the list's LCP waited for HTML → JS/hydration → browser `GET /posts` → render. The API itself was fast; the request simply could not start before hydration. Fetching the first page on the server removes that chain (devtools-throttled Lighthouse, Docker: LCP median ≈3.47s → ≈2.36s; browser `GET /posts` on load 1 → 0).
 - **Scope:** only the default view's first page (`latest`, no search, `limit` 15). Later pages (`nextCursor`), likes order, and search remain client React Query requests; routing and URLs are unchanged.
-- **Server read:** `app/page.tsx` reads the `x-user-id` cookie and calls `lib/api/server.ts` (`server-only`). It uses `API_BASE_URL` (Compose: `http://backend:8080/api`), sends the requester only as the `x-user-id` header (re-encoded to the value the backend would read from the cookie; omitted without a cookie so the backend default applies), `cache: "no-store"`, and a 1.5s timeout. Any failure returns `null`: the page still renders and the existing client fetch / error / retry path runs.
-- **Client seed:** `usePostList` passes the page as `initialData` (`pages: [page]`, `pageParams: [undefined]`) under the unchanged key `["posts","list",{limit:15,sort:"latest",query:null}]`. `initialData` never replaces an existing cache entry, so remembered sort/search views and back navigation behave as before. `staleTime` is 30s only while `dataUpdateCount === 0` (the seed), which prevents a refetch on hydration; after any client fetch it is 0 again.
+- **Server read:** `app/page.tsx` reads the `x-user-id` cookie and calls `lib/api/server.ts` (`server-only`). It uses `API_BASE_URL` (Compose: `http://backend:8080/api`), sends the requester only as the `x-user-id` header (re-encoded to the value the backend would read from the cookie; omitted without a cookie so the backend default applies), `cache: "no-store"`, and a 2.0s timeout. Any failure returns `null`: the page still renders and the existing client fetch / error / retry path runs.
+- **Client seed:** `usePostList` passes the page as `initialData` (`pages: [page]`, `pageParams: [undefined]`) under the unchanged key `["posts","list",{limit:15,sort:"latest",query:null}]`. `initialData` never replaces an existing cache entry, so remembered sort/search views and back navigation behave as before. `staleTime` is 5s only while `dataUpdateCount === 0` (the seed), which prevents a refetch on hydration; after any client fetch it is 0 again.
 - **Relative time:** the server render and the hydration render use the server's `fetchedAt` as `now`; after mount the live clock is used.
-- **Trade-off:** `/` is now a dynamic route (it reads the cookie and fresh data); TTFB includes the internal fetch (≈30–50ms, at most 1.5s on a hung backend).
+- **Trade-off:** `/` is now a dynamic route (it reads the cookie and fresh data); TTFB includes the internal fetch (≈30–50ms, at most 2.0s on a hung backend).
 
 ---
+
+## SSR Freshness and Failure Budgets — 2026-10-03
+
+The two values have intentionally different responsibilities and are tuned
+independently.
+
+- **Seed freshness (`SEED_FRESH_MS = 5_000`):** React Query treats the SSR
+  first-page cache entry as fresh through the observed hydration interval so it
+  does not duplicate the server's work. Five throttled hard loads had seed
+  ages around 1.65 s and no duplicate request at 5/15/30 seconds; 0 seconds
+  duplicated all five. Five seconds is the shortest successful candidate.
+  Freshness is not polling: it only makes a stale query eligible for normal
+  triggers such as focus, remount, or explicit invalidation.
+- **Server blocking (`SERVER_FETCH_TIMEOUT_MS = 2_000`):** this caps SSR's
+  upstream wait. A server-only 1.8-second delay retained SSR content at 2.98 s
+  median real-post LCP with 2 seconds, whereas 1.5 seconds fell back to CSR at
+  4.04 s. A blackhole adds 0.54 s to fallback real-post LCP (4.05 → 4.59 s),
+  the accepted bounded failure cost for retaining the measured slow SSR win.
+- **Failure path:** a timeout has no server retry and returns `null`; the page
+  responds HTTP 200 and hydrates the client list. That browser fallback then
+  follows the separate classified query-retry policy (4xx none; network/5xx/
+  unknown once). The two budgets must not be coupled.
 
 # List Batch Size Decision — 2026-10-02
 

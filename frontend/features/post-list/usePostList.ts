@@ -9,7 +9,7 @@ import { POST_LIST_PAGE_SIZE } from "./postListConfig";
 // A server-rendered first page stays fresh for this long so hydration does not
 // refetch what the HTML already shows. Once the client has fetched the list
 // itself (dataUpdateCount > 0) the default staleTime of 0 applies as before.
-const SEED_FRESH_MS = 30_000;
+const SEED_FRESH_MS = 5_000;
 
 // One infinite query per (page size, sort, search). The opaque backend cursor
 // is the pageParam, so a new sort or search always starts from its own first

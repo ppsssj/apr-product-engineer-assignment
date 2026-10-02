@@ -689,3 +689,92 @@ of the live backend. Browser route-interception tooling was not installed in
 this checkout, so the audit does not claim a new visual-timing measurement for
 each route. Typecheck, production build, live-stack smoke checks, and the same
 runtime fault traces are rerun after the code change.
+
+## 17. SSR Seed Freshness & Server Fetch Timeout Audit — 2026-10-03
+
+### Why and current flow
+
+The home page server-fetches the default 15-row latest page with `cache:
+"no-store"`. A successful result becomes `usePostList()` `initialData` with
+`initialDataUpdatedAt: fetchedAt`; a failed or timed-out server request returns
+`null`, so the already-existing browser query fetches the first page. These are
+separate budgets: seed freshness suppresses an unnecessary hydration fetch,
+while the server timeout caps how long HTML waits before the CSR fallback.
+
+### Environment
+
+Production `next start`, viewport 375×778, DPR 2, CPU 4× slowdown, 562.5 ms
+latency, 1.47 Mbps download. Each seed candidate had five fresh browser
+contexts; timeout scenarios had three. The delay proxy affected only the Next
+server's upstream (`API_BASE_URL`); browser fallback continued directly to the
+healthy backend. The persistent Compose database was read-only and remained
+`43 / 2076 / 0` (posts/comments/likes).
+
+### Seed freshness
+
+| staleTime | browser initial `/api/posts` | duplicate hydration fetch | median seed age at DOM content loaded |
+| ---: | ---: | ---: | ---: |
+| 0 s | 1 | 5/5 | 1.69 s |
+| 5 s | 0 | 0/5 | 1.65 s |
+| 15 s | 0 | 0/5 | 1.70 s |
+| 30 s | 0 | 0/5 | 1.65 s |
+
+The 0-second candidate fetched the same page at about 2.83 s after navigation.
+For 5/15/30 seconds, the SSR HTML contained the 15 posts, no browser first-page
+request occurred, and no hydration error occurred. The observed slow-load age
+was below 1.8 seconds, so 5 seconds is the shortest tested window with a clear
+margin. It avoids granting 15–30 seconds of extra freshness with no measured
+duplicate-fetch benefit.
+
+Freshness is not a polling timer: with a 15-second test candidate, no request
+appeared merely on becoming stale; a simulated hidden→visible transition after
+the window caused one refetch, while the same transition before it caused none.
+The current React Query source calculates staleness from
+`dataUpdatedAt + staleTime` and schedules only a state update. In an in-app
+list → detail → list revisit before expiry, the existing QueryClient cache
+remained and no list request occurred; `initialData` did not overwrite it.
+
+**Seed verdict: `CHANGE_SEED_FRESH_TO_5S`.** The trade-off is that focus or
+remount after five seconds can show newer server data earlier; the remaining
+stale window is deliberately only the hydration-duplication budget.
+
+### Server timeout fault model and timing
+
+The healthy backend's server-page endpoint took 6.4–8.5 ms (7.4 ms median),
+so all timeout candidates have no measured normal-path effect. Controlled
+delays below ran through the server-only proxy; browser fallback remained able
+to fetch from port 8080.
+
+| timeout | server delay | SSR posts in HTML | browser fallback request | median TTFB-like | median real-post LCP |
+| ---: | ---: | --- | --- | ---: | ---: |
+| 1000 ms | 1200 ms | no | 1 | 1.89 s | 3.55 s |
+| 1500 ms | 1200 ms | yes | 0 | 2.38 s | 2.37 s |
+| 1500 ms | 1800 ms | no | 1 | 2.38 s | 4.04 s |
+| 2000 ms | 1800 ms | yes | 0 | 2.99 s | 2.98 s |
+| 1500 ms | blackhole | no | 1 | 2.40 s | 4.05 s |
+| 2000 ms | blackhole | no | 1 | 2.88 s | 4.59 s |
+
+Every timeout/blackhole response was HTTP 200, returned fallback HTML without
+posts, hydrated without console/hydration errors, then made exactly one healthy
+browser first-page request and showed 15 posts. At the 1.8-second delay, the
+2-second candidate reached real posts 1.06 seconds sooner than the 1.5-second
+fallback. Its blackhole cost was 0.54 seconds. First useful *post* content,
+not the earlier loading-state FCP, is the decision metric.
+
+**Timeout verdict: `CHANGE_SERVER_TIMEOUT_TO_2000`.** It retains useful SSR
+responses through the measured 1.8-second boundary. The accepted trade-off is
+the additional half-second HTML wait for an unavailable upstream; this remains
+a bounded CSR-fallback path, not a retry policy.
+
+### Combined decision and limitations
+
+`SEED_FRESH_MS` changes from 30 s to 5 s and `SERVER_FETCH_TIMEOUT_MS` from
+1.5 s to 2.0 s. No SSR architecture, page size, client retry policy, API, or
+mutation behavior changes. If the SSR fetch fails, browser fallback uses the
+separate classified one-retry query policy; this audit's server-only proxy
+kept the browser backend healthy so it measured the timeout boundary alone.
+
+The comparison covers one throttled mobile profile, local healthy backend, and
+fixed artificial delays; it is not a production latency distribution. The
+temporary worktree, proxy, local servers, and browser scripts stay outside the
+repository and are removed after verification.
