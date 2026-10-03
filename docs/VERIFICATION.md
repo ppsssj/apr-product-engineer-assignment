@@ -11,6 +11,76 @@ Do not mark a requirement `VERIFIED` only because the code appears correct. Run 
 - `FAIL`
 - `BLOCKED`
 
+## How to Read This Document (Historical vs Current)
+
+This is the detailed master verification record. It keeps every phase's
+evidence with its date, including values that later changed.
+
+- Sections and headings with a date (for example "P4 … — 2026-09-29" or
+  "P8-B Current-Candidate Evidence — 2026-09-30") describe the code **as it
+  was on that date**. "Current candidate" in those headings means the candidate
+  of that phase, not today's `main`.
+- Values such as the post page size `10`, comment continuation `20`, the
+  `rootMargin` `200px` on the post list, the 30 s SSR seed freshness, the 1.5 s
+  SSR timeout, TanStack Query's default retries (4 attempts), and backend test
+  counts `26/49/51/60/83` are correct for their dates and are kept as
+  historical evidence. Where a later decision replaced them, the section says
+  so.
+- The current values are in "Final Configuration Snapshot" below, and the
+  final engineering evidence is in "Final Engineering Verification —
+  2026-10-02/03" near the end.
+
+## Final Configuration Snapshot — `main` @ `7da54e8`
+
+Reference for the current values only; it does not replace the evidence
+below. Each value was read from the code on
+`7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`.
+
+**Frontend**
+
+| Item | Current value | Source |
+| --- | --- | --- |
+| Next.js | 15.5.27 | `frontend/package.json` |
+| React / React DOM | 19.1.9 / 19.1.9 | `frontend/package.json` |
+| Node engine | `>=22.12.0` | `frontend/package.json` `engines` |
+| Post list page size (SSR first page and continuation) | 15 / 15 | `features/post-list/postListConfig.ts` `POST_LIST_PAGE_SIZE` |
+| Comments: initial / continuation | 2 / 30 | `features/post-detail/useComments.ts` |
+| Comment query cache | `gcTime: 0` (per visit) | `useComments.ts` |
+| Post-list prefetch distance | `rootMargin` `0px 0px 500px 0px` | `postListConfig.ts` `POST_LIST_PREFETCH_ROOT_MARGIN` |
+| Shared infinite-scroll default (used by comments) | `rootMargin` `0px 0px 200px 0px` | `lib/hooks/useInfiniteScrollTrigger.ts` |
+| Search debounce | 300 ms | `PostListScreen.tsx` `SEARCH_DEBOUNCE_MS` |
+| First-page SSR | default view only (`latest`, no search) | `app/page.tsx`, `lib/api/server.ts` |
+| SSR seed freshness | 5 s (`staleTime` only while `dataUpdateCount === 0`, then 0) | `usePostList.ts` `SEED_FRESH_MS = 5_000` |
+| SSR backend timeout | 2,000 ms, then `null` → client fetch | `lib/api/server.ts` `SERVER_FETCH_TIMEOUT_MS = 2000` |
+| Read query retry | `ApiError` 4xx: no retry; network, 5xx, unknown: one retry (default 1 s delay) | `lib/query/retryPolicy.ts`, `app/providers.tsx` |
+| Mutation retry | 0 (TanStack Query default; no mutation sets `retry`) | — |
+| Font | Pretendard official variable font (`PretendardVariable.woff2`, 2,057,688 B) retained | `public/fonts`, `app/globals.css` |
+| Frontend tests | Vitest, 4 files / 21 tests | `lib/**/*.test.ts` |
+
+**Backend**
+
+| Item | Current value | Source |
+| --- | --- | --- |
+| Java | 17 (Gradle toolchain) | `backend/build.gradle` |
+| Spring Boot | 3.5.16 | `backend/build.gradle` |
+| Database | PostgreSQL 16 (`postgres:16-alpine`) | `docker-compose.yml` |
+| Schema | Flyway `V1__create_community_schema.sql` | `backend/src/main/resources/db/migration` |
+| Data access | Spring `JdbcClient` repositories | `persistence/*Repository.java` |
+| Test database | Testcontainers PostgreSQL, version override `1.21.4` | `build.gradle` `ext['testcontainers.version']` |
+| Deletion | soft delete (`is_deleted`) | `V1` |
+| Pagination | keyset `(created_at, id)` row-value; likes `(effective likes, created_at, id)` | repositories |
+| Mutation locking | `SELECT … FOR UPDATE` on the readable target before ownership checks | `findReadableMutationTargetForUpdate` |
+| Backend tests | 18 suites / 91 tests (6 PostgreSQL integration suites / 31 tests) | `gradlew clean test` |
+
+**Security / CI**
+
+| Item | Current value |
+| --- | --- |
+| PostCSS | root `overrides` `8.5.28` (replaces the `8.4.31` that `next@15.5.27` requests) |
+| `npm audit` / `npm audit --omit=dev` | 0 / 0 |
+| CI jobs | `backend`, `frontend`, `full-stack-smoke`; `permissions: contents: read` |
+| Branch protection on `main` | not enabled (GitHub API `protected: false`) |
+
 ---
 
 # Release Gates
@@ -345,6 +415,12 @@ with `next start` against the Compose backend.
   - No PostgreSQL service or Compose: the 12 backend test classes start no
     Spring context and need no database (`HealthControllerTest` mocks
     `DataSource`).
+  - *(Historical — superseded. As of `7da54e8`: the `frontend` job also runs
+    `npm test` (PR #43); the `backend` job runs 91 tests including 31
+    PostgreSQL Testcontainers integration tests (PR #42, #44), which need the
+    runner's Docker daemon; and a third `full-stack-smoke` job builds and
+    checks the production Compose stack (PR #46). See "Final Engineering
+    Verification".)*
   - Before push: `gradlew.bat test --rerun-tasks` ran 60 tests with 0
     failures, and `npm ci`, typecheck and build exited 0.
   - Actions: the first PR run (36852207676) passed both jobs. The `main` push
@@ -680,7 +756,7 @@ with `next start` against the Compose backend.
 - Rendering: 39 rows, no duplicate post ID, DOM order identical to the API newest-first traversal; every row shows a relative time such as `29일 전` / `1개월 전`.
 - Avatars: every row uses one of the three provided assets, one author maps to one avatar across rows, and the mapping is identical after reload.
 - Navigation: clicking a row opened `/posts/1`; the write FAB opened `/posts/new`. Both pages are 404 until P5/P6, and the 60 observed 404s were only production `Link` prefetches/navigation to `/posts/{id}` and `/posts/new`.
-- States (forced with Playwright route interception): initial loading (`게시글을 불러오는 중입니다.`), empty (`아직 작성된 게시글이 없습니다.`), initial error after TanStack's default retries (4 attempts) with a working `다시 시도`, next-page loading (`게시글을 더 불러오는 중입니다.`), and next-page error that keeps the 10 loaded rows, does not auto-retry on further scrolling, and recovers via its own `다시 시도`.
+- States (forced with Playwright route interception): initial loading (`게시글을 불러오는 중입니다.`), empty (`아직 작성된 게시글이 없습니다.`), initial error after TanStack's default retries (4 attempts) with a working `다시 시도`, next-page loading (`게시글을 더 불러오는 중입니다.`), and next-page error that keeps the 10 loaded rows, does not auto-retry on further scrolling, and recovers via its own `다시 시도`. *(Historical: the 4-attempt default and page size 10 applied on 2026-09-29. Since PR #40 a failed read makes 2 attempts (one retry; 4xx none), and the page size is 15. See "F-06".)*
 - Regression found and fixed during this run: TanStack Query v5 sets `status: "error"` when only `fetchNextPage` fails, so the first build also rendered the initial-error block (two `다시 시도` buttons). The initial-error block now requires `data === undefined`; the rerun confirmed a single retry control.
 
 ---
@@ -954,6 +1030,14 @@ x-user-id: <known-author>
   with total 39 and a null final cursor. Invalid limit and cursor returned 400.
   The browser re-verified 10/10/10/9 through four chained requests with no
   request after the end, including on the no-cache rebuilt image.
+
+### Later Evidence — 2026-10-02/03
+
+- The page size later became 15 and the first page is server-rendered: on
+  `7da54e8` the 39 readable posts load as the SSR page plus two cursor
+  requests (`15/15/9`) with no browser request for the first page, no
+  duplicate, and no request after the end (PR #45 terminal traversal; clean
+  clone in "F-16"). The newest-first contract above is unchanged.
 
 **Result:** `PASS`
 
@@ -1375,6 +1459,14 @@ Test posts with:
 - API: complete bounded traversals of post 2 (1,411) at `2`→`50` (30 pages)
   and `2`→`20` (72 pages) exactly matched PostgreSQL with no duplicate or skip.
 
+### Later Evidence — 2026-10-02/03
+
+- The continuation size is now 30 (`limit=2` then `limit=30`). On `7da54e8`:
+  post 8 traversed `2 → 30 → 30` to 58/58 in backend order with no request
+  after the end (PR #45); post #2 loaded all 1,411 comments in 47
+  continuation requests with no duplicate, and the gate still sent nothing
+  before More (`docs/PERFORMANCE.md` §15, "F-05").
+
 **Result:** `PASS`
 
 ---
@@ -1756,6 +1848,24 @@ Implementation matches official design as closely as practical, with any intenti
   `/dev-user` switch, continuous E2E; no overflow and no errors). Behavior is
   unchanged.
 
+### Status — 2026-10-03 (unchanged: `NOT_RUN`)
+
+- After P8-C, runtime and visual regressions passed several times at 375×778
+  (accessibility contrast PR #35, first-page SSR PR #36, prefetch PR #38, the
+  edge/failure audit PR #45, and the clean-clone gate "F-16"). These are
+  runtime and layout checks against the implementation and `docs/UI_SPEC.md`,
+  not a fresh comparison of the final implementation with the official Figma
+  file `Ee1gp5NC6G1sQIvssuu4Sr`. No such comparison was run, so V-081 stays
+  `NOT_RUN`.
+- A later V-081 comparison must also record this intentional deviation: PR
+  #35 kept the design secondary `#979EA9` as the source value but renders text
+  users must read (list preview/counts/time, unselected sort, search label,
+  dates, like count, comment time/count/actions, dialog body, status notices,
+  placeholders) and meaningful icons/focus borders in `#6E7785` (4.53:1 on
+  white); the dialog cancel label uses `#5E5E5E` on `#EAECEE`. Disabled,
+  read-only, and press-feedback states keep `#979EA9` (`docs/UI_SPEC.md`
+  §6.3).
+
 **Result:** `NOT_RUN`
 
 ---
@@ -1807,7 +1917,9 @@ CI, read cancellation and dialog focus containment, then replaced
   - `FOR UPDATE` before the ownership checks;
   - the `postListCache.ts` invalidation rules;
   - page sizes 15, 2 and 30, the 200px `rootMargin`, and the 300 ms
-    debounce;
+    debounce; *(Historical for 2026-10-01. The post list now passes
+    `rootMargin` 500px (PR #38); 200px remains the shared default used by
+    comments. See "F-04".)*
   - `gcTime: 0`, `prefetch={false}` on detail links only, and the 108px row,
     44px toolbar and 144px popover;
   - the likes-list dedupe;
@@ -1822,6 +1934,11 @@ CI, read cancellation and dialog focus containment, then replaced
   - The comparison-only figures (p95 248 ms, 424 B, the 250 ms pause, 8 vs
     13 rows below the fold) come from the earlier measurement session and are
     not recorded elsewhere in the repository.
+  - *(Superseded as the basis for the page-size decision. The 39-post
+    whole-traversal comparison included an end-of-data effect. Post sizes
+    were re-measured after first-page SSR on a disposable 160-post dataset at
+    fixed depths (`docs/PERFORMANCE.md` §13, kept 15/15), and comment
+    continuation at fixed depths on post #2 (§15, kept 30). See "F-03".)*
 - **Links:** all 11 external references returned 200, and their 4 fragment
   anchors exist.
 - **Clean text:** no PR numbers, SHAs, phase names, requirement or scenario
@@ -1838,6 +1955,10 @@ CI, read cancellation and dialog focus containment, then replaced
   - P0 and phase-update sections are marked as history, and the earlier P1–P3
     open-decision table is reconciled. One item stays open: there is no
     committed DB integration-test suite.
+  - *(Superseded. PR #42 added a committed PostgreSQL integration-test suite
+    (Testcontainers `postgres:16-alpine`, real Flyway `V1` and
+    `SeedInitializer`), and PR #44 added concurrency tests to it: 6 suites /
+    31 tests on `7da54e8`. See "F-07" and "F-09".)*
 - **Not covered:** this is a document-accuracy review. It does not re-run
   runtime acceptance, and it does not make `V-081` (official design fidelity)
   pass.
@@ -1846,12 +1967,575 @@ CI, read cancellation and dialog focus containment, then replaced
 
 ---
 
+# Final Engineering Verification — 2026-10-02/03
+
+This part records the engineering verification done after V-090, up to
+`main` @ `7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`. Each section lists what
+was checked, the method, the key evidence, the result, and its limits.
+Detailed measurement tables live in `docs/PERFORMANCE.md` §13–§17. PR bodies
+(#40–#47) hold the full audit logs; temporary scripts and disposable stacks
+were never committed. Unless stated otherwise, browser runs used Chromium at
+375×778, and mutations ran only against disposable Compose projects or
+Testcontainers databases, never the persistent default volume.
+
+**Backend test count history (each correct for its date):** 26 (P2A) → 49
+(P5B/P6) → 51 (P8-B) → 60 (post discovery, CI) → 83 (PR #42, +23 PostgreSQL
+integration tests) → **91** (PR #44, +8 concurrency tests; current).
+**Frontend test history:** none → 15 Vitest tests (PR #43) → **21 tests / 4
+files** (PR #45; current).
+
+## F-01 — First-Page SSR and Lighthouse
+
+**What:** whether server-rendering the default list's first page shortens the
+real first-content path, and how Lighthouse should be read for this app.
+
+**Before SSR (client-only list).** On `main` before PR #36 the list HTML held
+only the loading text; the browser fetched `/api/posts` after hydration.
+Lighthouse 13.5.0 CLI, `--throttling-method=devtools`, default mobile
+412×823 (DPR 1.75), Docker production frontend:
+
+- 2026-10-02 baseline on `80cc2fb`: Performance 75/79/76, LCP
+  3,439/3,365/3,464 ms; LCP element the first post preview; browser
+  `/api/posts` 1.
+- 2026-10-02 on `d5d545a` (3 runs): Performance median 77, LCP median
+  3,467 ms (3,380–3,624), TBT median 472 ms, browser `/api/posts` 1.
+- Trace: HTML ≈0.6 s → JS ≈2.0 s → `/api/posts` start ≈2.3 s → response
+  ≈2.9 s (≈25 ms server work, rest the 562.5 ms emulated latency) → LCP.
+  The request could not start before hydration.
+
+**SSR implementation (PR #36).** `app/page.tsx` fetches the default first
+page server-side and passes it as `initialData`; later pages, likes, and
+search stay client requests. Six Lighthouse runs (same method, 2026-10-02):
+
+| Run | 1 | 2 | 3 | 4 | 5 | 6 | Median |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Performance | 93 | 87 | 94 | 92 | 93 | 93 | 93 |
+| LCP (ms) | 2,401 | 2,819 | 2,313 | 2,509 | 2,194 | 2,183 | 2,357 |
+| TBT (ms) | 147 | 205 | 120 | 130 | 200 | 192 | 169.9 |
+
+- A11y / Best Practices / SEO 100/100/100 in all six; CLS 0.0003; browser
+  initial `/api/posts` 0; LCP element `p.PostListItem_preview`; `/` First
+  Load JS 121 kB (build), `/` changed from static to dynamic.
+- Functional checks (both requester cases): SSR HTML 15 rows, `isLiked`
+  equal in SSR HTML / DOM / backend, 39 rows on scroll without duplicates,
+  likes, search, three back-navigation paths, hydration errors 0 (including a
+  focused 59 s / 59 min 59 s / 23 h 59 min 59 s relative-time test that failed
+  on a `Date.now()` control).
+- Failure fallback at the time (1.5 s timeout): connection refused → 200 in
+  0.04–0.18 s, blackhole → 200 in 1.54–1.60 s, non-2xx → 200; each recovered
+  through the client fetch, and SSR plus browser failure showed the existing
+  error/retry UI.
+
+**Accessibility and SEO (PR #35, before SSR).** Lighthouse Accessibility 96 →
+100 (`color-contrast`) and SEO 91 → 100 (`meta-description`), Best Practices
+100 unchanged, on all three runs and also on `/posts/1` and `/posts/new`.
+
+**Font payload audit (2026-10-02, `d5d545a`, not a code change).** The
+2,057,688 B Pretendard variable file is byte-identical to the official
+`pretendard@1.3.9` file and covers all 11,172 modern Hangul syllables. The
+official variable dynamic subset (92 files) cut font transfer to 344,778 B
+(13 requests) and raised simulated Performance 73 → 82, but under devtools
+throttling it made LCP 3,477 → 4,007 ms and TBT 517 → 755 ms (render-blocking
+CSS 1.0 → 13.7 KB and 13 font requests competing with the API and JS). With
+the current file, blocking `*.woff2` did not change LCP (3,477 vs 3,604 ms),
+so it is not on the LCP path. Decision: `KEEP_CURRENT`.
+
+**Simulated vs devtools throttling.** The same PR #36 build measured with
+Lighthouse's default simulated throttling gave LCP 12,179 / 12,197 /
+12,203 ms and Performance 56. The simulation counts the 2 MB font download
+in its LCP graph, while the observed paint does not wait for the font (the
+font finishes at about 14 s, well after the content paints). A later ≈12 s
+simulated result on the current build (reported with Chrome 154 and
+Lighthouse 12.8.2) therefore matches the historical simulated behavior and
+is not by itself a regression. Simulated throttling is not "wrong": the two
+methods apply different models, and results are comparable only under the
+same browser, Lighthouse version, throttling method, screen, and dataset. The
+regression check for this app uses devtools throttling (F-15).
+
+## F-02 — SSR Seed Freshness and Server Timeout (PR #41)
+
+Details: `docs/PERFORMANCE.md` §17.
+
+- `SEED_FRESH_MS` 30 s → **5 s**. Throttled hard loads: 0 s caused a hydration
+  duplicate fetch in 5/5 runs; 5, 15, and 30 s each had 0/5. The observed
+  seed age at hydration was about 1.65 s, so 5 s was the shortest passing
+  candidate. After any client fetch the list's staleTime is 0 again.
+- `SERVER_FETCH_TIMEOUT_MS` 1.5 s → **2 s**. With a 1.8 s server-only delay,
+  the 2 s budget gave a real-post LCP of 2.98 s versus 4.04 s for the 1.5 s
+  fallback. On a blackhole backend 2 s waits 0.54 s longer and still returns
+  HTTP 200 with the client fallback.
+- Verified after the change: SSR HTML 15 rows, browser initial list request
+  0, page errors 0. PR #45 re-checked the fallback with a real `docker pause`
+  of the backend: `/` returned 200 at about 2.2 s with no rows, the client
+  fetched the first page, and hydration errors were 0.
+- Trade-off: after 5 s a focus or remount may refetch; a hung backend delays
+  the HTML by up to 2 s.
+
+## F-03 — Page-Size Decisions
+
+- **Posts — `KEEP_15_15`** (`docs/PERFORMANCE.md` §13, 2026-10-02). The
+  earlier 39-post whole-traversal comparison (V-090 measurements) is
+  historical. After SSR, the SSR size and the continuation size were measured
+  separately on a disposable 160-post dataset (seed distributions kept) at
+  375×778, CPU 4×, devtools mobile throttling:
+  - SSR 10/15/20: LCP median 2,278 / 2,260 / 2,372 ms with overlapping ranges
+    (noise); +5 rows ≈ +0.9 KB compressed HTML and +100 DOM elements; backend
+    fetch and Next TTFB differences ≈10 ms. 15 keeps 8 rows (~1.2 screens)
+    below the fold.
+  - Continuation 10/15/20 at fixed depths of 30 and 45 posts: 10 needed the
+    most requests and was the only candidate whose loading text and blank
+    area appeared at reading speed; 20 gave no consistent gain over 15 and
+    would need mixed-size branching.
+  - The size is not derived from the total row count: cursor pagination reads
+    `limit + 1` rows per request, and what matters is how much one session
+    consumes, not how many posts exist (42, 1,000, or 100,000).
+- **Comments — initial 2 (product contract), continuation `KEEP_30`**
+  (`docs/PERFORMANCE.md` §15, 2026-10-03, post #2 with 1,411 comments).
+  First More click → rows 639 / 660 / 670 / 725 ms for 10/20/30/50; requests
+  to 120 comments 13 / 7 / 5 / 3; extra loading appearances while skimming
+  8 / 2 / 1 / 2; unused comments on a 25-comment early exit 6 / 16 / 6 / 26.
+  No candidate gave a reason to change 30.
+- Limits: one emulated device and network profile, scripted scroll speeds,
+  HTTP/1.1 `next start`; only the listed candidates were compared, so these
+  are the most reasonable compared values, not global optima.
+
+## F-04 — Prefetch Distance (`rootMargin`)
+
+`docs/PERFORMANCE.md` §14 (PR #38, 2026-10-02). The post list passes
+`0px 0px 500px 0px`; the hook default stays 200px and is still used by
+comments. Earlier "200px" statements for the post list are historical.
+
+- Request → rows took about 0.66 s (API 600–611 ms + DOM 48–78 ms) for every
+  candidate; at a ≈600 px/s skim that is about 400 px of travel.
+- Fast skim to 60 posts (5 runs): 200px waited at every page boundary (15 of
+  15 cycles, longest 305 ms, cumulative 670 ms); 300px at half (10 of 20,
+  cumulative 419 ms); 400px no wait but a 157–230 ms blank area in every run;
+  500px no wait and no blank area (loading text once, 171–272 ms).
+- Reading speed: no candidate waited. No candidate requested a page before
+  scrolling, chained requests, or loaded more on an early exit; the cost of
+  500px is at most one page (15 rows, 5.6 KB) fetched ahead at checkpoints.
+- Branch verification on the 160-post dataset: no request without scrolling,
+  no wait or blank area while skimming, and a full 160-post traversal with no
+  duplicate or missing post and no request after the end; production
+  regression (SSR, likes, search, back navigation) passed.
+- Larger values were not tested. From the measured geometry (sentinel 934 px
+  below the first 375×778 viewport), a margin of about 934 px or more, such as
+  1,000 px, would request page 2 before any scroll, so a larger margin is not
+  automatically better. Viewports about 1,212 px tall or more would also
+  prefetch page 2 once with 500px (geometry, not measured).
+- Comments keep 200px: reading showed no waits; skimming showed one short wait
+  (158–201 ms) in 120 comments (`KEEP_COMMENT_ROOT_MARGIN_200_FOR_NOW`).
+
+## F-05 — Comment Scaling and Virtualization
+
+`docs/PERFORMANCE.md` §15. Post #2 holds the largest thread (1,411 readable
+comments).
+
+- Full load at continuation 30 (3 runs, 47 continuation requests each): DOM
+  about 10,000 elements and JS heap about 11–14 MB at 1,411 comments.
+  Response → DOM per append rose from about 30 ms to 65–88 ms; long tasks
+  over 50 ms went from 0–1 per window up to 600 comments to 13–14 (longest
+  72–82 ms) between 1,000 and 1,411.
+- Scrolling did not degrade: at every checkpoint the probe updated scroll
+  position within 10 ms and showed no frame over 50 ms after the first
+  checkpoint.
+- `gcTime: 0` re-checked: revisiting after 122 or 1,411 loaded comments sent
+  one `limit=2` request, rendered 2 comments with More, and sent no
+  continuation for 3.5 s.
+- Decision: `VIRTUALIZATION_NOT_NEEDED_NOW`. For this dataset and profile the
+  measured cost (append long tasks past about 1,000 comments, under 100 ms)
+  did not justify a separate rendering layer. This is not a general claim
+  that virtualization is unnecessary; the growing append cost is the signal
+  to revisit with longer real conversations or slower devices.
+
+## F-06 — Client Read Retry Policy (PR #40, runtime in PR #45)
+
+Details: `docs/PERFORMANCE.md` §16. One shared QueryClient policy
+(`retryOnceUnlessDeterministicClientError`): `ApiError` 4xx → no retry;
+network, 5xx, parse, and unknown read failures → one retry with the default
+1 s delay. Mutations keep TanStack Query's default of 0 retries.
+
+| Failure | Requests | Result |
+| --- | ---: | --- |
+| 404 detail | 1 | not-found, no retry |
+| 400 continuation (`INVALID_CURSOR`) | 1 | next-page error, manual retry works |
+| 500 then success | 2 | success, error UI never shown |
+| network then success | 2 | success, error UI never shown |
+| invalid JSON then success | 2 | success, error UI never shown |
+| 500 twice / invalid JSON twice | 2 | terminal error, manual recovery, no unhandled rejection |
+| cancelled (superseded or unmounted) | — | aborted, not retried, no error state |
+
+- Why: reads are idempotent, so one retry absorbs transient faults without
+  holding users for several seconds; a write retry could duplicate side
+  effects without idempotency keys.
+- Limit: every 4xx is treated as deterministic. If a retryable 4xx such as 429
+  is introduced, this classification must be revisited.
+
+## F-07 — Real PostgreSQL Integration (PR #42)
+
+- **Method:** `PostgresIntegrationTest` starts one `postgres:16-alpine`
+  Testcontainers container per test JVM; the full Spring context runs the
+  real Flyway `V1` migration and the real `SeedInitializer` with
+  `seed/seed.json`, and tests call the production `JdbcClient` repositories
+  and services. Expected orderings are computed in Java from raw
+  `posts`/`post_likes` rows (raw SQL/JDBC oracle). Tests roll back.
+- **Scope:** latest keyset with same-`created_at` ties across a page boundary
+  and changing limits (2→3→1→5); likes keyset with effective-count ties and
+  `created_at`/`id` tie-breaks; search (case-insensitive, title/content,
+  literal `%`, `_`, `\` with decoys, deleted posts excluded from results and
+  total); `base_like_count` + relational likes aggregate; requester
+  `isLiked`; readable `commentCount`; comment keyset with ties and changing
+  sizes and the largest thread fully traversed; seed imported exactly once
+  with matching counts and deleted flags; identity sequences ahead of
+  `MAX(id)`; schema constraints (duplicate like PK, comment FK,
+  `base_like_count >= 0`); mutation persistence with owner/non-owner/missing
+  outcomes.
+- **Counts at the time:** 83 backend tests, 23 of them new PostgreSQL
+  integration tests (now 91 / 31 with F-09).
+- **Sensitivity:** three bugs injected into `PostRepository` were each caught
+  (an `id ASC` tie-breaker, a likes sort ignoring `post_likes`, disabled
+  backslash escaping). Removing only the explicit `ESCAPE '\'` is not
+  detected, which is expected: backslash is already PostgreSQL's default LIKE
+  escape, so behavior does not change.
+- **Dependency note:** Testcontainers is pinned to `1.21.4` because the
+  Boot-managed 1.21.0 requested Docker API 1.32, which Docker Engine 29
+  rejects. Without a Docker daemon these tests fail rather than skip.
+
+## F-08 — Frontend Cache Consistency (PR #43)
+
+- **Method:** a disposable Compose project (`apr-cache-audit`), Chromium at
+  375×778, backend REST full-cursor traversal and SQL as the oracle (the
+  QueryClient was only inspected, never used as the oracle). **148/148**
+  runtime checks passed in one clean run.
+- **Scope:** create (single POST for 3 rapid submits, prepend with total +1,
+  continuation from the pre-create cursor with 0 duplicates and 0 missing,
+  likes/search invalidated), edit (in-place replacement, old and new search
+  membership refreshed), like (likes lists re-ranked including across the
+  page-1/page-2 boundary), comment create/delete (collapsed and expanded),
+  post delete at the likes page-1 cursor row, failure cases (500 and network
+  for like, comment, delete, edit, create: one request, no retry, caches
+  unchanged, input kept), back navigation and hard refresh, and multiple
+  requesters via `/dev-user`.
+- **Result:** `CACHE_CONSISTENCY_VERIFIED`. No production code changed: the
+  audit confirmed the existing cache strategy and added a Vitest runner with
+  15 deterministic tests for `lib/query/postListCache.ts` (each shown able to
+  fail by removing a guard), plus `npm test` in CI.
+- **Expected behavior noted:** an invalidated search list briefly shows its
+  cached rows until the refetch lands; nothing stale persists.
+
+## F-09 — Mutation Concurrency (PR #44, Part A)
+
+- **Method:** `MutationConcurrencyIntegrationTest` (8 tests) on the
+  Testcontainers PostgreSQL. Each worker calls the real service proxy in its
+  own transaction; a separate JDBC transaction holds `SELECT … FOR UPDATE`
+  and workers are released only after `pg_stat_activity` shows them waiting
+  on the lock.
+- **Scenarios:** same user toggling twice at once, two users liking at once,
+  two comment creates, delete committing while a comment create / like
+  toggle / update waits (each 404, no row created or changed), owner deleting
+  twice (one success, one 404), and an unforced post-delete vs comment-delete
+  race (×20 per run, only the two valid orders observed).
+- **Sensitivity:** removing `FOR UPDATE` made 4 of 8 tests fail, including
+  real `DuplicateKeyException`s from both like-toggle races.
+- **Stability:** the class passed 10/10 consecutive runs; `gradlew clean test`
+  passed 3/3 (91 tests).
+- **Result:** `CONCURRENCY_INVARIANTS_VERIFIED`. No deadlock was observed in
+  these tests, and the current lock ordering shows no obvious cycle (a post
+  delete locks one row). This is not a proof that deadlocks can never occur.
+  Same-post likes serialize on the post row (granularity trade-off).
+
+## F-10 — Mutable Likes Ranking (PR #44, Part B)
+
+- Each likes-sorted page is ordered correctly and the cursor chain always
+  terminates, but a traversal across several requests is **not
+  snapshot-consistent**: the cursor stores a like count that can change
+  between requests.
+- Reproduced on a disposable stack with real REST and cursors:
+  - **Missing:** after page 1 ended at B, another user's like moved C to tie
+    with B but newer, so C ranked above the cursor; the old traversal found
+    43 of 44 rows (C missing) and still ended normally.
+  - **Duplicate:** after page 1 ended at A, an unlike lowered A; the old
+    cursor's page 2 returned A again (44 raw rows, 43 unique).
+  - Both patterns also reproduce inside a search; the latest sort under the
+    same like churn had 0 duplicates and 0 missing.
+- Frontend: the list's dedupe hides duplicates (54 rows, 54 unique ids), but
+  it cannot recover a missing row; a fresh traversal from page 1 restores the
+  current ranking.
+- Decision: `ACCEPTED_MUTABLE_RANKING_TRADEOFF`. Snapshot or versioned
+  cursors would add schema, API, and cache complexity beyond this assignment.
+
+## F-11 — Page and Total Under READ COMMITTED (PR #44, Part C)
+
+- A deliberately high-churn stress run (one writer creating and
+  soft-deleting posts in a loop, four readers calling one search page for
+  30 s) observed 4,204 of 26,288 reads with `items.length ≠ total`, always by
+  ±1. (The audit summary reported about 4,018 writes; the PR body records the
+  read counts.)
+- Cause: under READ COMMITTED the page query and the `COUNT` query are
+  separate statements with separate snapshots, so a commit between them can
+  shift one by one.
+- These numbers come from an artificial stress environment and are not a
+  mismatch rate for normal traffic.
+- Decision: accepted as current metadata semantics (`total` comes from the
+  same request but not the same snapshot); no single-snapshot transaction or
+  stronger isolation was added.
+
+## F-12 — Edge, Failure, and Recovery (PR #45)
+
+Disposable stack `apr-edge-audit`, Chromium at 375×778, faults by route
+interception plus real `docker stop` / `docker pause` of the backend.
+
+- **Inputs:** malformed post IDs (`0`, `-1`, `1.5`, `abc`, `001`, huge) send
+  no request and show not-found; missing, max-safe-integer, and deleted IDs
+  send one GET → 404; a non-owner edit shows the no-permission notice with no
+  PATCH; `limit` 0/51 → 400 and 1/50 → 200; invalid sort, malformed and
+  cross-sort cursors → 400; `q` over 100 code points → 400, exactly 100 →
+  200.
+- **Terminal states:** a zero-result search shows its message and sends no
+  further request; post traversal (latest: SSR page + 2 pages, likes: 3 pages)
+  and comment traversal (post 8: `2 → 30 → 30`, 58/58) end with no
+  duplicate and no request after the end.
+- **Failures and recovery:** post and comment continuation 500/network faults
+  make 2 attempts, keep loaded rows, do not auto-retry on scrolling, and
+  recover with the manual retry to complete traversals; a failed initial
+  search shows the terminal error and recovers.
+- **Cancellation:** debounce sends one request for a typed word; superseded
+  searches and rapid sort changes are aborted without retry or error UI, and
+  the final rows match the backend.
+- **Availability:** a stopped backend leads to the terminal error and a
+  manual retry after restart succeeds without reload; SSR with a paused
+  backend falls back to the client (F-02).
+- **Navigation:** history back/forward, create draft back, likes + search +
+  detail + edit back restore the view with no mutation; a hard refresh resets
+  search/sort as documented (`lib/postListView.ts`).
+- **Result:** `EDGE_FAILURE_BEHAVIOR_VERIFIED`; no production bug. Added only
+  pure Vitest contract tests (`parsePostId`, retry policy,
+  `normalizePostQuery`), bringing the frontend to 21 tests in 4 files.
+- **Accepted trade-offs:** the search input's `maxLength=100` counts UTF-16
+  units (stricter than the API for emoji); sort cannot change while search is
+  open (toolbar design).
+
+## F-13 — Full-Stack CI Gate (PR #46)
+
+- CI jobs on `7da54e8`: `backend` (`./gradlew test` with Testcontainers),
+  `frontend` (`npm ci` → `npm run typecheck` → `npm test` → `npm run build`),
+  and `full-stack-smoke` (runs after both).
+- `full-stack-smoke` (`scripts/ci-full-stack-smoke.sh`) on a clean GitHub
+  Actions runner builds the production images and checks: `docker compose
+  config`, all services healthy, `/health` `{status: ok, db: up}`, the latest
+  post API, the frontend SSR HTML containing that post, `seed_history`
+  `assignment-v1` = 1, and the browser API base baked into the frontend
+  build.
+- Sensitivity: temporarily pointing `API_BASE_URL` at a nonexistent internal
+  host made the SSR assertion fail.
+- The CI run for the `main` merge commit `7da54e8` succeeded (as did #45 and
+  #46).
+- Limit: branch protection is not enabled on `main` (GitHub API `protected:
+  false`). The gates exist and passed on current `main`; merging is not
+  technically blocked on them.
+
+## F-14 — Dependency Security
+
+- **History:** PR #33 updated Next.js/React for security advisories; PR #34
+  moved Next.js 15.5.24 → 15.5.27 (Maintenance LTS) and sharp 0.34.5 → 0.35.5
+  within Next's declared range (npm audit 3 → 2; the remaining two were
+  PostCSS 8.4.31 and Next via PostCSS). PR #47 applied the final patches.
+- **PR #47:** a root `overrides` entry pins `postcss` to `8.5.28`, replacing
+  the vulnerable `8.4.31` that `next@15.5.27` requests (≥ 8.5.23 patches the
+  source-map advisories). This is a project override, not a version Next.js
+  itself declares; compatibility was confirmed by typecheck, tests, build,
+  production Compose, and CI. Spring Boot 3.5.0 → **3.5.16** (Spring
+  Framework 6.2.7 → 6.2.19) on the same 3.5.x line; Testcontainers stays
+  `1.21.4`.
+- **Result:** `npm audit` 0 and `npm audit --omit=dev` 0 (re-checked on
+  `7da54e8` and in the clean clone).
+- **Security review scope** (final security audit, re-checked in code where
+  possible): SQL uses `JdbcClient` parameter binding with no concatenation of
+  request values; sort is an enum whitelist (`INVALID_SORT` otherwise); no
+  `dangerouslySetInnerHTML` or other raw HTML injection path; fetch targets
+  only the configured API bases (no user-controlled host); no custom
+  redirect or middleware; CORS defaults to `http://localhost:*` and
+  `http://127.0.0.1:*` and needs `APP_CORS_ALLOWED_ORIGIN_PATTERNS` in a real
+  deployment; no real secret found; GitGuardian checks passed; CI runs with
+  `contents: read`.
+- **Limits:** no Docker image vulnerability scan (Docker Scout was installed
+  but not logged in); a Spring Boot 4 major migration is out of scope; this
+  review does not claim the absence of all security issues.
+
+## F-15 — Final Lighthouse Regression Check (2026-10-03)
+
+**What:** whether current `main` (`7da54e8`) is in the same performance class
+as the PR #36 SSR build when measured with the recovered historical method.
+
+- **Environment:** Windows 11 Pro; Chrome **153.0.8010.53** (the
+  `chrome.exe` binary, confirmed by launching it; the staged 154 update was
+  not active) via `CHROME_PATH`; Lighthouse **13.5.0** CLI;
+  `--throttling-method=devtools` (request latency 562.5 ms, download
+  1,474.56 kbps, upload 675 kbps, CPU 4×); default mobile 412×823 DPR 1.75;
+  `--chrome-flags="--headless=new"`; storage reset per run; one `curl`
+  warm-up; Docker production stack on `localhost:3000`; persistent dataset
+  (42 posts, 39 readable, first post id 1), the same state as the historical
+  run. Run warnings 0.
+
+| Run | Perf | A11y | BP | SEO | FCP | LCP | TBT | CLS | Speed Index |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 95 | 100 | 100 | 100 | 2,255 | 2,255 | 109 | 0.0003 | 2,709 |
+| 2 | 91 | 100 | 100 | 100 | 2,349 | 2,349 | 212 | 0.0003 | 2,757 |
+| 3 | 93 | 100 | 100 | 100 | 2,246 | 2,246 | 182 | 0.0003 | 2,642 |
+| 4 | 93 | 100 | 100 | 100 | 2,238 | 2,238 | 172 | 0.0003 | 2,639 |
+| 5 | 90 | 100 | 100 | 100 | 2,820 | 2,820 | 0 | 0.0003 | 3,181 |
+| 6 | 94 | 100 | 100 | 100 | 2,296 | 2,296 | 147 | 0.0003 | 2,697 |
+
+| Median (3rd and 4th of 6, averaged) | Historical (PR #36) | Current | Difference |
+| --- | ---: | ---: | ---: |
+| Performance | 93 | 93 | 0 |
+| FCP | 2,357 ms | 2,275 ms | −82 ms |
+| LCP | 2,357 ms | 2,275 ms | −82 ms |
+| TBT | 169.9 ms | 159.2 ms | −10.7 ms |
+| CLS | 0.0003 | 0.0003 | 0 |
+| Speed Index | 2,764 ms | 2,703 ms | −61 ms |
+
+- LCP element identical to the historical runs (the SSR post preview, not a
+  loading shell); the font finished at 13.9–15.0 s, well after LCP; browser
+  `/api/posts` 0 in every run; `/` First Load JS 121 kB.
+- Sanity on the same stack: likes, search ("촉촉", 9), detail and comments
+  (`limit=2`, `댓글(1,411)`, More) worked with 0 console errors.
+- **Result:** `FINAL_RUNTIME_REGRESSION_PASS`, with no browser-version caveat
+  (exact Chrome 153 build used).
+
+## F-16 — Clean-Clone Release Gate (2026-10-03)
+
+**What:** whether GitHub `main` alone reproduces the project with no
+project-local state.
+
+- **Source:** fresh `git clone` into a new directory; branch `main`, HEAD
+  `7da54e8` equal to `origin/main`; clean tree. No `node_modules`, `.next`,
+  backend `build/`, `.env`, or previous database was present or copied. No
+  tracked `.env`, no `env_file`/dotenv reference, no absolute paths; every
+  Compose and Spring setting has a default.
+- **Toolchain:** Git 2.52.0.windows.1, Java 17.0.17, Node 24.12.0 (engine
+  `>=22.12.0`), npm 11.6.2, Docker 29.8.1, Compose 5.5.1.
+- **Frontend:** `npm ci` (0 vulnerabilities), `npm run typecheck`, Vitest 21
+  tests / 4 files, production build: all PASS; `/` 6.22 kB, First Load JS
+  121 kB; `package-lock.json` unchanged.
+- **Backend:** `gradlew.bat clean test` from no `build/`: BUILD SUCCESSFUL, 18
+  suites, 91 tests, 0 failures; 6 Testcontainers integration suites with 31
+  tests passed.
+- **Isolated Compose:** project `apr-final-release-gate`, ports DB 55432,
+  backend 58080, frontend 53000 (`DB_PORT`/`BACKEND_PORT`/`FRONTEND_PORT`);
+  `docker compose config -q` and `up -d --build --wait` passed; db, backend,
+  frontend healthy; new volume `apr-final-release-gate_dbdata`.
+- **Fresh seed vs `seed/seed.json`:** expected posts 42 / comments 2,076
+  computed from the file; actual posts 42 (3 deleted, 39 readable), comments
+  2,076 (81 deleted), `post_likes` 0, `seed_history` `assignment-v1` = 1,
+  Flyway `V1` applied, no duplication.
+- **Identity:** max seeded post 42 → created post 43; max seeded comment
+  2,076 → created comment 2,077; no collision.
+- **API / SSR:** `/health` 200 `{db: up, status: ok}`; latest (total 39, first
+  id 1), likes (first id 25), search "촉촉" (9), detail of post 2 (1,411
+  comments), comments `limit=2`; `/` 200 with 15 post titles, the first
+  post's title and `/posts/1` link, and no loading-only HTML; in the browser,
+  hydration list requests 0, likes/search/detail/comments working, console
+  errors 0.
+- **Wiring:** SSR used `http://backend:8080/api` inside Compose; the client
+  bundle contained `http://localhost:58080/api` and no `localhost:8080`; the
+  browser requested only `localhost:53000` and `localhost:58080`, with 0
+  requests to the old stack ports.
+- **Full-stack smoke:** `scripts/ci-full-stack-smoke.sh` with the release-gate
+  project and ports: PASS.
+- **Persistence across recreation:** created marker post 43
+  (`RELEASE_GATE_171454`, requester `x-user-id: release_gate`), comment 2077,
+  and a like. Before: posts 43, comments 2,077, `post_likes` 1,
+  `seed_history` 1. After `docker compose down` **without `-v`** and `up -d
+  --wait`: all services healthy, `/health` 200, `/` 200, the marker post,
+  comment, and like (likeCount 1, isLiked true) still present; posts 43,
+  comments 2,077, `seed_history` 1, seeded ranges unchanged (42 posts with id
+  ≤ 42, 2,076 comments with id ≤ 2,076): no seed duplication. The marker was
+  then deleted through the API (204, then 404).
+- **Integrity and cleanup:** the clone's `git status` stayed clean
+  (`diff --check` PASS; only ignored build outputs). The release-gate
+  containers, network, volume, and images were removed after confirming the
+  project name; the original repository and the persistent default volume
+  were untouched.
+- **Result:** `CLEAN_CLONE_RELEASE_GATE_VERIFIED`.
+
+---
+
+# Final Engineering Verification Summary
+
+| Area | Evidence | Status |
+| --- | --- | --- |
+| Current `main` | `7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`, CI success | — |
+| Frontend tests | Vitest 21 tests / 4 files | PASS |
+| Backend tests | 91 tests / 18 suites, incl. 31 PostgreSQL Testcontainers tests | PASS |
+| PostgreSQL correctness | F-07 (real Flyway, seed, repositories, injected-bug sensitivity) | VERIFIED |
+| Frontend cache consistency | F-08, 148/148 | VERIFIED |
+| Mutation concurrency | F-09 (8 tests, `FOR UPDATE` sensitivity) | VERIFIED |
+| Edge / failure / recovery | F-12 | VERIFIED |
+| Full-stack CI | F-13 (3 jobs) | PASS on `main` |
+| Dependency audit | `npm audit` 0 / `--omit=dev` 0, Boot 3.5.16 | PASS |
+| Performance regression | F-15: Perf median 93, LCP median 2,275 ms, A11y/BP/SEO 100 | PASS |
+| Reproducibility | F-16 clean clone | VERIFIED |
+
+Current submission scope: **VERIFIED** for the conditions recorded above (one
+Windows development host, Docker Compose, emulated mobile devices, disposable
+and seeded datasets). This does not claim verification of every environment
+or of production conditions.
+
+---
+
 # Final Sign-Off
 
-Do not sign off until:
+## Original sign-off criteria and their status
 
-- `V-001`, `V-002`, `V-003`, `V-004` pass.
-- All applicable behavior scenarios pass.
-- All mandatory requirements are `VERIFIED`.
-- `V-081` passes after visual implementation is compared with the now-available official design source.
-- README accurately reflects the final implementation.
+The criteria defined at the start of the project are kept here with their
+current status:
+
+| Original criterion | Status on `7da54e8` |
+| --- | --- |
+| `V-001`, `V-002`, `V-003`, `V-004` pass. | Met (`PASS`; F-16 re-confirmed boot, seed, and idempotency from a clean clone) |
+| All applicable behavior scenarios pass. | Met (`V-010`–`V-071`, `V-080` `PASS`) |
+| All mandatory requirements are `VERIFIED`. | Met for the behavior scenarios above; `UI-004` depends on `V-081` |
+| `V-081` passes after visual implementation is compared with the now-available official design source. | **Not met**: `V-081` remains `NOT_RUN` |
+| README accurately reflects the final implementation. | `V-090` `PASS` on 2026-10-01; later README changes (for example PRs #37–#39) came with their own reviews and were not re-audited as a whole here |
+
+## Verified engineering gates
+
+- Release gates `V-001` to `V-004`, and all behavioral scenarios `V-010` to
+  `V-071` and `V-080`: `PASS` (dated evidence above, re-confirmed by later
+  sections where behavior changed).
+- `V-090` README accuracy: `PASS` for its date; current values are in the
+  snapshot above.
+- PostgreSQL correctness (F-07), frontend cache consistency (F-08),
+  concurrency invariants (F-09), edge/failure handling (F-12), SSR and
+  performance regression (F-01, F-02, F-15), dependency security (F-14),
+  full-stack CI (F-13), and clean-clone reproducibility (F-16).
+
+## Accepted trade-offs
+
+- Likes-sorted traversal is not snapshot-consistent across requests: rows can
+  be duplicated (hidden by the UI) or missed until a fresh traversal (F-10).
+- Under READ COMMITTED a page and its `total` can differ by one under
+  concurrent writes (F-11).
+- The 2 MB Pretendard file is kept: it is not on the LCP path, and the
+  measured subset alternative made real LCP slower (F-01).
+- No comment virtualization at the current scale (F-05).
+- No Spring Boot 4 major upgrade (F-14).
+- Branch protection is not enforced on `main`; CI gates exist but do not
+  technically block merges (F-13).
+- Same-post likes serialize on the post row (F-09); the SSR page waits up to
+  2 s on a hung backend before falling back (F-02).
+
+## Outstanding / not claimed
+
+- `V-081` official design fidelity remains `NOT_RUN`: no fresh comparison of
+  the final implementation with the official Figma file was run, and the
+  intentional deviations (P8-C retouch, PR #35 contrast) are recorded for
+  that comparison.
+- Production traffic and load behavior, production observability, real
+  authentication (the requester header/cookie is the assignment contract),
+  Docker image vulnerability scanning, and deployment/CD are not verified.
+- Deadlock freedom is not proven in general; deadlocks were not observed in
+  the concurrency tests and no obvious lock cycle was found (F-09).
+- Performance figures come from emulated devices and one host; real devices
+  and HTTP/2 production networking were not measured.
