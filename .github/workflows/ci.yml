@@ -71,8 +71,39 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
       - name: Build and smoke-test production stack
         run: ./scripts/ci-full-stack-smoke.sh
+
+      - name: Run Playwright browser regression tests
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:${{ env.FRONTEND_PORT }}
+          E2E_API_BASE_URL: http://localhost:${{ env.BACKEND_PORT }}/api
+        run: npm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-failure-artifacts
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Compose failure diagnostics
         if: failure()
