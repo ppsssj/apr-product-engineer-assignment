@@ -35,7 +35,7 @@ or `OPEN` labels inside them are history. The current state is:
 - "Backend Structure" and "Frontend Structure" list the actual packages and
   folders.
 
-## Final ADR Status — 2026-10-01
+## Final ADR Status — 2026-10-04
 
 | ADR | Status | Implementation |
 | --- | --- | --- |
@@ -63,6 +63,36 @@ in `docs/VERIFICATION.md` "CI, Read Cancellation, and Dialog Focus Evidence".
   Tab/Shift+Tab inside its enabled buttons, blocks Tab while both buttons are
   disabled during a pending delete, and returns focus to `취소` if a failed
   delete left focus outside. It does not lock background scroll.
+
+## Current Verification Architecture
+
+Verification follows the runtime boundary rather than treating one test type
+as sufficient for every risk:
+
+```text
+JUnit/Mockito + Vitest
+  → PostgreSQL Testcontainers integration
+  → production Docker Compose smoke
+  → selected Chromium Playwright regression
+```
+
+- Backend unit/service tests cover controller contracts, validation,
+  requester resolution, cursor codecs and transaction decisions without
+  requiring a database.
+- Six Testcontainers suites run 31 tests against PostgreSQL 16 with the real
+  Flyway migration and `SeedInitializer`; they cover schema constraints,
+  repository SQL, keyset/search behavior, persistence and concurrent locking.
+- `full-stack-smoke` builds and starts the production Compose stack after the
+  backend and frontend jobs pass, then verifies health, API, SSR, seed history
+  and the baked browser API base.
+- Three committed Playwright flows run in Chromium at 375×778 against that
+  stack. They protect search/likes/mobile invariants, comment More/revisit
+  behavior and delete-dialog keyboard focus. They do not replace the broader
+  manual/runtime evidence.
+
+Exact commands, current counts, CI evidence and automation limits belong to
+`docs/VERIFICATION.md`; decision evolution belongs to
+`docs/ENGINEERING_NOTES.md`.
 
 ---
 
@@ -1396,7 +1426,8 @@ Principles:
 
 # 4. Decisions Left Open Before P1/P3 — Resolution
 
-Before P1/P3 these could not be finalized from documentation alone. Each was later resolved from repository evidence, except the last, which remains open:
+Before P1/P3 these could not be finalized from documentation alone. Every item
+was later resolved from repository evidence:
 
 | Decision | Why it was open | Resolution |
 |---|---|---|
@@ -1405,9 +1436,10 @@ Before P1/P3 these could not be finalized from documentation alone. Each was lat
 | exact Flyway dependencies | depended on the Gradle file and dependency management | `org.flywaydb:flyway-database-postgresql`, version from the Spring Boot BOM (ADR-002) |
 | final styling choice | should not fight an already-installed starter system | none was installed; `globals.css` tokens + CSS Modules (ADR-009) |
 | exact frontend component tree | component decomposition belonged to P4–P6 | "Frontend Structure" above |
-| automated DB integration-test mechanism | should fit the test/build environment | **Still open.** The committed backend tests run without a database, and CI (`.github/workflows/ci.yml`) runs them plus frontend typecheck/build without PostgreSQL. DB-dependent behavior (seed, keyset SQL, soft delete, ownership races) is verified by the recorded runtime acceptance in `docs/VERIFICATION.md`, not by a committed DB test suite. Adding one (for example, a PostgreSQL service in CI or Testcontainers) was not needed to meet the assignment and was not done. |
+| automated DB integration-test mechanism | should fit the test/build environment | Resolved with Testcontainers `postgres:16-alpine`. Six committed suites run 31 tests with the real Spring context, Flyway, seed loader and repositories; concurrency tests use real transactions and row locks. The backend CI job executes the complete 18-suite / 91-test set. |
 
-These are not permission for an agent to guess. Resolve them in the applicable implementation phase using the audited design and repository evidence.
+The dated phase sections retain the earlier uncertainty as history. The table
+above and the final ADR status are the current architecture record.
 
 ---
 
