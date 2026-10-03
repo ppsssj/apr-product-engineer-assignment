@@ -274,24 +274,41 @@ keyboard focus, Escape 종료, popover·dialog를 연 trigger로의 focus 복귀
 
 이 구현의 위험은 happy path보다 boundary에 있습니다. 같은 timestamp의 cursor, 삭제 parent의 child 접근, header/cookie 우선순위, 재기동 seed와 mutation 뒤 여러 cache가 대표적입니다. 그래서 검증을 세 층으로 나눴습니다. 저장소에 커밋된 자동 test, 모든 pull request에서 같은 조건으로 반복되는 CI, 그리고 실제 PostgreSQL·Compose·브라우저에서 확인한 runtime acceptance입니다.
 
-#### 1. 백엔드 자동 test
+#### 1. 저장소 자동 test
 
-백엔드 JUnit/Mockito tests는 requester 우선순위, Unicode validation, cursor 정밀도와 malformed input, seed parsing/readiness, mutation 소유권, soft-delete/not-found, 좋아요와 검색·정렬 계약을 다룹니다. 관련 test는 `backend/src/test/java/com/apr/community` 아래에 있습니다. 이 test들은 controller·service·cursor codec·seed reader 같은 단위로 작성되어 실제 DB 없이 실행되며, DB가 필요한 경계는 아래 runtime 검증에서 확인했습니다.
+백엔드 test는 `backend/src/test/java/com/apr/community` 아래에 있고 두 종류로 나뉩니다.
+
+- **DB 없이 실행되는 JUnit/Mockito test:** controller·service·cursor codec·seed reader 같은 단위로 requester 우선순위, Unicode validation, cursor 정밀도와 malformed input, seed parsing/readiness, mutation 소유권, soft-delete/not-found, 좋아요와 검색·정렬 계약을 다룹니다.
+- **실제 PostgreSQL integration test:** `PostgresIntegrationTest`를 상속한 suite들은 Testcontainers로 `postgres:16-alpine`을 띄운 뒤, 전체 Spring context와 Flyway migration, `SeedInitializer`를 실제 DB에서 실행합니다. seed 적재, schema 제약, repository SQL과 keyset 조회, mutation 영속성, 동시 mutation의 locking처럼 DB가 있어야 확인할 수 있는 경계를 다룹니다.
+
+프론트엔드 Vitest test(`npm test`)는 게시글 ID parsing, 목록 query key 정규화, mutation 뒤 목록 cache 갱신 helper, read retry 정책을 다룹니다. 화면 렌더링이나 브라우저 상호작용은 이 test 범위에 포함되지 않습니다.
 
 #### 2. GitHub Actions CI
 
-로컬에서 실행하던 기본 검사를 리뷰어도 같은 조건으로 확인할 수 있도록 `.github/workflows/ci.yml`을 두었습니다. `main`을 대상으로 한 pull request와 `main` push마다 두 job이 독립적으로 실행됩니다.
+로컬에서 실행하던 기본 검사를 리뷰어도 같은 조건으로 확인할 수 있도록 `.github/workflows/ci.yml`을 두었습니다. `main`을 대상으로 한 pull request와 `main` push마다 세 job이 실행됩니다. `backend`와 `frontend`는 서로 독립적으로 실행되고, `full-stack-smoke`는 두 job이 모두 성공한 뒤에 실행됩니다.
 
 | job | 환경 | 실행 |
 | --- | --- | --- |
-| backend | Ubuntu, Java 17 | 저장소의 Gradle wrapper로 `./gradlew test` |
-| frontend | Ubuntu, Node.js 22 | `npm ci` → `npm run typecheck` → `npm run build` |
+| backend | Ubuntu, Java 17 | 저장소의 Gradle wrapper로 `./gradlew test` (DB 없는 test + Testcontainers PostgreSQL integration test) |
+| frontend | Ubuntu, Node.js 22 | `npm ci` → `npm run typecheck` → `npm test` → `npm run build` |
+| full-stack-smoke | Ubuntu, Docker Compose | production stack build/start → 기본 golden path smoke |
 
-현재 커밋된 백엔드 test는 실제 DB를 요구하지 않으므로 CI는 PostgreSQL이나 Docker Compose를 띄우지 않습니다. 필요 없는 서비스를 추가하지 않아 실패 원인이 test나 build 자체로 좁혀지는 대신, CI가 통과했다는 사실이 실제 DB와 브라우저 동작을 보장하지는 않습니다. CI는 반복 가능한 unit/typecheck/build 관문이고, 실제 DB·Compose·브라우저 동작은 다음 층에서 확인합니다.
+`full-stack-smoke`는 `scripts/ci-full-stack-smoke.sh`로 production Docker Compose stack을 실제로 build·기동합니다. 이어서 다음을 확인합니다.
+
+- `db`·`backend`·`frontend`가 healthy인지
+- `/health`가 DB `up`을 반환하는지
+- 최신 게시글 API가 응답하는지
+- 그 게시글이 frontend SSR HTML에 들어 있는지
+- `seed_history`에 `assignment-v1`이 한 번만 기록됐는지
+- frontend build에 브라우저용 API base URL이 들어갔는지
+
+종료 시에는 실행마다 따로 만든 Compose 자원과 volume을 정리합니다.
+
+따라서 CI는 PR마다 코드 단위 test, 실제 PostgreSQL integration, 프론트엔드 test·build, production Compose 기동과 기본 경로를 반복 확인합니다. 하지만 브라우저에서의 화면 동작이나 전체 cursor 순회 같은 세밀한 검증은 하지 않으므로, CI 통과가 실제 사용 흐름 전체를 보장하지는 않습니다. 그 부분은 다음 층에서 확인합니다.
 
 #### 3. Runtime acceptance
 
-`docs/VERIFICATION.md`에는 실제 PostgreSQL/Compose와 375×778 Chromium으로 다음을 검증한 근거가 있습니다.
+CI의 `full-stack-smoke`가 stack 기동과 기본 경로만 반복 확인하는 것과 달리, `docs/VERIFICATION.md`에는 실제 PostgreSQL/Compose와 375×778 Chromium으로 다음을 더 깊게 검증한 근거가 있습니다.
 
 - fresh volume 전체 기동, `/health` readiness와 alternate ports
 - 원본 ID·삭제 상태·sequence·`seed_history` 멱등성
