@@ -33,7 +33,7 @@ FRONTEND_PORT=13000 BACKEND_PORT=18080 DB_PORT=25432 docker compose up --build
 
 이 과제의 출발점은 완성된 커뮤니티를 다듬는 일이 아니라, 실행 골격과 데이터·디자인을 받아 제품의 빈 경계를 스스로 정의하는 일이었습니다. 따라서 화면 개수만 채우기보다 빈 DB가 같은 상태로 재현되는지, 읽기 규칙이 API와 SQL에서 일관적인지, 긴 목록을 모바일 네트워크에서 끝까지 탐색할 수 있는지, mutation 뒤 여러 화면이 같은 사실을 보여 주는지를 먼저 설계 기준으로 삼았습니다.
 
-공식 AGE-R 앱 소개는 나만의 루틴과 전·후 사진 기록뿐 아니라, 메디큐브 톡에서 AGE-R 유저들과 다양한 정보를 확인하고 공유하는 기능을 주요 기능으로 제시합니다.[^age-r-app] 여기에 과제에서 제공된 `seed/seed.json`이 게시글과 댓글을 중심으로 구성되어 있고, API 역시 게시글·댓글·좋아요 흐름에 집중되어 있다는 점을 함께 봤습니다. 이 두 맥락을 종합해 이번 메디큐브톡은 사람 관계 자체를 소비하는 SNS보다 제품 사용 경험과 질문이 공유·축적되고 다시 탐색되는 커뮤니티에 가깝다고 해석했습니다. 과제 계약에 없는 사용자 관계나 프로필 영역을 새로 확장하기보다, 제목과 본문을 먼저 읽게 하는 목록, 최신순을 보존한 검색·좋아요순 탐색, 댓글 흐름에 집중했습니다. 이 해석은 뒤의 UI hierarchy와 검색·정렬 범위를 정하는 기준이 됐습니다.
+AGE-R 앱을 직접 사용해보며 루틴과 전·후 사진 기록뿐 아니라, 메디큐브톡에서 사용자들이 제품 사용 경험과 질문을 확인하고 공유하는 흐름을 확인했습니다. 공식 앱 소개에서도 메디큐브톡을 AGE-R 사용자들이 다양한 정보를 확인하고 공유하는 기능으로 안내하고 있습니다.[^age-r-app] 여기에 과제에서 제공된 `seed/seed.json`이 게시글과 댓글을 중심으로 구성되어 있고, API 역시 게시글·댓글·좋아요 흐름에 집중되어 있다는 점을 함께 봤습니다. 이런 제품 사용 경험과 과제의 데이터·API 구조를 종합해 이번 메디큐브톡은 사람 관계 자체를 소비하는 SNS보다 제품 사용 경험과 질문이 공유·축적되고 다시 탐색되는 커뮤니티에 가깝다고 해석했습니다. 과제 계약에 없는 사용자 관계나 프로필 영역을 새로 확장하기보다, 제목과 본문을 먼저 읽게 하는 목록, 최신순을 보존한 검색·좋아요순 탐색, 댓글 흐름에 집중했습니다. 이 해석은 뒤의 UI hierarchy와 검색·정렬 범위를 정하는 기준이 됐습니다.
 
 #### 제공된 출발점과 구현한 범위
 
@@ -110,7 +110,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 
 ### 측정으로 정한 요청 단위
 
-첫 구현은 동작을 완성하기 위한 보수적 초기값으로 게시글 10개, 댓글 continuation 20개, `rootMargin` 200px, 검색 debounce 300ms를 사용했습니다. 이 값들은 일반적인 관례를 근거로 확정한 것이 아니므로 기능이 안정된 뒤 375×778 Chromium, 고정 4G(지연 200ms, 다운로드 1.6Mbps), clean seed 39 readable posts 조건에서 후보를 한 번에 하나씩 바꿔 비교했습니다. 최초 댓글 `limit=2`는 과제 계약이므로 실험 대상에서 제외했습니다.
+첫 구현은 동작을 완성하기 위한 보수적 초기값으로 게시글 10개, 댓글 continuation 20개, `rootMargin` 200px, 검색 debounce 300ms를 사용했습니다. 이 값들은 일반적인 관례를 근거로 확정한 것이 아니므로 기능이 안정된 뒤 375×778 Chromium, 고정 4G(지연 200ms, 다운로드 1.6Mbps), clean seed 39 readable posts 조건에서 후보를 한 번에 하나씩 바꿔 비교했습니다. 모바일 웹 과제이므로 로컬의 빠른 네트워크에서는 page size나 선조회 시점의 차이가 가려질 수 있다고 보고, 후보 간 차이를 재현 가능하게 비교하기 위해 다운로드 약 1.6Mbps 수준의 제한된 모바일 네트워크 조건을 고정했습니다. 이 값은 모바일 사용자의 평균 속도가 아니라 비교용 benchmark 조건입니다. 최초 댓글 `limit=2`는 과제 계약이므로 실험 대상에서 제외했습니다.
 
 - 게시글 `10/15/20`: 처음에는 39개 전체 순회의 요청 수로 15를 골랐습니다. 이 비교에는 seed 끝에 도달하는 효과가 섞여 있어, 첫 page SSR 적용 뒤 [게시글 batch size 재측정](#게시글-batch-size-재측정)으로 다시 확인했습니다.
 - 댓글 continuation `10/20/30`: 당시에는 readable 댓글 1,411개인 seed 게시글(`id=2`)을 끝까지 읽는 요청 수(각각 `141/71/47`회)로 비교했습니다. 20→30은 continuation 요청을 약 34% 줄였고 p95는 248ms로 유지됐으며 30개 append에서 관찰 가능한 rendering pause가 없었습니다. 이 비교는 전체 댓글 수에 좌우되므로, 이후 고정 읽기 깊이로 [댓글 continuation 재측정](#댓글-continuation-재측정)을 했습니다.
@@ -274,24 +274,41 @@ keyboard focus, Escape 종료, popover·dialog를 연 trigger로의 focus 복귀
 
 이 구현의 위험은 happy path보다 boundary에 있습니다. 같은 timestamp의 cursor, 삭제 parent의 child 접근, header/cookie 우선순위, 재기동 seed와 mutation 뒤 여러 cache가 대표적입니다. 그래서 검증을 세 층으로 나눴습니다. 저장소에 커밋된 자동 test, 모든 pull request에서 같은 조건으로 반복되는 CI, 그리고 실제 PostgreSQL·Compose·브라우저에서 확인한 runtime acceptance입니다.
 
-#### 1. 백엔드 자동 test
+#### 1. 저장소 자동 test
 
-백엔드 JUnit/Mockito tests는 requester 우선순위, Unicode validation, cursor 정밀도와 malformed input, seed parsing/readiness, mutation 소유권, soft-delete/not-found, 좋아요와 검색·정렬 계약을 다룹니다. 관련 test는 `backend/src/test/java/com/apr/community` 아래에 있습니다. 이 test들은 controller·service·cursor codec·seed reader 같은 단위로 작성되어 실제 DB 없이 실행되며, DB가 필요한 경계는 아래 runtime 검증에서 확인했습니다.
+백엔드 test는 `backend/src/test/java/com/apr/community` 아래에 있고 두 종류로 나뉩니다.
+
+- **DB 없이 실행되는 JUnit/Mockito test:** controller·service·cursor codec·seed reader 같은 단위로 requester 우선순위, Unicode validation, cursor 정밀도와 malformed input, seed parsing/readiness, mutation 소유권, soft-delete/not-found, 좋아요와 검색·정렬 계약을 다룹니다.
+- **실제 PostgreSQL integration test:** `PostgresIntegrationTest`를 상속한 suite들은 Testcontainers로 `postgres:16-alpine`을 띄운 뒤, 전체 Spring context와 Flyway migration, `SeedInitializer`를 실제 DB에서 실행합니다. seed 적재, schema 제약, repository SQL과 keyset 조회, mutation 영속성, 동시 mutation의 locking처럼 DB가 있어야 확인할 수 있는 경계를 다룹니다.
+
+프론트엔드 Vitest test(`npm test`)는 게시글 ID parsing, 목록 query key 정규화, mutation 뒤 목록 cache 갱신 helper, read retry 정책을 다룹니다. 화면 렌더링이나 브라우저 상호작용은 이 test 범위에 포함되지 않습니다.
 
 #### 2. GitHub Actions CI
 
-로컬에서 실행하던 기본 검사를 리뷰어도 같은 조건으로 확인할 수 있도록 `.github/workflows/ci.yml`을 두었습니다. `main`을 대상으로 한 pull request와 `main` push마다 두 job이 독립적으로 실행됩니다.
+로컬에서 실행하던 기본 검사를 리뷰어도 같은 조건으로 확인할 수 있도록 `.github/workflows/ci.yml`을 두었습니다. `main`을 대상으로 한 pull request와 `main` push마다 세 job이 실행됩니다. `backend`와 `frontend`는 서로 독립적으로 실행되고, `full-stack-smoke`는 두 job이 모두 성공한 뒤에 실행됩니다.
 
 | job | 환경 | 실행 |
 | --- | --- | --- |
-| backend | Ubuntu, Java 17 | 저장소의 Gradle wrapper로 `./gradlew test` |
-| frontend | Ubuntu, Node.js 22 | `npm ci` → `npm run typecheck` → `npm run build` |
+| backend | Ubuntu, Java 17 | 저장소의 Gradle wrapper로 `./gradlew test` (DB 없는 test + Testcontainers PostgreSQL integration test) |
+| frontend | Ubuntu, Node.js 22 | `npm ci` → `npm run typecheck` → `npm test` → `npm run build` |
+| full-stack-smoke | Ubuntu, Docker Compose | production stack build/start → 기본 golden path smoke |
 
-현재 커밋된 백엔드 test는 실제 DB를 요구하지 않으므로 CI는 PostgreSQL이나 Docker Compose를 띄우지 않습니다. 필요 없는 서비스를 추가하지 않아 실패 원인이 test나 build 자체로 좁혀지는 대신, CI가 통과했다는 사실이 실제 DB와 브라우저 동작을 보장하지는 않습니다. CI는 반복 가능한 unit/typecheck/build 관문이고, 실제 DB·Compose·브라우저 동작은 다음 층에서 확인합니다.
+`full-stack-smoke`는 `scripts/ci-full-stack-smoke.sh`로 production Docker Compose stack을 실제로 build·기동합니다. 이어서 다음을 확인합니다.
+
+- `db`·`backend`·`frontend`가 healthy인지
+- `/health`가 DB `up`을 반환하는지
+- 최신 게시글 API가 응답하는지
+- 그 게시글이 frontend SSR HTML에 들어 있는지
+- `seed_history`에 `assignment-v1`이 한 번만 기록됐는지
+- frontend build에 브라우저용 API base URL이 들어갔는지
+
+종료 시에는 실행마다 따로 만든 Compose 자원과 volume을 정리합니다.
+
+따라서 CI는 PR마다 코드 단위 test, 실제 PostgreSQL integration, 프론트엔드 test·build, production Compose 기동과 기본 경로를 반복 확인합니다. 하지만 브라우저에서의 화면 동작이나 전체 cursor 순회 같은 세밀한 검증은 하지 않으므로, CI 통과가 실제 사용 흐름 전체를 보장하지는 않습니다. 그 부분은 다음 층에서 확인합니다.
 
 #### 3. Runtime acceptance
 
-`docs/VERIFICATION.md`에는 실제 PostgreSQL/Compose와 375×778 Chromium으로 다음을 검증한 근거가 있습니다.
+CI의 `full-stack-smoke`가 stack 기동과 기본 경로만 반복 확인하는 것과 달리, `docs/VERIFICATION.md`에는 실제 PostgreSQL/Compose와 375×778 Chromium으로 다음을 더 깊게 검증한 근거가 있습니다.
 
 - fresh volume 전체 기동, `/health` readiness와 alternate ports
 - 원본 ID·삭제 상태·sequence·`seed_history` 멱등성
