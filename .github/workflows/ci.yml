@@ -57,3 +57,29 @@ jobs:
       - run: npm test
 
       - run: npm run build
+
+  full-stack-smoke:
+    name: full-stack-smoke
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      COMPOSE_PROJECT_NAME: apr-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      DB_PORT: 25432
+      BACKEND_PORT: 28080
+      FRONTEND_PORT: 23000
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and smoke-test production stack
+        run: ./scripts/ci-full-stack-smoke.sh
+
+      - name: Compose failure diagnostics
+        if: failure()
+        run: |
+          docker compose ps || true
+          docker compose logs --no-color --tail=200 || true
+
+      - name: Remove disposable Compose resources
+        if: always()
+        run: docker compose down -v --remove-orphans
