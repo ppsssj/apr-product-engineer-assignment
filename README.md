@@ -110,7 +110,7 @@ API 계약과 cursor 형식은 그대로 두고 repository predicate만 `(create
 
 ### 측정으로 정한 요청 단위
 
-첫 구현은 동작을 완성하기 위한 보수적 초기값으로 게시글 10개, 댓글 continuation 20개, `rootMargin` 200px, 검색 debounce 300ms를 사용했습니다. 이 값들은 일반적인 관례를 근거로 확정한 것이 아니므로 기능이 안정된 뒤 375×778 Chromium, 고정 4G(지연 200ms, 다운로드 1.6Mbps), clean seed 39 readable posts 조건에서 후보를 한 번에 하나씩 바꿔 비교했습니다. 최초 댓글 `limit=2`는 과제 계약이므로 실험 대상에서 제외했습니다.
+첫 구현은 동작을 완성하기 위한 보수적 초기값으로 게시글 10개, 댓글 continuation 20개, `rootMargin` 200px, 검색 debounce 300ms를 사용했습니다. 이 값들은 일반적인 관례를 근거로 확정한 것이 아니므로 기능이 안정된 뒤 375×778 Chromium, 고정 4G(지연 200ms, 다운로드 1.6Mbps), clean seed 39 readable posts 조건에서 후보를 한 번에 하나씩 바꿔 비교했습니다. 모바일 웹 과제이므로 로컬의 빠른 네트워크에서는 page size나 선조회 시점의 차이가 가려질 수 있다고 보고, 후보 간 차이를 재현 가능하게 비교하기 위해 다운로드 약 1.6Mbps 수준의 제한된 모바일 네트워크 조건을 고정했습니다. 이 값은 모바일 사용자의 평균 속도가 아니라 비교용 benchmark 조건입니다. 최초 댓글 `limit=2`는 과제 계약이므로 실험 대상에서 제외했습니다.
 
 - 게시글 `10/15/20`: 처음에는 39개 전체 순회의 요청 수로 15를 골랐습니다. 이 비교에는 seed 끝에 도달하는 효과가 섞여 있어, 첫 page SSR 적용 뒤 [게시글 batch size 재측정](#게시글-batch-size-재측정)으로 다시 확인했습니다.
 - 댓글 continuation `10/20/30`: 당시에는 readable 댓글 1,411개인 seed 게시글(`id=2`)을 끝까지 읽는 요청 수(각각 `141/71/47`회)로 비교했습니다. 20→30은 continuation 요청을 약 34% 줄였고 p95는 248ms로 유지됐으며 30개 append에서 관찰 가능한 rendering pause가 없었습니다. 이 비교는 전체 댓글 수에 좌우되므로, 이후 고정 읽기 깊이로 [댓글 continuation 재측정](#댓글-continuation-재측정)을 했습니다.
