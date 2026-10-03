@@ -2477,10 +2477,11 @@ project-local state.
 | Performance regression | F-15: Perf median 93, LCP median 2,275 ms, A11y/BP/SEO 100 | PASS |
 | Reproducibility | F-16 clean clone | VERIFIED |
 
-Current submission scope: **VERIFIED** for the conditions recorded above (one
-Windows development host, Docker Compose, emulated mobile devices, disposable
-and seeded datasets). This does not claim verification of every environment
-or of production conditions.
+Engineering verification scope: **VERIFIED** for the conditions recorded above
+(one Windows development host, Docker Compose, emulated mobile devices,
+disposable and seeded datasets). Final assignment sign-off remains pending
+`V-081` official design fidelity verification. This does not claim verification
+of every environment or of production conditions.
 
 ---
 
