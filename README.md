@@ -101,25 +101,32 @@ query key에는 page size, `latest`/`likes`, 정규화된 검색어가 들어가
 변경 이유가 다른 책임을 분리했습니다. UI affordance는 보안 경계가 아니며 service authorization이 최종 판단입니다.
 
 ```mermaid
-flowchart LR
-    UI["Next.js App Router"] --> F["features/*"]
-    F --> Q["TanStack Query / API"]
-    Q --> C["Spring Controller"]
-    C --> D{"Request type"}
+flowchart TB
+    subgraph FE["Frontend"]
+        direction LR
+        UI["App Router"] --> F["features/*"] --> Q["Query / API cache<br/>patch / invalidate"]
+    end
 
-    D -->|Read| R["Read Service"]
-    R --> K["Keyset cursor / query policy"]
-    K --> RJ["JdbcClient Repository"]
-    RJ --> RDB["PostgreSQL"]
+    subgraph BE["Backend"]
+        direction TB
+        C{"Controller boundary"}
+        C -->|Read| R["Read service<br/>cursor + query policy"]
+        C -->|Mutation| M["Mutation service<br/>validate readability + ownership"]
+        M --> L["Lock only the required<br/>existing rows"]
+        R --> RR["JdbcClient read"]
+        L --> WR["JdbcClient mutation"]
+    end
 
-    D -->|Mutation| M["Mutation Service"]
-    M --> V["Validation / Readability / Ownership"]
-    V --> L["Required rows: SELECT ... FOR UPDATE"]
-    L --> MJ["JdbcClient Repository"]
-    MJ --> MDB["PostgreSQL"]
-    MDB --> X["Transaction commit"]
-    X -. "server-confirmed response" .-> Q
-    Q --> CQ["Exact cache patch / Invalidate"]
+    subgraph DB["Database · PostgreSQL"]
+        direction LR
+        RD[("Read")]
+        WD[("Write")] --> X["Commit"]
+    end
+
+    Q --> C
+    RR --> RD
+    WR --> WD
+    X -. "server-confirmed" .-> Q
 ```
 
 backend의 `RequesterResolver`, `MutationValidator`, cursor codec과 error handler는 횡단 규칙을 한곳에 둡니다. frontend page는 route parameter를 feature에 연결하는 얇은 경계이고, query key와 cache 갱신은 `frontend/lib/query`가 담당합니다. 실제 class/file 책임과 request 흐름은 [Architecture](docs/ARCHITECTURE.md)에 있습니다.
@@ -152,20 +159,12 @@ post/comment `DELETE`는 physical delete가 아니라 `is_deleted = TRUE` update
 Flyway는 schema version을, `SeedInitializer`와 `seed_history`는 고정 입력의 적재 여부를 관리합니다.
 
 ```mermaid
-flowchart TD
+flowchart TB
     A["Application start"] --> B["Flyway migration"]
-    B --> C["SeedInitializer transaction"]
-
-    C --> D["Insert seed with original IDs"]
-    D --> E["Apply deleted ID markers"]
-    E --> F["Sync identity sequences"]
-    F --> G["Write seed_history: assignment-v1"]
-    G --> H["Transaction commit"]
-
-    H --> I["SeedReadiness = READY"]
-    I --> J["/health = 200"]
-
-    C -. "before commit" .-> K["/health = 503 starting"]
+    B --> C["SeedInitializer transaction<br/>Insert seed rows → deleted markers<br/>Identity sync → record seed_history"]
+    C --> D["Transaction commit"]
+    C -. "before commit" .-> S["/health = 503<br/>starting"]
+    D -->|after commit| R["SeedReadiness = READY<br/>/health = 200"]
 ```
 
 posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 있으면 재기동 때 seed를 다시 써 runtime data를 되돌리지 않습니다. 실패하면 marker가 없으므로 다음 시작에서 적재와 sequence sync를 다시 시도합니다.
