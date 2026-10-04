@@ -140,15 +140,24 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 | UI-001 | Product is implemented as mobile web. | §4 | VERIFIED |
 | UI-002 | Primary target viewport is 375px. | §4 | VERIFIED |
 | UI-003 | Desktop-specific adaptation is not required. | §4 | VERIFIED |
-| UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | TODO |
+| UI-004 | Official Figma design is reflected as closely as possible when available. | §4 | VERIFIED |
 | UI-005 | Undefined design/flow details may be completed reasonably. | §4 | VERIFIED |
 | UI-006 | Avatar uses one of the three provided avatar assets. | §4 | VERIFIED |
 | UI-007 | Avatar selection policy may be implementation-defined. | §4 | VERIFIED |
 | UI-008 | Any intentional UI/UX improvement is documented in README with rationale. | §4 | VERIFIED |
 
-> The official Figma source is now available and audited in `docs/UI_SPEC.md`. `UI-004` remains `TODO` because acquiring/auditing the design is not the same as implementing or acceptance-verifying visual fidelity.
+> Final V-081 audit (2026-10-04): `UI-004` is `VERIFIED`. The official Figma
+> file/node mapping was directly revalidated, all 12 repository-preserved
+> official exports plus the shared edit-form state were compared with the
+> 375×778 Chromium implementation, and no accidental mismatch was found. See
+> `docs/DESIGN_COMPARISON.md` and V-081 in `docs/VERIFICATION.md`.
 >
-> P4: `UI-006`/`UI-007` are `VERIFIED` — every list avatar is one of `/avatar-1.png`–`/avatar-3.png`, chosen by `frontend/lib/avatar.ts` `avatarFor()` (`stableHash(author) % 3`), identical for one author across rows and reloads. `UI-001`, `UI-002`, and `UI-004` stay `TODO`: only the list screen exists, V-080 needs every required screen, and V-081 was not run (no fresh Figma MCP comparison; see `docs/VERIFICATION.md`).
+> Historical P4 status: `UI-006`/`UI-007` were `VERIFIED` — every list avatar
+> was one of `/avatar-1.png`–`/avatar-3.png`, chosen by
+> `frontend/lib/avatar.ts` `avatarFor()` (`stableHash(author) % 3`), identical
+> for one author across rows and reloads. At that stage `UI-001`, `UI-002`, and
+> `UI-004` were still `TODO`: only the list screen existed, V-080 needed every
+> required screen, and V-081 had not been run.
 >
 > P8-B:
 >
@@ -161,8 +170,8 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 >   - failure handling that keeps input.
 >
 >   Their values are recorded as `PRODUCT_DECISION`s in `docs/UI_SPEC.md`.
-> - `UI-004` stays `TODO` until V-081 compares against the official Figma
->   source.
+> - Historical P8-B status: `UI-004` stayed `TODO` pending V-081 comparison
+>   against the official Figma source.
 > - `UI-008` (README) belongs to P9.
 
 ---
@@ -340,8 +349,9 @@ Base path: `http://localhost:8080/api`
 > every failure/ownership combination, other browsers, visual regression and
 > Lighthouse remain outside that Playwright set.
 >
-> `UI-004` stays `TODO`: Playwright verifies selected behavior, not pixel-level
-> fidelity to the official Figma. V-081 remains `NOT_RUN`.
+> Playwright verifies selected behavior, not official-Figma fidelity. That
+> separate comparison is now complete: V-081 is `PASS`, and `UI-004` is
+> `VERIFIED` (see `docs/DESIGN_COMPARISON.md`).
 
 ---
 

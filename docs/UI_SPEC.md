@@ -30,6 +30,11 @@ Repository assets such as Pretendard and the three avatars are recorded as repos
 
 Audit evidence was collected from the actual Figma node tree and rendered frame output. Exact values below are included only when the frame/node evidence exposed them.
 
+The final V-081 comparison completed on `2026-10-04` with no accidental
+mismatch. Its full coverage matrix, representative evidence, and preserved
+intentional-deviation classifications are in
+[`DESIGN_COMPARISON.md`](DESIGN_COMPARISON.md).
+
 ## 4. Screen and State Inventory
 
 All inspected top-level frames are `375 × 778` (`DESIGN_DEFINED`).

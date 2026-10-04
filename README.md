@@ -169,7 +169,7 @@ posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 �
 
 공식 Figma의 typography·색상·핵심 화면 의미를 유지하면서 정의되지 않은 상태는 글·대화 중심 community 해석과 375×778 실행 결과로 보완했습니다. 목록은 제목 → 본문 preview → 작성자·반응·시간의 content-first hierarchy를 사용하고, 검색과 latest/likes sort는 한 줄 discovery toolbar에 배치했습니다. 수정·삭제 두 command에는 full-width bottom sheet보다 trigger와 관계가 분명한 non-modal popover를 선택하되 destructive delete는 별도 confirmation dialog로 유지했습니다.
 
-최초·후속 loading/error/retry와 mutation pending도 정적 디자인에 없다는 이유로 생략하지 않았습니다. 다만 이를 공식 Figma와 pixel 단위로 일치한다고 주장하지 않습니다. design/product decision 구분은 [UI Spec](docs/UI_SPEC.md)에 있으며 최종 공식 비교 V-081은 여전히 `NOT_RUN`입니다.
+최초·후속 loading/error/retry와 mutation pending도 정적 디자인에 없다는 이유로 생략하지 않았습니다. 다만 이를 공식 Figma와 pixel 단위로 일치한다고 주장하지 않습니다. design/product decision 구분은 [UI Spec](docs/UI_SPEC.md)에 있으며 최종 공식 비교 V-081은 `PASS`입니다. 근거와 전체 coverage는 [Official Figma Comparison](docs/DESIGN_COMPARISON.md)에 기록했습니다.
 
 ### `aria-modal` 이후에도 확인한 keyboard focus
 
