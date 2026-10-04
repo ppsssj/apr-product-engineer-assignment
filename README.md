@@ -45,10 +45,10 @@ APR이 제공한 범위는 Java 17/Spring Boot 3.5와 JDBC·PostgreSQL 연결, `
 
 | 선택 | 해결한 문제와 선택 이유 | 수용한 비용 |
 | --- | --- | --- |
-| Spring `JdbcClient` | soft delete, requester별 `isLiked`, derived count와 cursor SQL을 직접 읽고 `EXPLAIN`으로 확인하기 위해 명시적 SQL을 유지했습니다.[^spring-jdbc-client] | ORM보다 query와 row mapping을 직접 관리합니다. |
-| Flyway | 빈 PostgreSQL에서 schema를 재현하고 version·checksum 이력을 남깁니다. 고정 seed 적재 여부와 schema 변경 이력을 분리했습니다.[^spring-flyway] | 적용된 migration은 수정하지 않고 새 migration으로 전진해야 합니다. |
-| TanStack Query | 목록·상세·댓글이라는 server state의 page, cache, loading/error, invalidation과 cancellation을 한 계층에서 관리합니다.[^tanstack-cancellation] | query key와 mutation 뒤 cache 전략은 application이 명시해야 합니다. |
-| CSS Modules | 작은 mobile UI에서 component 가까이에 style 근거를 두고 class 충돌을 막았습니다. | UI kit 없이 일부 CSS 선언을 반복합니다. |
+| Spring `JdbcClient` | raw JDBC를 직접 조립한 것이 아니라 Spring `JdbcClient`를 사용했습니다. soft delete, requester별 `isLiked`, derived like count, keyset cursor와 locking SQL을 직접 읽고 검증할 수 있어 현재 규모에서는 query visibility를 우선했습니다.[^spring-jdbc-client] | ORM의 entity mapping·dirty checking·repository abstraction 편의를 포기하고 SQL과 row mapping을 직접 관리합니다. |
+| Flyway | migration ordering과 checksum 이력으로 빈 PostgreSQL boot와 schema evolution을 재현하고, 고정 seed lifecycle과 schema lifecycle을 분리했습니다.[^spring-flyway] | 도입 복잡도는 작지만 적용된 migration을 수정하지 않고 별도 migration lifecycle을 계속 관리해야 합니다. |
+| TanStack Query | 목록·상세·댓글 server state와 mutation cache를 관리하고, 서버 응답으로 증명 가능한 변경은 exact patch, membership·ordering 변화는 invalidate합니다.[^tanstack-cancellation] | query key와 invalidation policy를 application이 명시하고 모든 cache 조합을 검증해야 합니다. |
+| CSS Modules | 375px 디자인을 component-local하게 정밀 조정하고 class 충돌을 막았습니다. | 별도 UI framework abstraction을 만들지 않아 일부 CSS 선언을 반복합니다. |
 
 선택의 후보와 변화 과정, primary source 전체는 [Engineering Notes](docs/ENGINEERING_NOTES.md)에 정리했습니다.
 
@@ -115,6 +115,22 @@ App Router page                  route 경계
 
 backend의 `RequesterResolver`, `MutationValidator`, cursor codec과 error handler는 횡단 규칙을 한곳에 둡니다. frontend page는 route parameter를 feature에 연결하는 얇은 경계이고, query key와 cache 갱신은 `frontend/lib/query`가 담당합니다. 실제 class/file 책임과 request 흐름은 [Architecture](docs/ARCHITECTURE.md)에 있습니다.
 
+대표 read와 mutation은 다음 경계를 통과합니다.
+
+```text
+GET /posts
+→ PostReadService
+→ latest / likes keyset cursor
+→ JdbcClient
+→ PostgreSQL
+
+post / comment / like mutation
+→ validation + readability / ownership check
+→ 필요한 post·aggregate row를 SELECT ... FOR UPDATE
+→ mutation commit
+→ TanStack Query exact patch 또는 invalidate
+```
+
 - Controller는 HTTP parameter/body와 response boundary만 다룹니다.
 - Read service는 cursor와 조회 계약을, mutation service는 validation·ownership·transaction을 담당합니다.
 - Repository는 HTTP status를 결정하지 않고 SQL primitive와 row mapping만 제공합니다.
@@ -169,7 +185,35 @@ posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 �
 
 공식 Figma의 typography·색상·핵심 화면 의미를 유지하면서 정의되지 않은 상태는 글·대화 중심 community 해석과 375×778 실행 결과로 보완했습니다. 목록은 제목 → 본문 preview → 작성자·반응·시간의 content-first hierarchy를 사용하고, 검색과 latest/likes sort는 한 줄 discovery toolbar에 배치했습니다. 수정·삭제 두 command에는 full-width bottom sheet보다 trigger와 관계가 분명한 non-modal popover를 선택하되 destructive delete는 별도 confirmation dialog로 유지했습니다.
 
-최초·후속 loading/error/retry와 mutation pending도 정적 디자인에 없다는 이유로 생략하지 않았습니다. 다만 이를 공식 Figma와 pixel 단위로 일치한다고 주장하지 않습니다. design/product decision 구분은 [UI Spec](docs/UI_SPEC.md)에 있으며 최종 공식 비교 V-081은 여전히 `NOT_RUN`입니다.
+최초·후속 loading/error/retry와 mutation pending도 정적 디자인에 없다는 이유로 생략하지 않았습니다. 다만 이를 공식 Figma와 pixel 단위로 일치한다고 주장하지 않습니다. design/product decision 구분은 [UI Spec](docs/UI_SPEC.md)에 있으며 최종 공식 비교 V-081은 `PASS`입니다. 근거와 전체 coverage는 [Official Figma Comparison](docs/DESIGN_COMPARISON.md)에 기록했습니다.
+
+아래 Official 이미지는 V-081에서 현재 file/node mapping을 다시 확인한 공식 Figma frame의 repository-preserved export이고, 오른쪽은 production Compose의 Chromium 375×778 구현입니다.
+
+<table>
+  <tr><th colspan="2">목록</th></tr>
+  <tr><th>Official Figma</th><th>Current implementation</th></tr>
+  <tr>
+    <td align="center"><img src="design/design-export/755-8831-post-list.png" width="165" alt="Official Figma post-list frame export"></td>
+    <td align="center"><img src="docs/assets/design-comparison/post-list-runtime.png" width="165" alt="Current post list at 375 by 778"></td>
+  </tr>
+  <tr><td colspan="2">공식 typography·색상·FAB basis를 유지하고, discovery toolbar와 content-first hierarchy, 108px row rhythm을 적용했습니다.</td></tr>
+  <tr><th colspan="2">상세</th></tr>
+  <tr><th>Official Figma</th><th>Current implementation</th></tr>
+  <tr>
+    <td align="center"><img src="design/design-export/755-12645-detail-other-many-comments.png" width="165" alt="Official Figma post-detail frame export"></td>
+    <td align="center"><img src="docs/assets/design-comparison/post-detail-runtime.png" width="165" alt="Current post detail at 375 by 778"></td>
+  </tr>
+  <tr><td colspan="2">title·body·like·comments·More·composer 구조를 유지하면서 byline과 metadata hierarchy를 compact하게 다듬었습니다.</td></tr>
+  <tr><th colspan="2">Post menu</th></tr>
+  <tr><th>Official Figma</th><th>Current implementation</th></tr>
+  <tr>
+    <td align="center"><img src="design/design-export/830-139-detail-own-action-sheet.png" width="165" alt="Official Figma own-post action sheet frame export"></td>
+    <td align="center"><img src="docs/assets/design-comparison/post-menu-runtime.png" width="165" alt="Current own-post anchored popover at 375 by 778"></td>
+  </tr>
+  <tr><td colspan="2">Figma의 scrim + bottom sheet를 두 command와 trigger의 공간 관계가 분명한 anchored popover로 바꿨습니다. destructive delete는 별도 confirmation dialog를 유지합니다.</td></tr>
+</table>
+
+**12 official frames + shared edit state를 비교했고, V-081은 `PASS`, accidental mismatch는 `0`입니다.** 차이의 기존 rationale와 전체 matrix는 [Official Figma Comparison](docs/DESIGN_COMPARISON.md)에 있습니다.
 
 ### `aria-modal` 이후에도 확인한 keyboard focus
 
@@ -186,11 +230,15 @@ posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 �
 
 boundary를 DB 없이 확인할 수 있는 규칙, 실제 PostgreSQL이 필요한 규칙, browser가 필요한 동작으로 나눴습니다.
 
-| 층 | 현재 범위 | 최신 결과 |
-| --- | --- | ---: |
-| Backend JUnit/Mockito + PostgreSQL Testcontainers | controller/service/cursor/seed, 실제 Flyway·SQL·constraint·locking/concurrency | 18 suites / 91 tests, 이 중 Testcontainers 6 suites / 31 tests |
-| Frontend Vitest | ID parsing, query key, cache update helper, retry boundary | 4 files / 21 tests |
-| GitHub Actions | backend와 frontend 뒤 production Compose smoke + selected Playwright | 최신 main PASS |
+| 영역 | 대표 evidence | 현재 경계·결과 |
+| --- | --- | --- |
+| Backend | controller/service/cursor/seed | 18 suites / 91 tests |
+| PostgreSQL integration | 실제 Flyway·SQL·constraint·locking/concurrency | Testcontainers 6 suites / 31 tests |
+| Frontend | ID parsing, query key, cache helper, retry boundary | Vitest 4 files / 21 tests |
+| Browser | Chromium 375×778 | Playwright 3 core flows |
+| Production runtime | Docker Compose build/start, health·API·SSR·seed marker·browser API base | `full-stack-smoke` PASS |
+| Design | 12 official frames + shared edit state | V-081 `PASS`, accidental mismatch 0 |
+| Reproducibility | 빈 clone·새 volume·재기동 persistence | clean-clone gate VERIFIED |
 
 동시 mutation은 service의 실제 transaction과 `SELECT ... FOR UPDATE`를 Testcontainers PostgreSQL에서 여러 worker로 실행해 검증했습니다. mock으로 “lock method가 호출됐다”만 확인하지 않고, worker가 DB lock을 기다리는 상태와 lock 제거 시 실패하는 sensitivity도 확인했습니다.
 
@@ -217,9 +265,10 @@ Playwright 밖의 runtime acceptance에는 다음이 남아 있습니다.
 ### 현재 tradeoff와 확장 조건
 
 - **긴 댓글 virtualization:** 1,411개를 모두 적재하면 약 10,000 DOM elements, 약 1,000개 이후 append는 50ms 이상·최대 약 80ms였지만 측정 환경에서 scroll 반응 저하는 없었습니다. 더 긴 실제 대화나 저사양 기기에서 체감 문제가 확인되면 visible window만 mount하는 방식을 검토합니다.
-- **변하는 좋아요 순위:** mutable count가 page 사이에서 이동할 수 있어 duplicate ID를 제거하지만 snapshot ranking은 두지 않았습니다. 동시 반응과 page 깊이가 커져 제품 문제가 되면 version/snapshot 비용을 비교합니다.
+- **변하는 좋아요 순위:** rank가 page 요청 사이에 움직이면 duplicate 또는 missing row가 생길 수 있습니다. duplicate는 client가 ID로 제거하지만 이미 cursor 위로 이동한 missing row는 현재 traversal에서 복구하지 못합니다. assignment 규모에서는 snapshot/version 비용보다 이 한계를 수용했습니다.
+- **Requester는 인증이 아님:** `x-user-id` header/cookie는 과제의 ownership contract이며 production authentication·session 보안을 제공하지 않습니다.
 - **검색 규모:** readable 39 posts에는 escaped substring search가 충분합니다. latency나 품질 문제가 실제 query에서 나타나면 PostgreSQL full-text search와 index를 측정합니다.
-- **Visual regression:** 핵심 behavior만 Chromium CI에 있습니다. 화면 변경 빈도와 회귀 비용이 커지면 stable screenshot baseline과 Firefox/WebKit을 추가합니다.
+- **검증 환경:** browser automation과 visual 확인은 Chromium 375×778 중심입니다. Firefox/WebKit visual regression, production traffic/load·observability·CD는 검증 범위가 아닙니다.
 
 장기적으로 대화가 충분히 쌓여 좋은 사용법이 여러 글에 흩어지는 문제가 생기면, 반복 참조되는 경험을 `제품 → 순서 → 부위 → 사용량 → 주의사항` 형태의 따라 할 수 있는 guide로 연결할 수 있습니다. 현재 저장소에는 이 domain이 없으며 실제 사용 근거가 생긴 뒤 검토할 제품 방향입니다.
 

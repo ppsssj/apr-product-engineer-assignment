@@ -396,7 +396,8 @@ window; the initial image-build time is intentionally outside those values.
   - No dependency, schema, Compose, seed, or README change.
 - **Data:** all temporary likes were reverted, and temporary posts and
   comments were soft-deleted.
-- **V-081:** stays `NOT_RUN`; the toolbar is an intentional deviation.
+- **Historical V-081 status at this stage:** `NOT_RUN`; the toolbar was
+  recorded as an intentional deviation for the later final comparison.
 
 ---
 
@@ -1757,19 +1758,19 @@ Implementation matches official design as closely as practical, with any intenti
 - Limitation: Official Figma node had been previously audited into docs/UI_SPEC.md, but a fresh MCP comparison was unavailable because the Starter-plan tool-call limit was exhausted.
 - Measured in Chromium against the `docs/UI_SPEC.md` `DESIGN_DEFINED` values for node `755:8831`: frame regions (header 48, list y=56, row 118, content 343×93 at x=16/y=+12, divider 343×1), avatar 18×18 circular, FAB 50×50 at x=310/y=679, app title Bold 20/28 `#292828`, post title Medium 16/24 `#292828`, preview Regular 14/18 `#979EA9`, metadata Regular 12/16 with author `#5E5E5E` and counts/time `#979EA9`, Pretendard loaded.
 - This proves conformance to the recorded spec values, not to the Figma frame. Title/preview clamps, metadata gaps, icon paths/sizes, FAB red/shadow, and inner spacing are `PRODUCT_DECISION` values recorded in `docs/UI_SPEC.md` and were not compared with Figma. The divider uses the existing `--color-border-light` token as an implementation choice, not a Figma-exact mapping.
-- Only the list screen exists. The result remains `NOT_RUN`.
+- Only the list screen existed. At that stage, the result was `NOT_RUN`.
 
 ### P5A Partial Evidence — 2026-09-29
 
-- Detail typography matched the `docs/UI_SPEC.md` `DESIGN_DEFINED` values (title Bold 18/26, author Bold 15/22, body Regular 14/18, heading Bold 16/24, `#292828`, liked `#FF8DA1`). Layout offsets, avatar sizes, comment typography, icons, and the More button were estimated from local PNG exports of the official frames (`755-10420`, `755-10774`, `755-12645`, `755-13104`, `769-142`) and are `PRODUCT_DECISION` values, not Figma node measurements. Comparing against local PNGs does not constitute V-081; the result remains `NOT_RUN`.
+- Detail typography matched the `docs/UI_SPEC.md` `DESIGN_DEFINED` values (title Bold 18/26, author Bold 15/22, body Regular 14/18, heading Bold 16/24, `#292828`, liked `#FF8DA1`). Layout offsets, avatar sizes, comment typography, icons, and the More button were estimated from local PNG exports of the official frames (`755-10420`, `755-10774`, `755-12645`, `755-13104`, `769-142`) and are `PRODUCT_DECISION` values, not Figma node measurements. Comparing against local PNGs did not constitute V-081; at that stage, the result was `NOT_RUN`.
 
 ### P5B Partial Evidence — 2026-09-29
 
-- Composer region, dialog geometry, and dialog copy follow `docs/UI_SPEC.md`. Internal spacing, colors, and the `등록` control are PNG-estimated `PRODUCT_DECISION` values (local exports `755-12175`, `755-13104`, `755-12645`), not Figma node measurements. The result remains `NOT_RUN`.
+- Composer region, dialog geometry, and dialog copy followed `docs/UI_SPEC.md`. Internal spacing, colors, and the `등록` control were PNG-estimated `PRODUCT_DECISION` values (local exports `755-12175`, `755-13104`, `755-12645`), not Figma node measurements. At that stage, the result was `NOT_RUN`.
 
 ### P6 Partial Evidence — 2026-09-29
 
-- Create/edit fixed action (343×56 at y=690 in the 68 + 26 region), the action sheet (375×224 at y=554), the post delete dialog (327×264 at 24, 257), and the toast (181×40 at 97.5, 657) match `docs/UI_SPEC.md`. Other values are PNG-estimated `PRODUCT_DECISION`s. No fresh Figma comparison was run, so the result remains `NOT_RUN`.
+- Create/edit fixed action (343×56 at y=690 in the 68 + 26 region), the action sheet (375×224 at y=554), the post delete dialog (327×264 at 24, 257), and the toast (181×40 at 97.5, 657) matched `docs/UI_SPEC.md`. Other values were PNG-estimated `PRODUCT_DECISION`s. No fresh Figma comparison had been run, so the result was `NOT_RUN` at that stage.
 
 ### P7-A Local SVG and Chromium Evidence — 2026-09-30
 
@@ -1789,7 +1790,7 @@ Implementation matches official design as closely as practical, with any intenti
   this environment, clipping the right-aligned time and fixed FAB from its
   375px bitmap. DOM/CSS evidence confirms both elements remain present with
   their existing right-aligned/fixed rules. This is not fresh Figma MCP
-  comparison evidence; V-081 remains `NOT_RUN`.
+  comparison evidence; V-081 was `NOT_RUN` at that stage.
 
 ### P7-B Cross-screen Runtime Regression — 2026-09-30
 
@@ -1825,15 +1826,15 @@ Implementation matches official design as closely as practical, with any intenti
 - Finding classification: all inspected items `NO_CHANGE`, except the raw
   headless window-size behavior, which is `TOOLING_LIMITATION`. No clear
   `FUNCTIONAL_BUG`, `DESIGN_MISMATCH`, or `P7_A_REGRESSION` justified a product
-  code change. This remains local PNG/SVG/runtime evidence only; V-081 stays
-  `NOT_RUN`.
+  code change. This was local PNG/SVG/runtime evidence only; V-081 was
+  `NOT_RUN` at that stage.
 
 ### P8-B Status — 2026-09-30
 
 - P8-B was behavioral acceptance only and ran no fresh comparison against the
   official Figma file `Ee1gp5NC6G1sQIvssuu4Sr`. Its 375px runtime regression
   is not design-fidelity evidence.
-- V-081 remains the outstanding final-sign-off item.
+- At that stage, V-081 was the outstanding final-sign-off item.
 
 ### P8-C Note — 2026-09-30
 
@@ -1850,15 +1851,15 @@ Implementation matches official design as closely as practical, with any intenti
   `/dev-user` switch, continuous E2E; no overflow and no errors). Behavior is
   unchanged.
 
-### Status — 2026-10-03 (unchanged: `NOT_RUN`)
+### Historical Status — 2026-10-03 (`NOT_RUN`)
 
 - After P8-C, runtime and visual regressions passed several times at 375×778
   (accessibility contrast PR #35, first-page SSR PR #36, prefetch PR #38, the
   edge/failure audit PR #45, and the clean-clone gate "F-16"). These are
   runtime and layout checks against the implementation and `docs/UI_SPEC.md`,
   not a fresh comparison of the final implementation with the official Figma
-  file `Ee1gp5NC6G1sQIvssuu4Sr`. No such comparison was run, so V-081 stays
-  `NOT_RUN`.
+  file `Ee1gp5NC6G1sQIvssuu4Sr`. No such comparison had been run, so V-081 was
+  `NOT_RUN` on that date.
 - A later V-081 comparison must also record this intentional deviation: PR
   #35 kept the design secondary `#979EA9` as the source value but renders text
   users must read (list preview/counts/time, unselected sort, search label,
@@ -1868,7 +1869,40 @@ Implementation matches official design as closely as practical, with any intenti
   read-only, and press-feedback states keep `#979EA9` (`docs/UI_SPEC.md`
   §6.3).
 
-**Result:** `NOT_RUN`
+### Final V-081 Audit — 2026-10-04
+
+- **Base:** `main` at
+  `04dd668ae9d80d899edd8d363b42db5096bf4ac8`, clean working tree.
+- **Official source:** Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`).
+  The official integration directly revalidated the current file identity,
+  Page 1 node tree, frame IDs/names, and the `375×778` dimensions of all 12
+  mapped frames.
+- **Visual baseline:** repository-preserved exports of the official Figma
+  frames whose current official file/node mapping was revalidated during
+  V-081. These were not newly exported Figma screenshots from this audit.
+- **Runtime comparison:** production Compose build in Chromium at a `375×778`
+  CSS viewport, DPR 1, zoom 1, and a stable seed/requester context.
+- **Coverage:** all 12 official exports plus the shared create/edit form with
+  prefilled edit state. Three representative side-by-side comparisons cover
+  the post list, post detail, and the official bottom sheet versus the current
+  anchored popover.
+- **Classification:** official design-defined elements were compared with the
+  runtime geometry and visuals. Differences were classified against the
+  product decisions that already existed in `docs/UI_SPEC.md`,
+  `docs/ENGINEERING_NOTES.md`, `design/design-retouch/readme.md`, and the P8-C
+  note above. Runtime-only loading/error/retry, mutation lifecycle, focus,
+  cancellation, cache, and scrolling behavior were excluded from visual
+  mismatch classification.
+- **Finding:** accidental mismatches `NONE`; 11 previously documented
+  intentional-deviation categories; no production change required.
+- **Evidence:** [`DESIGN_COMPARISON.md`](DESIGN_COMPARISON.md).
+- **Historical distinction:** the earlier `NOT_RUN` entries remain valid for
+  their dates because local PNG/SVG/runtime evidence alone did not establish a
+  current official-source mapping. The final audit could pass because it first
+  revalidated the official Figma file/node mapping and then mapped the
+  repository-preserved official exports to current runtime states.
+
+**Result:** `PASS`
 
 ---
 
@@ -2513,7 +2547,7 @@ against the production Compose stack without overstating the automated scope.
 
 | Area | Evidence | Status |
 | --- | --- | --- |
-| Current base `main` | `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`, CI success | — |
+| Current base `main` | `04dd668ae9d80d899edd8d363b42db5096bf4ac8`, V-081 audit base | — |
 | Frontend tests | Vitest 21 tests / 4 files | PASS |
 | Backend tests | 91 tests / 18 suites, incl. 31 PostgreSQL Testcontainers tests | PASS |
 | PostgreSQL correctness | F-07 (real Flyway, seed, repositories, injected-bug sensitivity) | VERIFIED |
@@ -2522,15 +2556,16 @@ against the production Compose stack without overstating the automated scope.
 | Edge / failure / recovery | F-12 | VERIFIED |
 | Full-stack CI | F-13 smoke + F-17 Playwright (3 jobs) | PASS on `main` |
 | Browser regression | F-17, Chromium 375×778, 3 core flows | PASS |
+| Official design fidelity | V-081, 12 official exports + edit state | PASS |
 | Dependency audit | `npm audit` 0 / `--omit=dev` 0, Boot 3.5.16 | PASS |
 | Performance regression | F-15: Perf median 93, LCP median 2,275 ms, A11y/BP/SEO 100 | PASS |
 | Reproducibility | F-16 clean clone | VERIFIED |
 
 Engineering verification scope: **VERIFIED** for the conditions recorded above
 (one Windows development host, Docker Compose, emulated mobile devices,
-disposable and seeded datasets). Final assignment sign-off remains pending
-`V-081` official design fidelity verification. This does not claim verification
-of every environment or of production conditions.
+disposable and seeded datasets). V-081 official design fidelity is `PASS` on
+the final `375×778` Chromium comparison. This does not claim verification of
+every environment or of production conditions.
 
 ---
 
@@ -2541,12 +2576,12 @@ of every environment or of production conditions.
 The criteria defined at the start of the project are kept here with their
 current status:
 
-| Original criterion | Status on current base `main` (`3c902dc`) |
+| Original criterion | Status on current base `main` (`04dd668`) |
 | --- | --- |
 | `V-001`, `V-002`, `V-003`, `V-004` pass. | Met (`PASS`; F-16 re-confirmed boot, seed, and idempotency from a clean clone) |
 | All applicable behavior scenarios pass. | Met (`V-010`–`V-071`, `V-080` `PASS`) |
-| All mandatory requirements are `VERIFIED`. | Met for the behavior scenarios above; `UI-004` depends on `V-081` |
-| `V-081` passes after visual implementation is compared with the now-available official design source. | **Not met**: `V-081` remains `NOT_RUN` |
+| All mandatory requirements are `VERIFIED`. | Met; `UI-004` is `VERIFIED` by V-081 |
+| `V-081` passes after visual implementation is compared with the now-available official design source. | Met (`PASS`; see [`DESIGN_COMPARISON.md`](DESIGN_COMPARISON.md)) |
 | README accurately reflects the final implementation. | `V-090` is historical evidence from 2026-10-01; the final documentation rewrite re-audited README and supporting documents against `3c902dc`, including PR #50 Playwright/CI behavior |
 
 ## Verified engineering gates
@@ -2554,6 +2589,8 @@ current status:
 - Release gates `V-001` to `V-004`, and all behavioral scenarios `V-010` to
   `V-071` and `V-080`: `PASS` (dated evidence above, re-confirmed by later
   sections where behavior changed).
+- `V-081`: `PASS`; official file/node mapping was revalidated and all 12
+  preserved official exports plus the edit form were compared at `375×778`.
 - `V-090` README accuracy remains historical evidence for its date. The
   current documentation snapshot was re-audited against `3c902dc`; F-17
   records the later browser-regression boundary.
@@ -2579,10 +2616,8 @@ current status:
 
 ## Outstanding / not claimed
 
-- `V-081` official design fidelity remains `NOT_RUN`: no fresh comparison of
-  the final implementation with the official Figma file was run, and the
-  intentional deviations (P8-C retouch, PR #35 contrast) are recorded for
-  that comparison.
+- Repository-external submission steps `SUB-003` (add `APRCORPORATION` as a
+  collaborator) and `SUB-006` (email the final repository URL) remain `TODO`.
 - Production traffic and load behavior, production observability, real
   authentication (the requester header/cookie is the assignment contract),
   Docker image vulnerability scanning, and deployment/CD are not verified.
