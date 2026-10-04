@@ -193,22 +193,22 @@ posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 �
   <tr><th colspan="2">목록</th></tr>
   <tr><th>Official Figma</th><th>Current implementation</th></tr>
   <tr>
-    <td><img src="design/design-export/755-8831-post-list.png" width="165" alt="Official Figma post-list frame export"></td>
-    <td><img src="docs/assets/design-comparison/post-list-runtime.png" width="165" alt="Current post list at 375 by 778"></td>
+    <td align="center"><img src="design/design-export/755-8831-post-list.png" width="165" alt="Official Figma post-list frame export"></td>
+    <td align="center"><img src="docs/assets/design-comparison/post-list-runtime.png" width="165" alt="Current post list at 375 by 778"></td>
   </tr>
   <tr><td colspan="2">공식 typography·색상·FAB basis를 유지하고, discovery toolbar와 content-first hierarchy, 108px row rhythm을 적용했습니다.</td></tr>
   <tr><th colspan="2">상세</th></tr>
   <tr><th>Official Figma</th><th>Current implementation</th></tr>
   <tr>
-    <td><img src="design/design-export/755-12645-detail-other-many-comments.png" width="165" alt="Official Figma post-detail frame export"></td>
-    <td><img src="docs/assets/design-comparison/post-detail-runtime.png" width="165" alt="Current post detail at 375 by 778"></td>
+    <td align="center"><img src="design/design-export/755-12645-detail-other-many-comments.png" width="165" alt="Official Figma post-detail frame export"></td>
+    <td align="center"><img src="docs/assets/design-comparison/post-detail-runtime.png" width="165" alt="Current post detail at 375 by 778"></td>
   </tr>
   <tr><td colspan="2">title·body·like·comments·More·composer 구조를 유지하면서 byline과 metadata hierarchy를 compact하게 다듬었습니다.</td></tr>
   <tr><th colspan="2">Post menu</th></tr>
   <tr><th>Official Figma</th><th>Current implementation</th></tr>
   <tr>
-    <td><img src="design/design-export/830-139-detail-own-action-sheet.png" width="165" alt="Official Figma own-post action sheet frame export"></td>
-    <td><img src="docs/assets/design-comparison/post-menu-runtime.png" width="165" alt="Current own-post anchored popover at 375 by 778"></td>
+    <td align="center"><img src="design/design-export/830-139-detail-own-action-sheet.png" width="165" alt="Official Figma own-post action sheet frame export"></td>
+    <td align="center"><img src="docs/assets/design-comparison/post-menu-runtime.png" width="165" alt="Current own-post anchored popover at 375 by 778"></td>
   </tr>
   <tr><td colspan="2">Figma의 scrim + bottom sheet를 두 command와 trigger의 공간 관계가 분명한 anchored popover로 바꿨습니다. destructive delete는 별도 confirmation dialog를 유지합니다.</td></tr>
 </table>
