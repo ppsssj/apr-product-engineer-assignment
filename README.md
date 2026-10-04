@@ -8,10 +8,10 @@ APR Product Engineer 인턴 과제의 모바일 커뮤니티를 Spring Boot·Pos
 
 Docker와 Docker Compose(`docker compose`)가 필요합니다. backend와 frontend는 container 안에서 build되므로 host JDK나 Node.js는 필요하지 않습니다. 첫 실행에는 image와 Gradle·npm dependency를 내려받을 network 연결이 필요합니다.
 
-저장소 root에서 다음 명령으로 PostgreSQL, backend와 frontend를 build·실행합니다.
+저장소 root에서 다음 명령으로 PostgreSQL, backend와 frontend를 기동합니다.
 
 ```bash
-docker compose up --build
+docker compose up
 ```
 
 | 대상 | 기본 주소 |
