@@ -1,253 +1,259 @@
-# Implementation Plan
+# 구현 계획
 
-This is the historical implementation plan for the assignment. It preserves
-the order in which phases, risks and decisions were handled; it is no longer
-the authority for current next actions. Current architecture, requirements
-and evidence live in `docs/ARCHITECTURE.md`, `docs/REQUIREMENTS.md` and
-`docs/VERIFICATION.md`.
+이 문서는 과제 구현 과정의 역사적 계획과 phase 진행 순서를 보존합니다. phase, 위험, 결정을 어떤 순서로 다뤘는지 기록할 뿐이며, 현재 해야 할 일의 기준 문서가 아닙니다. 현재 상태의 기준 문서는 다음과 같습니다.
 
-## Final State — 2026-10-04
+- 현재 구조: `docs/ARCHITECTURE.md`
+- 현재 요구사항과 status: `docs/REQUIREMENTS.md`
+- 실행 근거: `docs/VERIFICATION.md`
+- 성능 측정: `docs/PERFORMANCE.md`
+- UI 계약: `docs/UI_SPEC.md`
+- 최종 V-081 디자인 비교: `docs/DESIGN_COMPARISON.md`
+- 결정 과정: `docs/ENGINEERING_NOTES.md`
 
-- P0–P7 implementation phases are `COMPLETE`.
-- P8 engineering verification is `COMPLETE WITH DOCUMENTED GAP`: runtime,
-  Testcontainers, concurrency, CI and selected Playwright gates passed. V-081
-  official Figma comparison remains `NOT_RUN`, so pixel-level fidelity is not
-  claimed.
-- P9 repository documentation and PR workflow are `COMPLETE`; the final
-  documentation refresh is maintained separately from this historical plan.
-- Base `main` for the final documentation refresh is
-  `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`, including PR #50.
-- Repository-external steps remain: add `APRCORPORATION` as collaborator and
-  send the final URL by email.
+**현재 상태 참고**(현재 `main` `25d22296ca3c9d9a433e8de3817818f5fc8e6d46` 기준, 정확한 상태는 `docs/REQUIREMENTS.md`와 `docs/VERIFICATION.md`):
 
-### Historical status guidance
+- Engineering 검증은 완료되었습니다(`ENGINEERING_VERIFICATION_COMPLETE`).
+- V-081은 2026-10-04 최종 audit에서 `PASS`였고 `ACCIDENTAL_MISMATCH`는 `NONE`이며, `UI-004`는 `VERIFIED`입니다.
+- 요구사항 132개 중 130개가 `VERIFIED`이고, repository 밖 외부 제출 단계 `SUB-003`과 `SUB-006`이 `TODO`로 남아 있습니다(`PENDING_EXTERNAL_SUBMISSION_STEPS`).
 
-- Phase sections below intentionally retain dates, branch names, test counts
-  and statuses that were true at that point. They are history, not current
-  instructions.
-- P8-C UI/UX retouch and post search/likes sorting were reviewed and merged.
-- The first-boot readiness blocker was resolved; `/health` stays 503 until the
-  seed transaction commits.
-- V-081 remains an explicit verification gap rather than a work item inferred
-  as complete from local PNG/runtime evidence.
+## 당시 최종 상태 Snapshot — 2026-10-04
 
-### P7 Backlog (recorded, not implemented)
+*시점:* 이 block은 2026-10-04 00:46(+0900) commit `48a3439`에서 작성되었고, 같은 날 PR #51(`04dd668`)로 merge되었습니다. 최종 V-081 audit(`0ee713f`, 2026-10-04 17:14, PR #52)보다 앞섭니다. 아래 내용은 그 시점에 맞는 snapshot입니다.
 
-- P7-A completed: SVG-backed list hierarchy and neutral icons; `post.isLiked` now uses the existing `#FF8DA1` accent on the heart only as `UX_CONSISTENCY`.
-- Requester-commented list accent remains deferred because the list API has no requester-specific comment-participation state.
-- P7-B completed: 375px browser inspection found no clear HIGH/MEDIUM mismatch or P7-A regression. V-081 remains `NOT_RUN`; local PNG/SVG evidence is not a fresh Figma comparison.
+- P0–P7 구현 phase는 `COMPLETE`입니다.
+- P8 engineering 검증은 `COMPLETE WITH DOCUMENTED GAP`입니다. runtime, Testcontainers, 동시성, CI, 선택한 Playwright gate가 통과했습니다. 당시 V-081 공식 Figma 비교는 `NOT_RUN`이었으므로 pixel 수준 fidelity는 주장하지 않았습니다.
+- P9 repository 문서와 PR workflow는 `COMPLETE`입니다. 최종 문서 정리는 이 historical plan과 별도로 관리합니다.
+- 당시 최종 문서 정리의 base `main`은 PR #50을 포함한 `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`였습니다.
+- repository 밖 단계가 남아 있었습니다: `APRCORPORATION`을 collaborator로 추가하고 최종 URL을 메일로 보내기.
 
-### Performance Audit Gate Status
+*이후:* 같은 날 최종 V-081 audit(baseline `04dd668`)가 `PASS`했고 `ACCIDENTAL_MISMATCH`는 `NONE`이었으므로, 당시 문서화한 gap은 해소되었습니다. 이 audit는 pixel-difference threshold를 쓰지 않았으므로 pixel-perfect를 주장하지 않습니다. 외부 제출 단계 두 개는 여전히 `TODO`입니다. 현재 상태는 `docs/VERIFICATION.md`와 `docs/REQUIREMENTS.md`를 참고하세요.
 
-- Audit `COMPLETE` (measurement only; no product code, schema, migration, dependency, or API change).
-- Seed: 39 readable posts; readable comments per post median 7, max 1,411 (post #2 ≈73.3 %).
-- Clean seed segment median 911 ms, once per fresh volume. Read endpoints median 3.5–8.5 ms. A full 1,411-comment traversal takes 72 requests / 216 statements / median 523 ms.
-- Structural inefficiency selected for fixing: the keyset cursor is a `Filter`, not an index bound (deep pages scan linearly). Repeated EXISTS + COUNT per page exists but is not a bottleneck and stays.
-- Selected optimization `COMPLETE`: the row-value predicate is now an `Index Cond`; deep-page buffers on post #2 went from 42 to 3 with identical results. API latency is unchanged within noise.
+### Historical status 안내
 
-### P0 Completion Update
+- 아래 phase section의 status, 날짜, 값은 그 시점의 기록입니다. 날짜, branch 이름, test 수, 상태를 의도적으로 그대로 남겼으며, 현재 지시가 아닙니다. 현재 값은 `docs/ARCHITECTURE.md`, `docs/REQUIREMENTS.md`, `docs/VERIFICATION.md`에 있습니다.
+- 예: P4 page size 10, P5A 댓글 continuation 20, P6 bottom sheet, P6 당시 cache 동작, 당시 V-081 `NOT_RUN`, 당시 test 수와 branch/SHA는 모두 historical 값입니다.
+- P8-C UI/UX 보정과 post 검색/좋아요순 정렬은 review 후 merge되었습니다.
+- 첫 기동 readiness blocker는 해결되었습니다. `/health`는 seed transaction이 commit될 때까지 503을 유지합니다.
+- 당시 V-081은 local PNG/runtime 근거로 완료를 추정한 작업이 아니라 명시적인 검증 gap으로 남겼습니다. *(이후 위 "이후" 메모대로 `PASS`.)*
 
-- Completed static audit of the assignment/instruction documents, non-generated repository tree, backend/frontend manifests and sources, Compose configuration, public assets, and valid seed JSON.
-- Recorded verified starter contracts, seed facts, missing design assets, and ADR reconciliations in `docs/ARCHITECTURE.md`.
-- P0 exit criteria are satisfied: no product code, dependency, package installation, schema, compose behavior, seed data, README, or immutable `/dev-user` change was made.
-- Historical record: P0 is complete. Its audit state is not the current phase.
+### P7 Backlog (기록만, 구현 안 함)
 
-### Architecture Review Status
+- P7-A 완료: SVG 기반 목록 hierarchy와 중립 icon; `post.isLiked`는 이제 기존 `#FF8DA1` accent를 하트에만 `UX_CONSISTENCY`로 씁니다.
+- 요청자가 댓글을 단 글의 목록 accent는 목록 API에 요청자별 댓글 참여 상태가 없어 보류했습니다. 요구사항이 아니며 TODO도 아닌, 보류한 product 아이디어입니다(현재도 `docs/UI_SPEC.md` §12의 "보류").
+- P7-B 완료: 375px browser 확인에서 명확한 HIGH/MEDIUM 불일치나 P7-A 회귀를 찾지 못했습니다. 당시 V-081은 `NOT_RUN`이었고, local PNG/SVG 근거는 새 Figma 비교가 아니었습니다. *(이후 2026-10-04 최종 audit에서 `PASS`.)*
+
+### Performance Audit Gate 상태
+
+- Audit `COMPLETE`(측정만; product code, schema, migration, dependency, API 변경 없음).
+- Seed: 읽을 수 있는 post 39개; post당 읽을 수 있는 댓글 median 7, 최대 1,411 (post #2 ≈73.3 %).
+- 빈 상태 seed 구간 median 911 ms, 새 volume마다 1회. Read endpoint median 3.5–8.5 ms. 댓글 1,411개 전체 순회는 요청 72개 / statement 216개 / median 523 ms.
+- 고치기로 고른 구조적 비효율: 당시 실행 계획에서 keyset cursor가 index 경계가 아니라 `Filter`로 평가되었습니다(깊은 page가 선형으로 scan). page마다 반복되는 EXISTS + COUNT는 존재하지만 병목이 아니므로 그대로 둡니다.
+- 선택한 최적화 `COMPLETE`: row-value 조건이 이제 `Index Cond`입니다. post #2의 깊은 page buffer가 결과는 같은 채 42에서 3으로 줄었습니다. API latency는 noise 범위 안에서 변하지 않았습니다.
+
+### P0 완료 Update
+
+- 과제/지시 문서, 생성되지 않은 repository tree, backend/frontend manifest와 source, Compose 설정, public asset, 유효한 seed JSON의 정적 audit를 완료했습니다.
+- 확인한 starter 계약, seed 사실, 없는 디자인 asset, ADR 조정을 `docs/ARCHITECTURE.md`에 기록했습니다. *(P0 당시에는 repository 안의 `.fig`와 디자인 asset이 없었습니다. 이후 공식 Figma URL로 inspection이 가능해졌습니다. 아래 "Figma Design Audit 상태" 참고.)*
+- P0 완료 기준을 충족했습니다: product code, dependency, package 설치, schema, compose 동작, seed 데이터, README, 수정 불가 `/dev-user` 변경이 없었습니다.
+- Historical 기록: P0는 완료되었습니다. 그 audit 상태는 현재 phase가 아닙니다.
+
+### Architecture Review 상태
 
 - Status: `COMPLETE`
-- Final decisions are recorded in `docs/ARCHITECTURE.md`: Spring JDBC/JdbcClient, Flyway plus `ApplicationRunner` seed lifecycle, identity IDs, boolean soft delete, base-count likes, keyset pagination, TanStack Query v5, focused client boundaries, CSS Modules, IntersectionObserver, native relative time, and backend-authoritative validation/ownership.
-- No high-impact architecture decision remains unresolved. Runtime verification of those decisions is deferred to their implementation phases.
-- Historical record: Architecture Review is complete. Its decision gate is not active work.
+- 최종 결정은 `docs/ARCHITECTURE.md`에 기록되어 있습니다: Spring JDBC/JdbcClient, Flyway와 `ApplicationRunner` seed lifecycle, identity ID, boolean soft delete, base-count 좋아요, keyset pagination, TanStack Query v5, 좁은 client boundary, CSS Modules, IntersectionObserver, native 상대 시간, backend가 최종 판단하는 validation/ownership.
+- 당시 미결로 남은 영향 큰 architecture 결정은 없었습니다. 그 결정들의 runtime 검증은 각 구현 phase로 미뤘습니다. 이후의 수정(예: 첫 page SSR)은 `docs/ARCHITECTURE.md`를 참고하세요.
+- Historical 기록: Architecture Review는 완료되었습니다. 그 결정 gate는 진행 중인 작업이 아닙니다.
 
-### UI Specification Status
+### UI 명세 상태
 
 - Status: `COMPLETE_FUNCTIONAL`, `DESIGN_AUDITED`
-- Official source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), with 12 identified 375×778 frames inspected.
-- `docs/UI_SPEC.md` reconciles assignment behavior with the actual list, toast, own/other detail, liked/unliked, comment-count, action-sheet, delete-confirmation, and create-form states.
-- Design-only out-of-scope elements do not expand the assignment or P2 API contract. Loading/error visuals remain product decisions.
-- P1, P2, P3, P4, and P5A are complete. P5B has not started.
+- 공식 source: Figma file `Ee1gp5NC6G1sQIvssuu4Sr`, Page 1 (`0:1`), 확인한 375×778 frame 12개를 inspection했습니다.
+- `docs/UI_SPEC.md`가 과제 동작을 실제 목록, toast, 본인/타인 상세, 좋아요 함/안 함, 댓글 수, action sheet, 삭제 확인, 작성 form state와 맞췄습니다.
+- 디자인에만 있는 범위 밖 요소는 과제나 P2 API 계약을 넓히지 않습니다. Loading/error 화면은 product decision으로 남습니다.
+- 당시 UI 명세 gate를 닫던 시점의 상태: P1, P2, P3, P4, P5A는 완료되었고 P5B는 시작 전이었습니다. *(이후 P5B–P9 모두 완료.)*
 
-### Figma Design Audit Status
-
-- Status: `COMPLETE`
-- The official Figma source is `AVAILABLE`; the repository-local `.fig` file remains absent but no longer blocks design inspection.
-- No backend, frontend, schema, dependency, Compose, seed, or assignment-source change is part of this audit.
-- P2-impact review found no new endpoint or response-field requirement.
-
-### P2A Status
+### Figma Design Audit 상태
 
 - Status: `COMPLETE`
-- Implemented only `GET /api/posts`, `GET /api/posts/{postId}`, and `GET /api/posts/{postId}/comments`, plus requester resolution, strict cursor pagination, read DTO/error contracts, and focused tests.
-- Real PostgreSQL acceptance covered all 39 readable posts, all readable-comment pages, seed-deleted resource exclusion, requester-specific `isLiked`, and invalid pagination inputs.
-- P2B Status: `COMPLETE`; all required mutation routes, manual validation, service-layer ownership, transactions, soft deletion, and JSON errors passed automated and real PostgreSQL acceptance.
+- 공식 Figma source는 `AVAILABLE`입니다. repository 안의 `.fig` file은 여전히 없지만 디자인 inspection을 더 이상 막지 않습니다.
+- 이 audit에는 backend, frontend, schema, dependency, Compose, seed, 과제 source 변경이 포함되지 않습니다.
+- P2 영향 review에서 새 endpoint나 response field 요구사항을 찾지 못했습니다.
+- 이것은 `docs/UI_SPEC.md`를 쓰기 위한 초기 Figma 디자인 audit입니다. 최종 구현과 공식 디자인을 비교하는 V-081은 별개이며, 2026-10-04에 수행되었습니다.
 
-### P2B Status
-
-- Status: `COMPLETE`
-- Implemented post create/update/soft-delete, requester-specific like toggle, comment create/soft-delete, explicit Unicode-aware validation, and consistent JSON error handling.
-- Real PostgreSQL acceptance covered ownership isolation, derived counts, retained soft-deleted rows, deleted-resource rejection, P2A read regression, and clean seed-baseline restoration.
-
-### P3 Status
+### P2A 상태
 
 - Status: `COMPLETE`
-- Added TanStack Query v5 provider boundary, shared credentialed API client, transport types, nine endpoint functions, query-key factory, route contract, relative-time utility, and `DESIGN_DEFINED` CSS tokens.
-- No product screen, feature hook, or P4 code was added; `app/page.tsx` remains the starter placeholder and `/dev-user` is unchanged.
-- Verified with `npm ci`, `tsc --noEmit`, `next build`, healthy Compose runtime, and P2 read smoke. The browser cookie flow (`START-003`, `V-012`) remains for P4/P5 or P8 acceptance.
+- `GET /api/posts`, `GET /api/posts/{postId}`, `GET /api/posts/{postId}/comments`와 요청자 판별, 엄격한 cursor pagination, read DTO/error 계약, 집중 test만 구현했습니다.
+- 실제 PostgreSQL acceptance가 읽을 수 있는 post 39개 전체, 읽을 수 있는 댓글 page 전체, seed 삭제 resource 제외, 요청자별 `isLiked`, 잘못된 pagination 입력을 다뤘습니다.
+- P2B Status: `COMPLETE`; 필수 mutation route 전체, 수동 validation, service layer ownership, transaction, soft delete, JSON error가 자동 test와 실제 PostgreSQL acceptance를 통과했습니다.
 
-### P4 Status
-
-- Status: `COMPLETE`
-- `/` renders the post list through `useInfiniteQuery` (page size 10, cursor as `pageParam`) and an `IntersectionObserver` sentinel, with relative time, deterministic avatars, detail links, the write FAB, and loading/empty/error/next-page loading/next-page error states in CSS Modules.
-- Verified at 375×778 in Chromium (48/48 checks): 10/10/10/9 pagination over all 39 readable posts, no duplicate, API order, no request after the end, `/dev-user` cookie flow, and `UI_SPEC.md` geometry/typography. Detail and create routes are linked but built in P5/P6. V-080/V-081 remain `NOT_RUN`.
-
-### P5A Status
+### P2B 상태
 
 - Status: `COMPLETE`
-- `/posts/[postId]` renders post detail, a non-optimistic like toggle synchronized into detail and list caches, and newest-first comments: at most 2 initially (`limit=2`), `댓글 더보기` only when total >= 3, and sentinel continuation (`limit=20`) only after More. Loading/not-found/error and continuation states are handled.
-- Verified at 375×778 in Chromium (63/63 checks), the same-session revisit regression (12/12), and the P4 regression suite (48/48). `DETAIL-001`–`DETAIL-008` are `VERIFIED`; V-060/V-061 `PASS`.
-- Review fix: the comment query uses `gcTime: 0` so a revisit without full reload restarts at the initial two comments; cached continuation pages can no longer be refetched before More or exposed at once on More.
-- Out of scope and not rendered: comment composer, own-comment delete, and its confirmation (P5B); own-post menu, edit, delete, and create (P6).
+- post 작성/수정/soft delete, 요청자별 좋아요 toggle, 댓글 작성/soft delete, 명시적인 Unicode 인식 validation, 일관된 JSON error 처리를 구현했습니다.
+- 실제 PostgreSQL acceptance가 ownership 분리, 파생 count, soft delete 후 남는 row, 삭제 resource 거부, P2A read 회귀, 깨끗한 seed baseline 복원을 다뤘습니다. *(동시성 test와 method별 lock 정리는 이후 PR #44 등에서 추가되었습니다. `docs/VERIFICATION.md` F-09.)*
 
-### P5B Status
+### P3 상태
 
 - Status: `COMPLETE`
-- A fixed composer creates comments. Own comments (by cookie requester, independent of post owner) show `삭제` with a confirmation dialog. All mutations are server-confirmed and synchronize the comment list, its `total`, the detail `commentCount`, and cached list counts, with in-flight guards against same-tick duplicates.
-- Verified at 375×778 in Chromium (52/52 P5B checks): boundaries 0→1→2→3 and 3→2→1→0, 27→28, expanded create, continuation and cursor-boundary deletes, list sync with list refetch frozen, POST/DELETE failure paths, `/dev-user` cross-user ownership, and backend 403. Regressions: revisit 12/12, P4 48/48, P5A 63/63, keyset traversal/tie. `DETAIL-009`/`DETAIL-010` have UI evidence and `DETAIL-011` is `VERIFIED`.
-- Baseline restored by reseeding: 42/3 posts, 2,076/81 comments, 0 likes.
+- TanStack Query v5 provider boundary, credential을 싣는 공용 API client, transport type, endpoint 함수 9개, query-key factory, route 계약, 상대 시간 utility, `DESIGN_DEFINED` CSS token을 추가했습니다.
+- product 화면, feature hook, P4 code는 추가하지 않았습니다. P3 당시 `app/page.tsx`는 starter placeholder로 남았고 `/dev-user`는 그대로였습니다. 실제 목록은 P4에서 구현했습니다.
+- `npm ci`, `tsc --noEmit`, `next build`, healthy Compose runtime, P2 read smoke로 검증했습니다. 당시 browser cookie 흐름(`START-003`, `V-012`)은 P4/P5 또는 P8 acceptance로 남겼습니다.
 
-### P6 Status
+### P4 상태
 
 - Status: `COMPLETE`
-- Create (`/posts/new`), edit (`/posts/[postId]/edit`, shared form, exact prefill), own-post action sheet, and post delete confirmation are in place. Validation matches the backend (Java `isBlank`, 20 code points). Mutations are server-confirmed and synchronize the list and detail caches. The create toast shows once. Other users' posts show no menu and no edit form.
-- Verified at 375×778 in Chromium (74/74), including cached-list deletes of a middle row and a cursor-boundary row, `/dev-user` cross-user ownership, and every failure path. V-012, V-030, V-031, V-032, V-040, and V-080 are `PASS`. V-081 stays `NOT_RUN`.
-- Deletion Policy Hardening (`4e53dbd`): a confirmed delete now lowers every cached list total even when the post is not loaded. The soft-delete model (dormant children, 404 before 403, repeated DELETE 404, serialized parent/child mutations) was verified without backend change (28/28).
+- `/`가 `useInfiniteQuery`(page size 10, cursor는 `pageParam`)와 `IntersectionObserver` sentinel로 post 목록을 render하며, 상대 시간, 결정적 avatar, 상세 link, 작성 FAB, loading/empty/error/다음 page loading/다음 page error state를 CSS Modules로 갖습니다. *(이후 performance audit에서 page size는 15/15로 바뀌었습니다.)*
+- 375×778 Chromium에서 검증(48/48 checks): 읽을 수 있는 post 39개에 대한 10/10/10/9 pagination, 중복 없음, API 순서, 끝 이후 요청 없음, `/dev-user` cookie 흐름, `UI_SPEC.md` geometry/typography. 상세와 작성 route는 link만 있고 P5/P6에서 만들었습니다. 당시 V-080/V-081은 `NOT_RUN`이었습니다.
+
+### P5A 상태
+
+- Status: `COMPLETE`
+- `/posts/[postId]`가 post 상세, 상세와 목록 cache에 동기화되는 non-optimistic 좋아요 toggle, 최신순 댓글을 render합니다: 처음 최대 2개(`limit=2`), total >= 3일 때만 `댓글 더보기`, 더보기 이후에만 sentinel continuation(`limit=20`). Loading/not-found/error와 continuation state를 처리합니다. *(P5A 당시 continuation은 20이었고, 이후 performance audit에서 30으로 바뀌었습니다.)*
+- 375×778 Chromium에서 검증(63/63 checks), 같은 session 재방문 회귀(12/12), P4 회귀 suite(48/48). `DETAIL-001`–`DETAIL-008`은 `VERIFIED`; V-060/V-061 `PASS`.
+- Review 수정: 댓글 query가 `gcTime: 0`을 써서 전체 reload 없는 재방문이 처음 2개 댓글부터 다시 시작합니다. cache된 continuation page는 더 이상 더보기 전에 다시 가져오거나 더보기 시 한꺼번에 노출되지 않습니다.
+- P5A 당시 범위 밖이라 render하지 않은 것: 댓글 composer, 본인 댓글 삭제와 그 확인(P5B); 본인 글 메뉴, 수정, 삭제, 작성(P6).
+
+### P5B 상태
+
+- Status: `COMPLETE`
+- 고정 composer가 댓글을 만듭니다. 본인 댓글(cookie 요청자 기준, post 소유자와 무관)에는 확인 dialog와 함께 `삭제`가 보입니다. 모든 mutation은 서버 확인 후 반영되어 댓글 목록, 그 `total`, 상세 `commentCount`, cache된 목록 count를 동기화하며, 같은 tick 중복을 막는 in-flight guard가 있습니다.
+- 375×778 Chromium에서 검증(P5B checks 52/52): 경계 0→1→2→3과 3→2→1→0, 27→28, 펼친 상태의 작성, continuation과 cursor 경계 삭제, 목록 refetch를 막은 목록 동기화, POST/DELETE 실패 경로, `/dev-user` 사용자 간 ownership, backend 403. 회귀: 재방문 12/12, P4 48/48, P5A 63/63, keyset 순회/tie. `DETAIL-009`/`DETAIL-010`은 UI 근거를 갖고 `DETAIL-011`은 `VERIFIED`.
+- 다시 seed해 baseline 복원: posts 42/3, comments 2,076/81, 좋아요 0.
+
+### P6 상태
+
+- Status: `COMPLETE`
+- 작성(`/posts/new`), 수정(`/posts/[postId]/edit`, 공유 form, 정확한 채움), 본인 글 action sheet(P6 당시 bottom sheet `PostActionSheet`), 게시글 삭제 확인이 있습니다. Validation은 backend와 같습니다(Java `isBlank`, 20 code point). mutation은 서버 확인 후 반영되어 목록과 상세 cache를 동기화합니다. 작성 toast는 한 번만 보입니다. 다른 사용자 post에는 메뉴와 수정 form이 없습니다. *(action sheet는 이후 P8-C에서 `PostActionMenu` popover로 바뀌었습니다.)*
+- 375×778 Chromium에서 검증(74/74), 중간 row와 cursor 경계 row의 cache된 목록 삭제, `/dev-user` 사용자 간 ownership, 모든 실패 경로 포함. V-012, V-030, V-031, V-032, V-040, V-080은 `PASS`. 당시 V-081은 `NOT_RUN`이었습니다.
+- Deletion Policy Hardening(`4e53dbd`): 확인한 삭제는 이제 post가 로드되지 않았어도 모든 cached 목록 total을 줄입니다(당시 목록은 page size만 다른 같은 collection). soft delete model(휴면 하위 데이터, 403보다 먼저 404, 반복 DELETE 404, parent/child mutation 직렬화)을 backend 변경 없이 검증했습니다(28/28). *(이후 검색·정렬이 추가되면서 현재 cache 규칙은 로드된 row를 모든 목록에서 제거하고, total은 filter 없는 목록과 row가 로드된 목록에서만 줄이며, 검색 목록은 invalidate합니다. `docs/ARCHITECTURE.md` "Deletion Consistency Model".)*
 
 ---
 
-## Phase Rules
+## Phase 진행 규칙
 
-For each phase:
+당시 작업 진행 규칙입니다. 각 phase마다:
 
-1. Inspect relevant existing code and requirements.
-2. Confirm unresolved architecture decisions.
-3. Implement only the current phase.
-4. Run relevant automated checks.
-5. Run relevant acceptance scenarios in `VERIFICATION.md`.
-6. Update requirement statuses with evidence.
-7. Record changed files, risks, and remaining work.
-8. Stop before the next phase unless explicitly instructed to continue.
+1. 관련 기존 code와 요구사항을 확인합니다.
+2. 미결 architecture 결정을 확인합니다.
+3. 현재 phase만 구현합니다.
+4. 관련 자동 확인을 실행합니다.
+5. `VERIFICATION.md`의 관련 acceptance 시나리오를 실행합니다.
+6. 근거와 함께 요구사항 status를 갱신합니다.
+7. 바뀐 file, 위험, 남은 작업을 기록합니다.
+8. 명시적으로 계속하라는 지시가 없으면 다음 phase 전에 멈춥니다.
 
-A phase is complete only when its exit criteria are satisfied.
+phase는 완료 기준을 충족해야만 완료입니다.
 
 ---
 
 ## P0 — Repository Audit
 
-### Goal
+### 목표
 
-Understand the starter repository and map assignment requirements to the existing codebase without changing product behavior.
+product 동작을 바꾸지 않고 starter repository를 이해하고, 과제 요구사항을 기존 codebase에 대응시킵니다.
 
-### Tasks
+### 작업
 
-- Inspect `docker-compose.yml`.
-- Inspect backend build/configuration.
-- Inspect existing `/health` implementation.
-- Inspect existing CORS configuration.
-- Inspect frontend App Router structure.
-- Confirm `frontend/app/dev-user/` contents and treat it as immutable.
-- Inspect `seed/seed.json` structure and data types.
-- Inspect provided public assets and fonts.
-- Confirm whether the official Figma asset exists.
-- Map existing starter behavior to requirement IDs.
-- Identify architecture decisions required before P1/P2/P3.
+- `docker-compose.yml`을 확인합니다.
+- backend build/설정을 확인합니다.
+- 기존 `/health` 구현을 확인합니다.
+- 기존 CORS 설정을 확인합니다.
+- frontend App Router 구조를 확인합니다.
+- `frontend/app/dev-user/` 내용을 확인하고 수정 불가로 다룹니다.
+- `seed/seed.json` 구조와 data type을 확인합니다.
+- 제공된 public asset과 font를 확인합니다.
+- 공식 Figma asset이 있는지 확인합니다.
+- 기존 starter 동작을 requirement ID에 대응시킵니다.
+- P1/P2/P3 전에 필요한 architecture 결정을 찾습니다.
 
-### Exit Criteria
+### 완료 기준
 
-- Starter contracts are documented.
-- Seed shape is understood.
-- No mandatory provided behavior has been accidentally modified.
-- Missing assets/blockers are recorded.
-- Required architecture decisions are listed.
+- Starter 계약이 문서화되어 있습니다.
+- Seed 형태를 이해했습니다.
+- 제공된 필수 동작을 실수로 바꾸지 않았습니다.
+- 없는 asset/blocker가 기록되어 있습니다.
+- 필요한 architecture 결정이 나열되어 있습니다.
 
-### Status
-
-`COMPLETE`
-
----
-
-## Architecture Decision Gate — before P1/P3
-
-### Goal
-
-Convert architecture research into repository-verified decisions before implementation.
-
-### Evidence Standard
-
-For each high-impact choice:
-
-1. cite the assignment/starter fact that creates the constraint;
-2. cite first-party technical documentation when framework/database behavior matters;
-3. record the selected option;
-4. record at least one realistic alternative;
-5. record why the selected option fits this assignment;
-6. record the trade-off being accepted;
-7. mark unresolved repository-dependent claims `OPEN` or `PROVISIONAL`.
-
-### Current Record
-
-See `docs/ARCHITECTURE.md`.
-
-### Exit Criteria
-
-- Persistence access decision is repository-compatible.
-- Migration/schema strategy is repository-compatible.
-- Seed initialization lifecycle is resolved.
-- Pagination contract is fixed.
-- Frontend server-state strategy is fixed.
-- Styling strategy is compatible with the starter.
-- Every decision has traceable evidence and explicit trade-offs.
-
-### Status
+### 상태
 
 `COMPLETE`
 
 ---
 
-## P1 — Database & Seed Foundation
+## Architecture Decision Gate — P1/P3 이전
 
-### Goal
+### 목표
 
-Create a durable persistence model and idempotent seed initialization.
+구현 전에 architecture 조사를 repository에서 확인한 결정으로 바꿉니다.
 
-### Requirement Focus
+### 근거 기준
+
+영향이 큰 선택마다:
+
+1. 제약을 만드는 과제/starter 사실을 인용합니다;
+2. framework/database 동작이 중요하면 1차 기술 문서를 인용합니다;
+3. 고른 선택지를 기록합니다;
+4. 현실적인 대안을 하나 이상 기록합니다;
+5. 고른 선택지가 이 과제에 맞는 이유를 기록합니다;
+6. 수용하는 trade-off를 기록합니다;
+7. repository에 달린 미결 주장은 `OPEN` 또는 `PROVISIONAL`로 표시합니다.
+
+### 현재 기록
+
+`docs/ARCHITECTURE.md`를 보세요.
+
+### 완료 기준
+
+- Persistence 접근 결정이 repository와 호환됩니다.
+- Migration/schema 전략이 repository와 호환됩니다.
+- Seed 초기화 lifecycle이 결정되었습니다.
+- Pagination 계약이 고정되었습니다.
+- Frontend server-state 전략이 고정되었습니다.
+- Styling 전략이 starter와 호환됩니다.
+- 모든 결정이 추적 가능한 근거와 명시적 trade-off를 갖습니다.
+
+### 상태
+
+`COMPLETE`
+
+---
+
+## P1 — Database & Seed 기반
+
+### 목표
+
+지속적인 persistence model과 idempotent seed 초기화를 만듭니다.
+
+### 요구사항 범위
 
 - `SEED-*`
 - `DEL-*`
-- relevant `USER-*`
-- relevant `ENV-*`
+- 관련 `USER-*`
+- 관련 `ENV-*`
 
-### Tasks
+### 작업
 
-- Finalize DB schema.
-- Implement post persistence.
-- Implement comment persistence.
-- Implement like persistence/state model.
-- Implement soft-delete representation.
-- Implement seed import.
-- Preserve seed IDs.
-- Apply `deletedPostIds` / `deletedCommentIds`.
-- Ensure restart idempotency.
-- Ensure deleted comments do not affect counts.
+- DB schema를 확정합니다.
+- post persistence를 구현합니다.
+- comment persistence를 구현합니다.
+- 좋아요 persistence/state model을 구현합니다.
+- soft delete 표현을 구현합니다.
+- seed import를 구현합니다.
+- seed ID를 보존합니다.
+- `deletedPostIds` / `deletedCommentIds`를 적용합니다.
+- 재시작 idempotency를 보장합니다.
+- 삭제된 댓글이 count에 영향을 주지 않게 합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- Database starts successfully.
-- Seed records are queryable.
-- Seed IDs are preserved.
-- Repeated startup does not duplicate data.
-- Deleted seed entities remain persisted but excluded from normal reads.
+- Database가 성공적으로 시작됩니다.
+- Seed record를 조회할 수 있습니다.
+- Seed ID가 보존됩니다.
+- 반복 기동이 데이터를 중복시키지 않습니다.
+- 삭제된 seed entity는 저장되어 있지만 일반 read에서 제외됩니다.
 
-### Status
+### 상태
 
 `COMPLETE`
 
@@ -255,74 +261,74 @@ Create a durable persistence model and idempotent seed initialization.
 
 ## P2 — Backend Domain & API
 
-### Goal
+### 목표
 
-Implement the assignment API with ownership, validation, pagination, and consistent deleted-resource behavior.
+ownership, validation, pagination, 일관된 삭제 resource 동작을 갖춘 과제 API를 구현합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
 - `USER-*`
 - `DEL-*`
 - `API-*`
-- relevant `EDIT-*`
+- 관련 `EDIT-*`
 
-### Tasks
+### 작업
 
-- Resolve requester from header/cookie/default.
-- Implement post list/detail/create/update/delete.
-- Implement comment list/create/delete.
-- Implement like toggle.
-- Implement ownership enforcement.
-- Implement input validation.
-- Implement pagination.
-- Return required JSON shapes.
-- Handle deleted/missing resources consistently.
-- Add backend tests for critical business rules.
+- header/cookie/기본값으로 요청자를 판별합니다.
+- post 목록/상세/작성/수정/삭제를 구현합니다.
+- 댓글 목록/작성/삭제를 구현합니다.
+- 좋아요 toggle을 구현합니다.
+- ownership 강제를 구현합니다.
+- 입력 validation을 구현합니다.
+- pagination을 구현합니다.
+- 필수 JSON 형태를 반환합니다.
+- 삭제되었거나 없는 resource를 일관되게 처리합니다.
+- 중요한 business rule에 backend test를 추가합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- All mandatory API routes exist.
-- Response contracts match the assignment.
-- Ownership restrictions are backend-enforced.
-- Pagination does not fetch the entire collection.
-- Deleted resources behave as absent.
+- 필수 API route가 모두 있습니다.
+- 응답 계약이 과제와 같습니다.
+- Ownership 제한이 backend에서 강제됩니다.
+- Pagination이 전체 collection을 가져오지 않습니다.
+- 삭제된 resource는 없는 것처럼 동작합니다.
 
-### Status
+### 상태
 
 `COMPLETE`
 
 ---
 
-## P3 — Frontend Foundation
+## P3 — Frontend 기반
 
-### Goal
+### 목표
 
-Establish a simple frontend structure for API communication, server state, routing, and shared UI behavior.
+API 통신, server state, routing, 공유 UI 동작을 위한 단순한 frontend 구조를 세웁니다.
 
-### Requirement Focus
+### 요구사항 범위
 
 - `START-*`
 - `UI-*`
-- architecture decisions for state/styling
+- state/styling에 대한 architecture 결정
 
-### Tasks
+### 작업
 
-- Finalize server-state strategy.
-- Finalize styling strategy.
-- Implement API client with credentialed requests where required.
-- Define shared response/request types.
-- Define route structure.
-- Define reusable UI primitives only where justified.
-- Add relative-time utility.
-- Preserve `/dev-user` unchanged.
+- server-state 전략을 확정합니다.
+- styling 전략을 확정합니다.
+- 필요한 곳에 credential을 싣는 API client를 구현합니다.
+- 공유 응답/요청 type을 정의합니다.
+- route 구조를 정의합니다.
+- 정당한 경우에만 재사용 UI primitive를 정의합니다.
+- 상대 시간 utility를 추가합니다.
+- `/dev-user`를 그대로 둡니다.
 
-### Exit Criteria
+### 완료 기준
 
-- API calls can resolve the current user through the provided cookie flow.
-- Shared request/response handling is stable.
-- No product screen relies on duplicated API logic.
+- API 호출이 제공된 cookie 흐름으로 현재 user를 판별할 수 있습니다.
+- 공유 요청/응답 처리가 안정적입니다.
+- 어떤 product 화면도 중복된 API logic에 의존하지 않습니다.
 
-### Status
+### 상태
 
 `COMPLETE`
 
@@ -330,34 +336,34 @@ Establish a simple frontend structure for API communication, server state, routi
 
 ## P4 — Post List
 
-### Goal
+### 목표
 
-Implement the 375px post-list experience with newest-first infinite scrolling.
+최신순 infinite scroll이 있는 375px post 목록 경험을 구현합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
 - `LIST-*`
-- relevant `UI-*`
-- relevant `API-001`, `API-031`, `API-032`
+- 관련 `UI-*`
+- 관련 `API-001`, `API-031`, `API-032`
 
-### Tasks
+### 작업
 
-- Render post cards.
-- Render relative timestamps.
-- Implement newest-first paginated loading.
-- Implement infinite scroll.
-- Implement write navigation.
-- Implement loading/empty/error states.
-- Align with official design when available.
+- post card를 render합니다.
+- 상대 timestamp를 render합니다.
+- 최신순 paginated loading을 구현합니다.
+- infinite scroll을 구현합니다.
+- 작성 이동을 구현합니다.
+- loading/empty/error state를 구현합니다.
+- 사용할 수 있으면 공식 디자인에 맞춥니다.
 
-### Exit Criteria
+### 완료 기준
 
-- Initial page renders correctly.
-- Additional pages load only when needed.
-- Duplicate items are not introduced during pagination.
-- Write action navigates correctly.
+- 첫 page가 올바르게 render됩니다.
+- 추가 page는 필요할 때만 로드됩니다.
+- Pagination 중 중복 항목이 생기지 않습니다.
+- 작성 action이 올바르게 이동합니다.
 
-### Status
+### 상태
 
 `COMPLETE`
 
@@ -365,74 +371,74 @@ Implement the 375px post-list experience with newest-first infinite scrolling.
 
 ## P5 — Post Detail, Comments & Likes
 
-### Goal
+### 목표
 
-Implement post detail, requester-specific likes, initial-two-comments behavior, and comment continuation flow.
+post 상세, 요청자별 좋아요, 처음 댓글 2개 동작, 댓글 이어 읽기 흐름을 구현합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
-- `DETAIL-001` through `DETAIL-011`
-- relevant `API-*`
+- `DETAIL-001`부터 `DETAIL-011`
+- 관련 `API-*`
 
-### Tasks
+### 작업
 
-- Render post detail.
-- Implement like toggle.
-- Load at most 2 comments initially.
-- Show “More” only when total >= 3.
-- After “More”, continue via infinite scroll.
-- Implement comment creation.
-- Implement own-comment deletion.
-- Keep count/list states synchronized after mutations.
+- post 상세를 render합니다.
+- 좋아요 toggle을 구현합니다.
+- 처음에는 댓글을 최대 2개만 로드합니다.
+- total >= 3일 때만 "더보기"를 보입니다.
+- "더보기" 이후 infinite scroll로 이어갑니다.
+- 댓글 작성을 구현합니다.
+- 본인 댓글 삭제를 구현합니다.
+- mutation 후 count/목록 상태를 동기화합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- Like state/count remain consistent after toggle.
-- Initial comment limit is respected.
-- “More” visibility logic is correct.
-- Infinite scroll begins only after “More”.
-- Deleting a comment updates both list and `commentCount`.
+- toggle 후 좋아요 상태/count가 일관됩니다.
+- 처음 댓글 제한이 지켜집니다.
+- "더보기" 표시 logic이 올바릅니다.
+- Infinite scroll은 "더보기" 이후에만 시작합니다.
+- 댓글 삭제가 목록과 `commentCount`를 모두 갱신합니다.
 
-### Status
+### 상태
 
-`COMPLETE` — P5A (`DETAIL-001`–`DETAIL-008`) and P5B (`DETAIL-009`–`DETAIL-011` UI, mutation cache sync) are complete.
+`COMPLETE` — P5A(`DETAIL-001`–`DETAIL-008`)와 P5B(`DETAIL-009`–`DETAIL-011` UI, mutation cache 동기화)가 완료되었습니다.
 
 ---
 
 ## P6 — Post Create / Edit / Delete
 
-### Goal
+### 목표
 
-Implement post authoring and ownership-controlled post management.
+post 작성과 ownership으로 제어되는 post 관리를 구현합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
-- `DETAIL-012` through `DETAIL-020`
+- `DETAIL-012`부터 `DETAIL-020`
 - `EDIT-*`
-- relevant `API-*`
+- 관련 `API-*`
 
-### Tasks
+### 작업
 
-- Implement create screen.
-- Implement required-field validation.
-- Enforce title max length 20.
-- Disable completion action when invalid.
-- Navigate to list after successful creation.
-- Show completion toast.
-- Reuse create layout/flow for edit.
-- Prefill existing title/content for edit.
-- Implement own-post delete with navigation back to list.
-- Ensure other users cannot edit/delete through UI or API.
+- 작성 화면을 구현합니다.
+- 필수 field validation을 구현합니다.
+- 제목 최대 길이 20을 강제합니다.
+- 유효하지 않으면 완료 action을 비활성화합니다.
+- 작성 성공 후 목록으로 이동합니다.
+- 완료 toast를 보입니다.
+- 수정에 작성 layout/흐름을 재사용합니다.
+- 수정 시 기존 제목/내용을 채웁니다.
+- 목록으로 돌아가는 본인 post 삭제를 구현합니다.
+- 다른 user가 UI나 API로 수정/삭제할 수 없게 합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- Create/edit validation matches requirements.
-- Successful create shows toast and returns to list.
-- Edit prefill/save works.
-- Delete returns to list.
-- Other-user mutation attempts fail.
+- 작성/수정 validation이 요구사항과 같습니다.
+- 작성 성공 시 toast를 보이고 목록으로 돌아갑니다.
+- 수정 채움/저장이 동작합니다.
+- 삭제가 목록으로 돌아갑니다.
+- 다른 user의 mutation 시도는 실패합니다.
 
-### Status
+### 상태
 
 `COMPLETE`
 
@@ -440,132 +446,119 @@ Implement post authoring and ownership-controlled post management.
 
 ## P7 — Visual Integration & UX Polish
 
-### Goal
+### 목표
 
-Align the implemented flows with the official design and resolve UX edge cases without changing assignment semantics.
+과제 의미를 바꾸지 않고 구현된 흐름을 공식 디자인에 맞추고 UX edge case를 해결합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
 - `UI-*`
-- final visual aspects of `LIST-*`, `DETAIL-*`, `EDIT-*`
+- `LIST-*`, `DETAIL-*`, `EDIT-*`의 최종 시각 측면
 
-### Tasks
+### 작업
 
-- Apply official spacing, typography, colors, radii, icons, sheets, and disabled states from the design source.
-- Verify 375px viewport.
-- Verify bottom-sheet/menu interactions.
-- Verify toast placement/behavior.
-- Verify loading, empty, and error states.
-- Document intentional design deviations/improvements.
+- 디자인 source의 공식 간격, typography, 색, radius, icon, sheet, 비활성 state를 적용합니다.
+- 375px viewport를 확인합니다.
+- bottom-sheet/메뉴 상호작용을 확인합니다.
+- toast 위치/동작을 확인합니다.
+- loading, empty, error state를 확인합니다.
+- 의도적 디자인 차이/개선을 문서화합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- Mandatory flows are visually consistent with official design.
-- No functional regression introduced by visual work.
-- Any intentional deviation is documented.
+- 필수 흐름이 공식 디자인과 시각적으로 일관됩니다.
+- 시각 작업으로 기능 회귀가 생기지 않았습니다.
+- 의도적 차이는 모두 문서화되어 있습니다.
 
-### Status
+### 상태
 
-`COMPLETE` — P7-A corrected the list hierarchy from local SVG evidence,
-aligned neutral list glyphs to `#DADEE3`, and added a `post.isLiked` heart-only
-accent as `UX_CONSISTENCY`. P7-B then inspected the full required screen matrix
-and functional smoke at a real 375 CSS-px emulation without finding a
-presentation-only fix justified by concrete evidence. At this phase snapshot,
-P8 had not started.
+`COMPLETE` — P7-A가 local SVG 근거로 목록 hierarchy를 고치고, 중립 목록 glyph를 `#DADEE3`로 맞췄으며, `post.isLiked` 하트 전용 accent를 `UX_CONSISTENCY`로 추가했습니다. 이어서 P7-B가 실제 375 CSS-px emulation에서 필수 화면 matrix 전체와 기능 smoke를 확인했고, 구체적 근거로 정당화되는 presentation 수정은 찾지 못했습니다. 이 phase snapshot 시점에 P8은 시작 전이었습니다.
 
 ---
 
 ## P8 — Full Integration & Acceptance Verification
 
-### Goal
+### 목표
 
-Verify the application the way an evaluator is likely to run it.
+평가자가 실행할 법한 방식으로 application을 검증합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
-- all mandatory IDs
-- all release gates
+- 모든 필수 ID
+- 모든 release gate
 
-### Tasks
+### 작업
 
-- Clean-start with `docker compose up`.
-- Verify `/health`.
-- Verify frontend reachability.
-- Verify alternate port overrides.
-- Verify seed idempotency after restart.
-- Verify all ownership rules.
-- Verify soft delete.
-- Verify pagination/infinite scroll.
-- Verify `isLiked` per requester.
-- Run automated test suites.
-- Run final acceptance scenarios.
+- `docker compose up`으로 빈 상태에서 시작합니다.
+- `/health`를 확인합니다.
+- frontend 접속을 확인합니다.
+- 대체 port override를 확인합니다.
+- 재시작 후 seed idempotency를 확인합니다.
+- 모든 ownership 규칙을 확인합니다.
+- soft delete를 확인합니다.
+- pagination/infinite scroll을 확인합니다.
+- 요청자별 `isLiked`를 확인합니다.
+- 자동 test suite를 실행합니다.
+- 최종 acceptance 시나리오를 실행합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- All mandatory requirements are `VERIFIED`.
-- All release-gate scenarios pass.
-- No known blocker remains for submission.
+- 필수 요구사항이 모두 `VERIFIED`입니다.
+- 모든 release gate 시나리오가 통과합니다.
+- 제출을 막는 알려진 blocker가 남아 있지 않습니다.
 
-### Status
+### 상태
 
-`COMPLETE WITH DOCUMENTED GAP` — behavioral and engineering acceptance is
-complete. V-081 official design comparison remains `NOT_RUN`, so the project
-does not claim pixel-level Figma fidelity.
+`COMPLETE WITH DOCUMENTED GAP`(P8 당시 종료 상태) — 동작과 engineering acceptance는 완료되었습니다. 당시 V-081 공식 디자인 비교는 `NOT_RUN`이었으므로 project는 pixel 수준 Figma fidelity를 주장하지 않았습니다.
 
-- **P8-A (merged):** reproduced the first-boot readiness gap, changed health
-  readiness to follow the seed transaction commit, and verified clean-volume
-  boot, alternate ports, idempotency, and starter contracts.
-- **P8-B:** re-verified on `79ebd67`, without a product change:
-  - requester resolution and pagination;
-  - response shapes;
-  - requester-specific likes;
-  - comment read and mutation flows;
-  - post validation, CRUD, and ownership;
-  - soft delete and error paths;
-  - a continuous 375px end-to-end path;
-  - backend tests, typecheck, and clean local and no-cache Docker builds.
+- **P8-A(merge됨):** 첫 기동 readiness gap을 재현하고, health readiness가 seed transaction commit을 따르도록 바꿨으며, 빈 volume 기동, 대체 port, idempotency, starter 계약을 검증했습니다.
+- **P8-B:** `79ebd67`에서 product 변경 없이 다시 검증했습니다.
+  - 요청자 판별과 pagination;
+  - 응답 형태;
+  - 요청자별 좋아요;
+  - 댓글 read와 mutation 흐름;
+  - post validation, CRUD, ownership;
+  - soft delete와 오류 경로;
+  - 연속 375px end-to-end 경로;
+  - backend test, typecheck, clean local과 no-cache Docker build.
 
-  All mandatory behavioral requirements are `VERIFIED`. Later phases added
-  Testcontainers integration/concurrency suites, CI, dependency and clean-clone
-  audits, and three committed Playwright regressions. `UI-004` remains open
-  because V-081 was not run.
+  당시 동작(behavioral) 범위의 필수 요구사항은 모두 `VERIFIED`였습니다. 이는 과제 요구사항 전체가 `VERIFIED`라는 뜻이 아닙니다. 이후 phase에서 Testcontainers integration/동시성 suite, CI, dependency·clean-clone audit, commit된 Playwright 회귀 3개가 추가되었습니다. 당시 `UI-004`는 V-081을 실행하지 않아 열려 있었습니다.
+
+*이후:* 2026-10-04 최종 V-081 audit(baseline `04dd668`)가 `PASS`, `ACCIDENTAL_MISMATCH` `NONE`으로 끝나 `UI-004`는 `VERIFIED`가 되었습니다(`docs/DESIGN_COMPARISON.md`, `docs/VERIFICATION.md` "Final V-081 Audit"). P8의 당시 status token은 기록으로 그대로 둡니다.
 
 ---
 
 ## P9 — README & Submission PR
 
-### Goal
+### 목표
 
-Produce evaluator-facing documentation based on the actual implementation and complete the repository submission workflow.
+실제 구현에 기반한 평가자용 문서를 만들고 repository 제출 workflow를 완료합니다.
 
-### Requirement Focus
+### 요구사항 범위
 
 - `DOC-*`
 - `SUB-*`
 
-### Tasks
+### 작업
 
-- Document actual technical choices.
-- Document server-state design.
-- Document frontend/backend layering.
-- Document seed strategy.
-- Document tests and why they matter.
-- Reference actual files/functions.
-- Record alternatives and trade-offs.
-- Record intentional UX improvements/deviations.
-- Create final PR.
-- Merge to `main`.
-- Confirm collaborator/private repository settings.
+- 실제 기술 선택을 문서화합니다.
+- server-state 설계를 문서화합니다.
+- frontend/backend 계층을 문서화합니다.
+- seed 전략을 문서화합니다.
+- test와 그 중요성을 문서화합니다.
+- 실제 file/function을 짚습니다.
+- 대안과 trade-off를 기록합니다.
+- 의도적 UX 개선/차이를 기록합니다.
+- 최종 PR을 만듭니다.
+- `main`에 merge합니다.
+- collaborator/private repository 설정을 확인합니다.
 
-### Exit Criteria
+### 완료 기준
 
-- README matches implementation reality.
-- Final PR is merged.
-- Repository is ready to submit.
+- README가 구현 현실과 같습니다.
+- 최종 PR이 merge되었습니다.
+- Repository를 제출할 준비가 되었습니다.
 
-### Status
+### 상태
 
-`COMPLETE` — evaluator-facing documentation, requirement traceability and the
-branch/PR workflow were completed. `SUB-003` (collaborator access) and
-`SUB-006` (email submission) remain repository-external steps; current status
-is tracked in `docs/REQUIREMENTS.md`, not in this historical plan.
+`COMPLETE` — 평가자용 문서, 요구사항 추적, branch/PR workflow가 완료되었습니다. 이 `COMPLETE`는 메일 제출까지 끝났다는 뜻이 아닙니다. `SUB-003`(collaborator 권한)과 `SUB-006`(메일 제출)은 repository 밖 단계로 남아 있으며, 현재 상태는 이 historical plan이 아니라 `docs/REQUIREMENTS.md`에서 추적합니다.
