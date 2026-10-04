@@ -17,12 +17,19 @@ This document normalizes `ASSIGNMENT.md` into traceable implementation requireme
 
 | ID | Requirement | Source | Status |
 |---|---|---|---|
-| SUB-001 | Repository name is `apr-product-engineer-assignment`. | §1 | TODO |
-| SUB-002 | Repository is private. | §1 | TODO |
+| SUB-001 | Repository name is `apr-product-engineer-assignment`. | §1 | VERIFIED |
+| SUB-002 | Repository is private. | §1 | VERIFIED |
 | SUB-003 | `APRCORPORATION` is added as collaborator. | §1 | TODO |
-| SUB-004 | Work is committed on a branch other than `main`. | §1 | TODO |
-| SUB-005 | A PR is created and merged into `main`. | §1 | TODO |
+| SUB-004 | Work is committed on a branch other than `main`. | §1 | VERIFIED |
+| SUB-005 | A PR is created and merged into `main`. | §1 | VERIFIED |
 | SUB-006 | Final repository URL can be submitted by email. | §1 | TODO |
+
+> Submission-state audit (2026-10-04): GitHub reports the repository as
+> private with the required name. Work was completed through non-`main`
+> branches and merged pull requests, including PR #50 on `main` at
+> `3c902dc`. `APRCORPORATION` has neither collaborator access nor a pending
+> invitation, so `SUB-003` remains `TODO`. Sending the final repository URL by
+> email is an external submission step, so `SUB-006` also remains `TODO`.
 
 ---
 
@@ -318,18 +325,23 @@ Base path: `http://localhost:8080/api`
 | DOC-008 | README explains tests written and their purpose if tests are included. | §6 | VERIFIED |
 | DOC-009 | README documents intentional UI/UX deviations or improvements if any. | §4, §6 | VERIFIED |
 
-> README finalization (2026-10-01): `README.md` was replaced with the synchronized submission README and reviewed against the code at `ef8bb75` (`docs/VERIFICATION.md` V-090 `PASS`). Supporting README sections:
-> - `ENV-012`: "실행" — Docker and Docker Compose, no host JDK/Node.js for `docker compose up`, first-run network access, default host ports `3000`/`8080`/`15432`, and the alternate-port command with the reason `--build` is needed.
-> - `DOC-001`: "기술 선택과 설계가 만들어진 과정" — `JdbcClient` (ORM alternative), Flyway, TanStack Query and CSS Modules, each with the problem, choice and cost.
-> - `DOC-002`: "서버 상태와 cache 전략을 정한 과정" — query cache versus local state, `keys.ts`, and the update/invalidate rules in `postListCache.ts`.
-> - `DOC-003`: "최종 구조" — controller/service/repository/common layers with class names, and the `features/*` and `lib` split.
-> - `DOC-004`: "데이터 모델과 seed 입력을 함께 읽은 과정" and "schema와 seed를 분리한 초기 데이터 적재" — schema, likes and ID model, the `SeedInitializer` transaction, the `seed_history` marker, sequence sync and readiness.
-> - `DOC-005`: real files and functions throughout, each checked to exist (V-090).
-> - `DOC-006`/`DOC-007`: each decision states the alternative and the cost accepted. "트레이드오프와 시간이 더 있었다면" lists the remaining limits.
-> - `DOC-008`: "테스트와 검증" — committed backend tests, the CI workflow, and runtime acceptance, with the boundary between them.
-> - `UI-008`/`DOC-009`: "Figma를 제품 동작으로 옮긴 과정", "검색·정렬을 추가한 이유와 요청 제어" and "제품 동작을 끝까지 다듬으며 바뀐 선택" — content-first list, discovery toolbar, popover instead of the bottom sheet, runtime states, dialog keyboard behavior, comment `gcTime: 0` and row prefetch.
+> Final documentation refresh (2026-10-04): the evaluator-facing README was
+> re-audited against base `main` `3c902dc` and retains the assignment's six
+> required top-level sections. It records actual technology choices, server
+> state/cache rules, responsibility boundaries, seed lifecycle, measured
+> request units, trade-offs and intentional UI decisions. Detailed decision
+> history moved to `docs/ENGINEERING_NOTES.md`; architecture, raw performance
+> and execution evidence remain in their canonical documents.
 >
-> `UI-004` stays `TODO`: the README states that no pixel-level comparison with the official Figma was made, and V-081 is still `NOT_RUN`. `SUB-001`–`SUB-006` were not verified in this task.
+> `DOC-008` now distinguishes committed automation from broader acceptance.
+> Backend tests include real PostgreSQL Testcontainers coverage; frontend
+> Vitest covers cache/retry rules; CI starts the production Compose stack and
+> runs three committed Chromium Playwright regressions. Full cursor traversal,
+> every failure/ownership combination, other browsers, visual regression and
+> Lighthouse remain outside that Playwright set.
+>
+> `UI-004` stays `TODO`: Playwright verifies selected behavior, not pixel-level
+> fidelity to the official Figma. V-081 remains `NOT_RUN`.
 
 ---
 

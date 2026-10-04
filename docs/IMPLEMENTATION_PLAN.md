@@ -1,25 +1,35 @@
 # Implementation Plan
 
-This document is the operational state for the assignment. Keep it concise and current.
+This is the historical implementation plan for the assignment. It preserves
+the order in which phases, risks and decisions were handled; it is no longer
+the authority for current next actions. Current architecture, requirements
+and evidence live in `docs/ARCHITECTURE.md`, `docs/REQUIREMENTS.md` and
+`docs/VERIFICATION.md`.
 
-## Current State
+## Final State — 2026-10-04
 
-- Current Phase: `P8 — Full Integration & Acceptance Verification`
-- Status: P7 `COMPLETE`; P8 `IN_PROGRESS`. P8 behavioral acceptance is complete; final sign-off still has V-081 design-comparison evidence outstanding. P8-A fixed the seed-readiness health gate and verified startup, alternate ports, idempotency, and starter contracts. P8-B verified every behavioral scenario on the current candidate without a product change.
-- Last Verified Commit: `79ebd67cbe6334bdf4ec50e8c8eb4d82c19938f9` (P8-A merge; P8-B evidence is recorded in `docs/VERIFICATION.md`).
-- Last Updated: `2026-09-30`
-- Performance Audit gate: closed (audit and row-value keyset optimization `COMPLETE`).
+- P0–P7 implementation phases are `COMPLETE`.
+- P8 engineering verification is `COMPLETE WITH DOCUMENTED GAP`: runtime,
+  Testcontainers, concurrency, CI and selected Playwright gates passed. V-081
+  official Figma comparison remains `NOT_RUN`, so pixel-level fidelity is not
+  claimed.
+- P9 repository documentation and PR workflow are `COMPLETE`; the final
+  documentation refresh is maintained separately from this historical plan.
+- Base `main` for the final documentation refresh is
+  `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`, including PR #50.
+- Repository-external steps remain: add `APRCORPORATION` as collaborator and
+  send the final URL by email.
 
-### Known Blockers
+### Historical status guidance
 
-- P8-A resolved the first-boot readiness release blocker: `/health` is now 503 until the seed transaction commits.
-- A fresh Figma MCP comparison remains unavailable; V-081 stays `NOT_RUN`.
-
-### Next Action
-
-1. Review the P8-C UI/UX retouch on `feat/p8c-ui-ux-retouch` (presentation layer only; see `design/design-retouch/readme.md` and `docs/UI_SPEC.md` §12).
-   Stacked on it, `feat/post-list-search-sort` adds post search and likes sorting (API, cursor, and cache changes; see `docs/ARCHITECTURE.md` "Post Discovery Update").
-2. Close V-081 with a fresh comparison against the official Figma source, then continue to P9 (not started). The intentional retouch deviations must be documented, not counted as fidelity evidence.
+- Phase sections below intentionally retain dates, branch names, test counts
+  and statuses that were true at that point. They are history, not current
+  instructions.
+- P8-C UI/UX retouch and post search/likes sorting were reviewed and merged.
+- The first-boot readiness blocker was resolved; `/health` stays 503 until the
+  seed transaction commits.
+- V-081 remains an explicit verification gap rather than a work item inferred
+  as complete from local PNG/runtime evidence.
 
 ### P7 Backlog (recorded, not implemented)
 
@@ -460,7 +470,8 @@ Align the implemented flows with the official design and resolve UX edge cases w
 aligned neutral list glyphs to `#DADEE3`, and added a `post.isLiked` heart-only
 accent as `UX_CONSISTENCY`. P7-B then inspected the full required screen matrix
 and functional smoke at a real 375 CSS-px emulation without finding a
-presentation-only fix justified by concrete evidence. P8 has not started.
+presentation-only fix justified by concrete evidence. At this phase snapshot,
+P8 had not started.
 
 ---
 
@@ -497,8 +508,9 @@ Verify the application the way an evaluator is likely to run it.
 
 ### Status
 
-`IN_PROGRESS` — P8 behavioral acceptance complete; final sign-off still has
-V-081 design-comparison evidence outstanding.
+`COMPLETE WITH DOCUMENTED GAP` — behavioral and engineering acceptance is
+complete. V-081 official design comparison remains `NOT_RUN`, so the project
+does not claim pixel-level Figma fidelity.
 
 - **P8-A (merged):** reproduced the first-boot readiness gap, changed health
   readiness to follow the seed transaction commit, and verified clean-volume
@@ -513,9 +525,10 @@ V-081 design-comparison evidence outstanding.
   - a continuous 375px end-to-end path;
   - backend tests, typecheck, and clean local and no-cache Docker builds.
 
-  All mandatory behavioral requirements are `VERIFIED`. The remaining items
-  are `UI-004` (V-081) and the P9 `DOC-*`, `SUB-*`, `ENV-012`, and `UI-008`
-  items. P9 has not started.
+  All mandatory behavioral requirements are `VERIFIED`. Later phases added
+  Testcontainers integration/concurrency suites, CI, dependency and clean-clone
+  audits, and three committed Playwright regressions. `UI-004` remains open
+  because V-081 was not run.
 
 ---
 
@@ -552,4 +565,7 @@ Produce evaluator-facing documentation based on the actual implementation and co
 
 ### Status
 
-`NOT_STARTED`
+`COMPLETE` — evaluator-facing documentation, requirement traceability and the
+branch/PR workflow were completed. `SUB-003` (collaborator access) and
+`SUB-006` (email submission) remain repository-external steps; current status
+is tracked in `docs/REQUIREMENTS.md`, not in this historical plan.

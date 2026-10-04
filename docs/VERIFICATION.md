@@ -28,13 +28,13 @@ evidence with its date, including values that later changed.
   so.
 - The current values are in "Final Configuration Snapshot" below, and the
   final engineering evidence is in "Final Engineering Verification —
-  2026-10-02/03" near the end.
+  2026-10-02 through 2026-10-04" near the end.
 
-## Final Configuration Snapshot — `main` @ `7da54e8`
+## Final Configuration Snapshot — base `main` @ `3c902dc`
 
 Reference for the current values only; it does not replace the evidence
 below. Each value was read from the code on
-`7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`.
+`3c902dc9126b2eb2ec0713844b3d7cbec237e80f`.
 
 **Frontend**
 
@@ -56,6 +56,7 @@ below. Each value was read from the code on
 | Mutation retry | 0 (TanStack Query default; no mutation sets `retry`) | — |
 | Font | Pretendard official variable font (`PretendardVariable.woff2`, 2,057,688 B) retained | `public/fonts`, `app/globals.css` |
 | Frontend tests | Vitest, 4 files / 21 tests | `lib/**/*.test.ts` |
+| Browser regression | Playwright, Chromium 375×778, 3 core flows, workers 1, retries 0 | `playwright.config.ts`, `tests/e2e/core-flows.spec.ts` |
 
 **Backend**
 
@@ -79,6 +80,7 @@ below. Each value was read from the code on
 | PostCSS | root `overrides` `8.5.28` (replaces the `8.4.31` that `next@15.5.27` requests) |
 | `npm audit` / `npm audit --omit=dev` | 0 / 0 |
 | CI jobs | `backend`, `frontend`, `full-stack-smoke`; `permissions: contents: read` |
+| Playwright failure evidence | `frontend/test-results` → `playwright-failure-artifacts`, 7-day retention; upload cannot mask the original failure |
 | Branch protection on `main` | not enabled (GitHub API `protected: false`) |
 
 ---
@@ -1967,16 +1969,19 @@ CI, read cancellation and dialog focus containment, then replaced
 
 ---
 
-# Final Engineering Verification — 2026-10-02/03
+# Final Engineering Verification — 2026-10-02 through 2026-10-04
 
-This part records the engineering verification done after V-090, up to
-`main` @ `7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`. Each section lists what
-was checked, the method, the key evidence, the result, and its limits.
+F-01 through F-16 record the engineering verification done after V-090, up to
+`main` @ `7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`. F-17 records the committed
+Playwright regression added later and verified on current base `main` @
+`3c902dc9126b2eb2ec0713844b3d7cbec237e80f`. Each section lists what was
+checked, the method, the key evidence, the result, and its limits.
 Detailed measurement tables live in `docs/PERFORMANCE.md` §13–§17. PR bodies
-(#40–#47) hold the full audit logs; temporary scripts and disposable stacks
-were never committed. Unless stated otherwise, browser runs used Chromium at
-375×778, and mutations ran only against disposable Compose projects or
-Testcontainers databases, never the persistent default volume.
+(#40–#47) hold the full F-01–F-16 audit logs; their browser helper scripts and
+disposable stacks were not committed. F-17 is different: its three Playwright
+flows are committed and run in CI. Unless stated otherwise, browser runs used
+Chromium at 375×778, and mutations ran only against disposable Compose
+projects or Testcontainers databases, never the persistent default volume.
 
 **Backend test count history (each correct for its date):** 26 (P2A) → 49
 (P5B/P6) → 51 (P8-B) → 60 (post discovery, CI) → 83 (PR #42, +23 PostgreSQL
@@ -2330,8 +2335,10 @@ interception plus real `docker stop` / `docker pause` of the backend.
   host made the SSR assertion fail.
 - The CI run for the `main` merge commit `7da54e8` succeeded (as did #45 and
   #46).
+- This section is the historical PR #46 gate. PR #50 later extended the same
+  `full-stack-smoke` job with committed Playwright regression; see F-17.
 - Limit: branch protection is not enabled on `main` (GitHub API `protected:
-  false`). The gates exist and passed on current `main`; merging is not
+  false`). The gates existed and passed on that merge's `main`; merging was not
   technically blocked on them.
 
 ## F-14 — Dependency Security
@@ -2364,7 +2371,7 @@ interception plus real `docker stop` / `docker pause` of the backend.
 
 ## F-15 — Final Lighthouse Regression Check (2026-10-03)
 
-**What:** whether current `main` (`7da54e8`) is in the same performance class
+**What:** whether the then-current `main` (`7da54e8`) was in the same performance class
 as the PR #36 SSR build when measured with the recovered historical method.
 
 - **Environment:** Windows 11 Pro; Chrome **153.0.8010.53** (the
@@ -2461,18 +2468,60 @@ project-local state.
 
 ---
 
+## F-17 — Committed Playwright Core Regression (PR #50, 2026-10-03/04)
+
+**What:** whether the highest-value browser regressions are committed and run
+against the production Compose stack without overstating the automated scope.
+
+- **Repository state:** PR #50 merged to `main` as
+  `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`. The implementation commit is
+  `06691f8` and failure-artifact follow-up is `5891ae2`.
+- **Configuration:** `frontend/playwright.config.ts` uses Chromium at 375×778,
+  one worker and zero retries. Screenshots are captured only on failure,
+  traces are retained on failure, and output goes to `frontend/test-results`.
+- **Production target:** the `full-stack-smoke` job installs Playwright
+  Chromium after `npm ci`, runs `scripts/ci-full-stack-smoke.sh` to build and
+  start the production Compose stack, and then runs `npm run test:e2e` against
+  that stack.
+- **Core flow 1:** seed-backed search, likes sort, mobile control placement
+  and no horizontal overflow.
+- **Core flow 2:** initial comments are exactly two, More continues with limit
+  30, and an SPA revisit starts again with two comments and a closed More gate.
+- **Core flow 3:** creates a disposable post, verifies delete-dialog
+  Tab/Shift+Tab containment, Escape and trigger focus restoration, and proves
+  that no browser DELETE is sent before confirmation. `finally` cleanup uses
+  the production DELETE endpoint; that endpoint soft-deletes the row with
+  `is_deleted = TRUE`, and the disposable CI volume is removed at job end.
+- **Latest main CI:** GitHub Actions run `37132210952` passed `backend`,
+  `frontend` and `full-stack-smoke`; Playwright reported `3 passed (3.4s)`.
+- **Failure evidence:** on job failure, `actions/upload-artifact@v7` uploads
+  `frontend/test-results` as `playwright-failure-artifacts` for 7 days.
+  `continue-on-error: true` and `if-no-files-found: ignore` ensure artifact
+  handling cannot hide the original failure.
+- **Existing diagnostics and cleanup:** Compose `ps` and logs still run on
+  failure. `docker compose down -v --remove-orphans` still runs under
+  `if: always()`.
+- **Limit:** this is selected regression protection, not automation of all
+  historical browser evidence. Full cursor traversal, every failure injection
+  and CRUD/ownership combination, Firefox/WebKit, visual regression,
+  Lighthouse in CI and official Figma comparison V-081 remain outside it.
+- **Result:** `PLAYWRIGHT_CORE_REGRESSION_VERIFIED`.
+
+---
+
 # Final Engineering Verification Summary
 
 | Area | Evidence | Status |
 | --- | --- | --- |
-| Current `main` | `7da54e8a361d2b8212a46e8b9e8091b8240ce3fa`, CI success | — |
+| Current base `main` | `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`, CI success | — |
 | Frontend tests | Vitest 21 tests / 4 files | PASS |
 | Backend tests | 91 tests / 18 suites, incl. 31 PostgreSQL Testcontainers tests | PASS |
 | PostgreSQL correctness | F-07 (real Flyway, seed, repositories, injected-bug sensitivity) | VERIFIED |
 | Frontend cache consistency | F-08, 148/148 | VERIFIED |
 | Mutation concurrency | F-09 (8 tests, `FOR UPDATE` sensitivity) | VERIFIED |
 | Edge / failure / recovery | F-12 | VERIFIED |
-| Full-stack CI | F-13 (3 jobs) | PASS on `main` |
+| Full-stack CI | F-13 smoke + F-17 Playwright (3 jobs) | PASS on `main` |
+| Browser regression | F-17, Chromium 375×778, 3 core flows | PASS |
 | Dependency audit | `npm audit` 0 / `--omit=dev` 0, Boot 3.5.16 | PASS |
 | Performance regression | F-15: Perf median 93, LCP median 2,275 ms, A11y/BP/SEO 100 | PASS |
 | Reproducibility | F-16 clean clone | VERIFIED |
@@ -2492,21 +2541,22 @@ of every environment or of production conditions.
 The criteria defined at the start of the project are kept here with their
 current status:
 
-| Original criterion | Status on `7da54e8` |
+| Original criterion | Status on current base `main` (`3c902dc`) |
 | --- | --- |
 | `V-001`, `V-002`, `V-003`, `V-004` pass. | Met (`PASS`; F-16 re-confirmed boot, seed, and idempotency from a clean clone) |
 | All applicable behavior scenarios pass. | Met (`V-010`–`V-071`, `V-080` `PASS`) |
 | All mandatory requirements are `VERIFIED`. | Met for the behavior scenarios above; `UI-004` depends on `V-081` |
 | `V-081` passes after visual implementation is compared with the now-available official design source. | **Not met**: `V-081` remains `NOT_RUN` |
-| README accurately reflects the final implementation. | `V-090` `PASS` on 2026-10-01; later README changes (for example PRs #37–#39) came with their own reviews and were not re-audited as a whole here |
+| README accurately reflects the final implementation. | `V-090` is historical evidence from 2026-10-01; the final documentation rewrite re-audited README and supporting documents against `3c902dc`, including PR #50 Playwright/CI behavior |
 
 ## Verified engineering gates
 
 - Release gates `V-001` to `V-004`, and all behavioral scenarios `V-010` to
   `V-071` and `V-080`: `PASS` (dated evidence above, re-confirmed by later
   sections where behavior changed).
-- `V-090` README accuracy: `PASS` for its date; current values are in the
-  snapshot above.
+- `V-090` README accuracy remains historical evidence for its date. The
+  current documentation snapshot was re-audited against `3c902dc`; F-17
+  records the later browser-regression boundary.
 - PostgreSQL correctness (F-07), frontend cache consistency (F-08),
   concurrency invariants (F-09), edge/failure handling (F-12), SSR and
   performance regression (F-01, F-02, F-15), dependency security (F-14),
