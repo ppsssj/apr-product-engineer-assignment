@@ -1830,7 +1830,7 @@ project 시작 시 정한 기준을 현재 상태와 함께 남깁니다.
 | --- | --- |
 | `V-001`, `V-002`, `V-003`, `V-004`가 통과한다. | 충족 (`PASS`; F-16이 clean clone에서 기동, seed, idempotency를 다시 확인) |
 | 적용되는 동작 시나리오가 모두 통과한다. | 충족 (`V-010`–`V-071`, `V-080` `PASS`) |
-| 필수 요구사항이 모두 `VERIFIED`다. | 부분 충족. 제품·구현·검증 요구사항(`docs/REQUIREMENTS.md`의 130개, `UI-004`는 V-081로 `VERIFIED`)은 모두 `VERIFIED`입니다. repository 밖의 외부 제출 단계 `SUB-003`, `SUB-006`은 `TODO`입니다. |
+| 필수 요구사항이 모두 `VERIFIED`다. | 부분 충족. `docs/REQUIREMENTS.md`의 요구사항 132개 중 외부 제출 단계 2개를 제외한 130개는 모두 `VERIFIED`입니다(`UI-004`는 V-081로 `VERIFIED`). repository 밖의 외부 제출 단계 `SUB-003`, `SUB-006`은 `TODO`입니다. |
 | 이제 사용할 수 있는 공식 디자인 source와 시각 구현을 비교한 뒤 `V-081`이 통과한다. | 충족 (`PASS`, baseline `04dd668`, 이후 UI 변경 없음; [`DESIGN_COMPARISON.md`](DESIGN_COMPARISON.md) 참고) |
 | README가 최종 구현을 정확히 반영한다. | `V-090`은 2026-10-01의 historical evidence입니다. 최종 문서 정리가 PR #50 Playwright/CI 동작을 포함해 README와 지원 문서를 `3c902dc` 기준으로 다시 audit했고, 그 이후 현재 `main`까지 production/config code 변경은 없습니다 |
 
