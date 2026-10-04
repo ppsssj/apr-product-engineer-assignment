@@ -10,7 +10,7 @@
 - 최종 V-081 디자인 비교: `docs/DESIGN_COMPARISON.md`
 - 결정 과정: `docs/ENGINEERING_NOTES.md`
 
-**현재 상태 참고**(현재 `main` `25d22296ca3c9d9a433e8de3817818f5fc8e6d46` 기준, 정확한 상태는 `docs/REQUIREMENTS.md`와 `docs/VERIFICATION.md`):
+**현재 상태 참고**(이 문서 재검토의 base `main` `25d22296ca3c9d9a433e8de3817818f5fc8e6d46` 기준, 정확한 상태는 `docs/REQUIREMENTS.md`와 `docs/VERIFICATION.md`):
 
 - Engineering 검증은 완료되었습니다(`ENGINEERING_VERIFICATION_COMPLETE`).
 - V-081은 2026-10-04 최종 audit에서 `PASS`였고 `ACCIDENTAL_MISMATCH`는 `NONE`이며, `UI-004`는 `VERIFIED`입니다.
@@ -36,7 +36,7 @@
 - 첫 기동 readiness blocker는 해결되었습니다. `/health`는 seed transaction이 commit될 때까지 503을 유지합니다.
 - 당시 V-081은 local PNG/runtime 근거로 완료를 추정한 작업이 아니라 명시적인 검증 gap으로 남겼습니다. *(이후 위 "이후" 메모대로 `PASS`.)*
 
-### P7 Backlog (기록만, 구현 안 함)
+### P7 관련 이력과 보류 항목
 
 - P7-A 완료: SVG 기반 목록 hierarchy와 중립 icon; `post.isLiked`는 이제 기존 `#FF8DA1` accent를 하트에만 `UX_CONSISTENCY`로 씁니다.
 - 요청자가 댓글을 단 글의 목록 accent는 목록 API에 요청자별 댓글 참여 상태가 없어 보류했습니다. 요구사항이 아니며 TODO도 아닌, 보류한 product 아이디어입니다(현재도 `docs/UI_SPEC.md` §12의 "보류").
