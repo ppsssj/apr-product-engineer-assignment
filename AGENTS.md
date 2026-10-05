@@ -6,26 +6,34 @@ Implement the APR Product Engineer assignment faithfully, with correctness, main
 
 The goal is not to maximize abstraction or add speculative features. The goal is to satisfy the assignment requirements with a simple, explainable implementation whose behavior can be verified.
 
-## Source of Truth
+## Source of Truth and Document Roles
 
-When information conflicts, use this priority:
+The assignment and provided contracts have the following authority:
 
-1. `ASSIGNMENT.md`
-2. Existing starter repository behavior and immutable starter contracts
-3. Official design assets provided with the assignment
-4. `seed/seed.json`
-5. `docs/REQUIREMENTS.md`
-6. `docs/ARCHITECTURE.md` when present
-7. `docs/UI_SPEC.md` when present
-8. `docs/IMPLEMENTATION_PLAN.md`
-9. Agent assumptions
+1. `ASSIGNMENT.md` is the final source of truth for functional scope and assignment requirements.
+2. Existing starter repository behavior and immutable starter contracts are provided contracts.
+3. Official Figma/design assets are presentation and design evidence.
+4. `seed/seed.json` is the source for provided data.
+
+Current repository documents have distinct roles:
+
+- `docs/REQUIREMENTS.md` — current requirement status (`요구사항 추적 매트릭스`)
+- `docs/ARCHITECTURE.md` — current architecture and ADRs (`아키텍처 결정 기록`)
+- `docs/UI_SPEC.md` — UI, design, and product contract (`UI 명세`)
+- `docs/VERIFICATION.md` — executed verification evidence (`인수 검증 기록`)
+- `docs/PERFORMANCE.md` — raw benchmark and performance measurement evidence (`성능 감사 및 측정 기록`)
+- `docs/DESIGN_COMPARISON.md` — final official Figma-to-runtime comparison (`공식 Figma 최종 비교`)
+- `docs/ENGINEERING_NOTES.md` — decision and judgment history (`엔지니어링 노트`)
+- `docs/IMPLEMENTATION_PLAN.md` — historical phase and implementation history only (`구현 계획`); it is not the authority for the current task or next action.
+
+Agent assumptions do not override any of these sources or contracts.
 
 Never weaken, reinterpret, or remove an assignment requirement for implementation convenience.
 
 ## Non-Negotiable Constraints
 
 - Do not modify `frontend/app/dev-user/`.
-- Preserve `GET /health` and its HTTP 200 response.
+- Preserve the `GET /health` path and its ready-state HTTP 200 contract. Current readiness behavior may return HTTP 503 with `starting` before the seed transaction commits.
 - Preserve all IDs provided by `seed/seed.json`.
 - Seed initialization must be idempotent across application restarts.
 - Posts and comments must use soft delete. Never physically delete the row for normal product deletion flows.
@@ -59,17 +67,20 @@ Never weaken, reinterpret, or remove an assignment requirement for implementatio
 
 ## Working Protocol
 
-Before editing code:
+Before editing:
 
 1. Read the relevant requirement IDs in `docs/REQUIREMENTS.md`.
 2. Inspect the existing implementation and starter contracts related to the task.
-3. Check the current phase in `docs/IMPLEMENTATION_PLAN.md`.
-4. Identify any unresolved architectural decision that would block correct implementation.
-5. If blocked by an unresolved decision, stop and report the decision point instead of silently choosing a high-impact architecture.
+3. Read the relevant current authority documents, such as `docs/ARCHITECTURE.md`, `docs/UI_SPEC.md`, or `docs/VERIFICATION.md`.
+4. Confirm the scope of the focused task requested by the user.
+5. Identify any unresolved high-impact decision that would block correct implementation.
+6. If blocked by an unresolved decision, stop and report the decision point instead of silently choosing a high-impact architecture.
+
+Consult `docs/IMPLEMENTATION_PLAN.md` only when the historical phase sequence, context, or evolution is relevant. It does not determine the current task.
 
 During implementation:
 
-- Work only within the current phase unless explicitly instructed otherwise.
+- Work only within the user-approved focused task and PR scope unless explicitly instructed otherwise.
 - Keep domain/business rules outside presentation-only code.
 - Keep persistence details out of controllers and UI components.
 - Validate permissions and ownership on the backend even if the frontend hides the action.
@@ -82,8 +93,13 @@ After implementation:
 
 1. Run the relevant automated checks.
 2. Run the relevant acceptance checks from `docs/VERIFICATION.md`.
-3. Update requirement status only when there is evidence.
-4. Update the current phase status in `docs/IMPLEMENTATION_PLAN.md`.
+3. Update only the current documents actually affected by the work, and only when needed:
+   - requirement status changes → `docs/REQUIREMENTS.md`
+   - new executed verification evidence → `docs/VERIFICATION.md`
+   - architecture decision changes → `docs/ARCHITECTURE.md`
+   - UI contract changes → `docs/UI_SPEC.md`
+   - performance measurements → `docs/PERFORMANCE.md`
+4. Do not update `docs/IMPLEMENTATION_PLAN.md` to track current work; it is a historical record.
 5. Report changed files.
 6. Report verification evidence.
 7. Report remaining risks, blockers, or assumptions.
@@ -134,17 +150,21 @@ Do not invent retrospective rationale after the implementation unless the reason
 
 ## Final Release Gate
 
-Before the assignment is considered complete:
+Determine engineering/repository readiness from the current status and evidence in `docs/REQUIREMENTS.md` and `docs/VERIFICATION.md`; do not hard-code status counts here.
 
-- All mandatory requirement IDs must be `VERIFIED`.
+Before the engineering/repository work is considered complete:
+
+- All mandatory engineering/repository requirement IDs identified by `docs/REQUIREMENTS.md` must be `VERIFIED`.
 - `docker compose up` must boot the full stack.
-- `GET /health` must return 200.
+- `GET /health` must return 200 in the ready state.
 - Frontend and backend must work with non-default port overrides.
 - Seed initialization must remain idempotent after restart.
 - Deleted resources must remain excluded consistently.
 - Ownership restrictions must be verified from API behavior.
 - Infinite-scroll flows must not fetch the full collection in one request.
 - The final README must describe actual implementation decisions and trade-offs using real files/functions.
+
+Claim full assignment submission completion only after the external `SUB` steps in `docs/REQUIREMENTS.md` are also complete. Do not perform external actions such as adding a collaborator or sending submission email without explicit user instruction.
 
 ## Git / Branch / Commit / PR Workflow
 
@@ -157,38 +177,35 @@ Before changing tracked files:
 1. Inspect the current branch.
 2. Inspect `git status`.
 3. Confirm the working tree does not contain unrelated user changes that could be overwritten or accidentally committed.
-4. Confirm the current work belongs to the active phase or focused task.
+4. Confirm the current work belongs to the user-approved focused task and PR scope.
 
 Never discard, reset, overwrite, or amend user-authored work merely to make the working tree clean.
 
 ### Branch Rules
 
 - Never perform assignment work directly on `main`.
-- Create a dedicated branch for each implementation phase or focused change.
-- Keep one branch focused on one coherent scope.
-- Do not continue the next phase on a branch whose intended phase has already been completed.
+- Create or reuse a dedicated branch for each coherent focused task.
+- Keep one branch and PR focused on one coherent scope.
+- Do not mix unrelated follow-up work into the same branch or PR.
 - If an existing branch already represents the current task, reuse it instead of creating a duplicate branch.
+- After a task is merged, use a new branch for a new focused task.
 
 Recommended branch naming:
 
 ```text
-chore/p0-repository-audit
-feat/p1-database-seed
-feat/p2-backend-api
-feat/p3-frontend-foundation
-feat/p4-post-list
-feat/p5-post-detail
-feat/p6-write-edit-delete
-feat/p7-integration-polish
+feat/<short-description>
 fix/<short-description>
 docs/<short-description>
+test/<short-description>
+refactor/<short-description>
+chore/<short-description>
 ```
 
 Branch naming is descriptive guidance, not a reason to rename a valid existing branch unnecessarily.
 
 ### Git Naming Autonomy
 
-- Unless the user explicitly provides a branch name, choose an appropriate branch name automatically from the current phase or task.
+- Unless the user explicitly provides a branch name, choose an appropriate branch name automatically from the focused task.
 - Unless the user explicitly provides a commit message, write an appropriate commit message automatically.
 - Unless the user explicitly provides a PR title or description, generate them automatically from the completed work and verification evidence.
 - Do not ask the user to choose routine Git names or wording when they can be derived safely from the task.
@@ -236,7 +253,7 @@ Before committing:
 
 1. Review the staged diff.
 2. Confirm it matches the intended scope.
-3. Run the relevant checks for the current task or phase.
+3. Run the relevant checks for the current focused task.
 4. Confirm no secrets or local-only files are staged.
 5. Record any known verification gap instead of hiding it.
 
@@ -286,7 +303,7 @@ Recommended PR body:
 
 ## 리스크 / 후속 작업
 
-알려진 제한, blocker, 다음 phase로 미룬 작업을 기록합니다.
+알려진 제한, blocker, 후속 작업으로 미룬 내용을 기록합니다.
 ```
 
 Example PR title:
@@ -319,7 +336,7 @@ A passing local test does not imply CI passed, and a passing CI check does not r
   - blocking review comments are resolved,
   - required verification has been recorded,
   - no secrets or unintended generated artifacts are present.
-- Do not bypass failing required checks merely to finish a phase.
+- Do not bypass failing required checks merely to finish a task.
 
 After merge:
 
@@ -327,21 +344,21 @@ After merge:
 2. Record or report the PR number when available.
 3. Record or report the resulting merged commit/SHA when available.
 4. Update local repository state only when needed for the next task.
-5. Stop before starting the next implementation phase unless the user explicitly instructs continuation.
-6. Use a new branch for the next phase or focused task.
+5. Stop before starting a new follow-up task unless the user explicitly instructs continuation.
+6. Use a new branch for the next focused task.
 
-### Phase Boundary Rule
+### Focused Task Boundary Rule
 
-Git workflow must respect `docs/IMPLEMENTATION_PLAN.md`.
-
-Typical phase flow:
+Typical focused-task flow:
 
 ```text
 inspect current state
     ↓
-create or confirm task branch
+confirm focused task
     ↓
-implement current phase/task
+create or reuse task branch
+    ↓
+implement only the task scope
     ↓
 verify
     ↓
@@ -362,4 +379,4 @@ confirm merge
 stop
 ```
 
-Do not silently chain multiple implementation phases into one branch, PR, or merge unless explicitly instructed.
+Do not silently chain unrelated focused tasks into one branch, PR, or merge unless explicitly instructed.
