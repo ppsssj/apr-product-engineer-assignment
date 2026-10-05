@@ -10,11 +10,11 @@
 - 최종 V-081 디자인 비교: `docs/DESIGN_COMPARISON.md`
 - 결정 과정: `docs/ENGINEERING_NOTES.md`
 
-**현재 상태 참고**(이 문서 재검토의 base `main` `25d22296ca3c9d9a433e8de3817818f5fc8e6d46` 기준, 정확한 상태는 `docs/REQUIREMENTS.md`와 `docs/VERIFICATION.md`):
+**현재 상태 참고**(이 문서 재검토의 base `main` `6c51d5381dd08132bcba237d74df15849f659193` 기준, 정확한 상태는 `docs/REQUIREMENTS.md`와 `docs/VERIFICATION.md`):
 
 - Engineering 검증은 완료되었습니다(`ENGINEERING_VERIFICATION_COMPLETE`).
 - V-081은 2026-10-04 최종 audit에서 `PASS`였고 `ACCIDENTAL_MISMATCH`는 `NONE`이며, `UI-004`는 `VERIFIED`입니다.
-- 요구사항 132개 중 130개가 `VERIFIED`이고, repository 밖 외부 제출 단계 `SUB-003`과 `SUB-006`이 `TODO`로 남아 있습니다(`PENDING_EXTERNAL_SUBMISSION_STEPS`).
+- 요구사항 132개 중 131개가 `VERIFIED`입니다. `SUB-003`은 2026-10-05 manual GitHub Settings verification에서 `APRCORPORATION` collaborator invitation 생성이 확인되어 `VERIFIED`이지만 recipient acceptance는 `Pending Invite` 상태입니다. repository URL 메일 제출 `SUB-006`이 유일한 `TODO`로 남아 있습니다(`PENDING_EXTERNAL_SUBMISSION_STEPS`).
 
 ## 당시 최종 상태 Snapshot — 2026-10-04
 
@@ -26,7 +26,7 @@
 - 당시 최종 문서 정리의 base `main`은 PR #50을 포함한 `3c902dc9126b2eb2ec0713844b3d7cbec237e80f`였습니다.
 - repository 밖 단계가 남아 있었습니다: `APRCORPORATION`을 collaborator로 추가하고 최종 URL을 메일로 보내기.
 
-*이후:* 같은 날 최종 V-081 audit(baseline `04dd668`)가 `PASS`했고 `ACCIDENTAL_MISMATCH`는 `NONE`이었으므로, 당시 문서화한 gap은 해소되었습니다. 이 audit는 pixel-difference threshold를 쓰지 않았으므로 pixel-perfect를 주장하지 않습니다. 외부 제출 단계 두 개는 여전히 `TODO`입니다. 현재 상태는 `docs/VERIFICATION.md`와 `docs/REQUIREMENTS.md`를 참고하세요.
+*이후:* 같은 날 최종 V-081 audit(baseline `04dd668`)가 `PASS`했고 `ACCIDENTAL_MISMATCH`는 `NONE`이었으므로, 당시 문서화한 gap은 해소되었습니다. 이 audit는 pixel-difference threshold를 쓰지 않았으므로 pixel-perfect를 주장하지 않습니다. 2026-10-05에 collaborator invitation 생성이 확인되어 `SUB-003`은 `VERIFIED`로 갱신되었고, `SUB-006`만 `TODO`로 남아 있습니다. 현재 상태는 `docs/VERIFICATION.md`와 `docs/REQUIREMENTS.md`를 참고하세요.
 
 ### Historical status 안내
 
@@ -561,4 +561,4 @@ post 작성과 ownership으로 제어되는 post 관리를 구현합니다.
 
 ### 상태
 
-`COMPLETE` — 평가자용 문서, 요구사항 추적, branch/PR workflow가 완료되었습니다. 이 `COMPLETE`는 메일 제출까지 끝났다는 뜻이 아닙니다. `SUB-003`(collaborator 권한)과 `SUB-006`(메일 제출)은 repository 밖 단계로 남아 있으며, 현재 상태는 이 historical plan이 아니라 `docs/REQUIREMENTS.md`에서 추적합니다.
+`COMPLETE` — 평가자용 문서, 요구사항 추적, branch/PR workflow가 완료되었습니다. 이 `COMPLETE`는 메일 제출까지 끝났다는 뜻이 아닙니다. 이후 `SUB-003`의 collaborator invitation 생성은 `VERIFIED`로 확인되었고, `SUB-006` 메일 제출은 repository 밖 단계로 남아 있으며, 현재 상태는 이 historical plan이 아니라 `docs/REQUIREMENTS.md`에서 추적합니다.

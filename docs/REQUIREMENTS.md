@@ -19,7 +19,7 @@
 |---|---|---|---|
 | SUB-001 | Repository 이름은 `apr-product-engineer-assignment`이다. | §1 | VERIFIED |
 | SUB-002 | Repository는 private이다. | §1 | VERIFIED |
-| SUB-003 | `APRCORPORATION`을 collaborator로 추가한다. | §1 | TODO |
+| SUB-003 | `APRCORPORATION`을 collaborator로 추가한다. | §1 | VERIFIED |
 | SUB-004 | `main`이 아닌 별도 branch에 commit한다. | §1 | VERIFIED |
 | SUB-005 | PR을 작성하고 `main`에 병합한다. | §1 | VERIFIED |
 | SUB-006 | 최종 repository 주소를 메일로 제출한다. | §1 | TODO |
@@ -27,6 +27,8 @@
 > 2026-10-04 당시 제출 상태 점검: GitHub는 repository를 요구된 이름의 private repository로 보고했습니다. 작업은 `main`이 아닌 branch와 병합된 PR로 진행했고, 그 시점의 예로 PR #50이 `main` `3c902dc`에 병합되어 있었습니다.
 >
 > 이후 재확인(읽기 전용, `main` `0ec0e3d` 시점): repository는 여전히 `PRIVATE`이고 병합된 PR은 57개입니다. collaborator는 소유자 `ppsssj`뿐이며 `APRCORPORATION`에 대한 collaborator 권한이나 대기 중인 invitation은 없습니다. 따라서 `SUB-003`은 `TODO`입니다. 최종 주소의 메일 제출도 repository 밖의 외부 제출 단계이므로 `SUB-006`도 `TODO`입니다. 두 항목은 자동으로 완료 처리하지 않습니다.
+>
+> 2026-10-05 현재 상태 재확인(manual GitHub Settings verification): repository Settings → Collaborators에서 GitHub banner는 `APRCORPORATION has been added as a collaborator on the repository.`를 표시했고, Direct access summary는 `0 collaborators, 1 invitation`이었습니다. `APRCORPORATION` row는 `Pending Invite`, `Awaiting APRCORPORATION's response`로 표시되었습니다. 지원자가 수행할 collaborator invitation 생성은 완료되었으므로 `SUB-003`은 `VERIFIED`입니다. recipient acceptance는 아직 pending이며 active collaborator access가 활성화되었다고 주장하지 않습니다. 최종 repository 주소를 메일로 제출하는 `SUB-006`은 아직 수행하지 않아 `TODO`입니다.
 
 ---
 
@@ -325,4 +327,4 @@ Base path: `http://localhost:8080/api` (Source: §5)
 - 필수가 아니거나 조건부인 항목은 그 사실이 명시적으로 문서화되어 있고,
 - `docs/VERIFICATION.md`의 release-gate 시나리오(repository 내부 검증 gate)가 모두 통과해야 합니다.
 
-**현재 상태:** 아직 완료가 아닙니다. 남은 `TODO`는 외부 제출 단계인 `SUB-003`(`APRCORPORATION` collaborator 추가)과 `SUB-006`(repository 주소 메일 제출)입니다. 나머지 요구사항은 모두 `VERIFIED`입니다.
+**현재 상태:** 요구사항 132개 중 131개가 `VERIFIED`입니다. `SUB-003`은 collaborator invitation 생성이 확인되어 `VERIFIED`이지만 recipient acceptance는 `Pending Invite` 상태입니다. 남은 `TODO`는 최종 repository 주소를 메일로 제출하는 `SUB-006` 하나이므로 과제 제출은 아직 완료가 아닙니다.

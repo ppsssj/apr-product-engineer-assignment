@@ -1826,11 +1826,11 @@ Engineering 검증 범위: 위에 기록한 조건(Windows 개발 host 하나, D
 
 project 시작 시 정한 기준을 현재 상태와 함께 남깁니다.
 
-| 원래 기준 | 현재 `main`(`f3f79fbc`) 기준 상태 |
+| 원래 기준 | 현재 상태 |
 | --- | --- |
 | `V-001`, `V-002`, `V-003`, `V-004`가 통과한다. | 충족 (`PASS`; F-16이 clean clone에서 기동, seed, idempotency를 다시 확인) |
 | 적용되는 동작 시나리오가 모두 통과한다. | 충족 (`V-010`–`V-071`, `V-080` `PASS`) |
-| 필수 요구사항이 모두 `VERIFIED`다. | 부분 충족. `docs/REQUIREMENTS.md`의 요구사항 132개 중 외부 제출 단계 2개를 제외한 130개는 모두 `VERIFIED`입니다(`UI-004`는 V-081로 `VERIFIED`). repository 밖의 외부 제출 단계 `SUB-003`, `SUB-006`은 `TODO`입니다. |
+| 필수 요구사항이 모두 `VERIFIED`다. | 부분 충족. `docs/REQUIREMENTS.md`의 요구사항 132개 중 131개가 `VERIFIED`입니다(`UI-004`는 V-081로 `VERIFIED`). `SUB-003`은 2026-10-05 manual GitHub Settings verification에서 collaborator invitation 생성이 확인되어 `VERIFIED`이며, recipient acceptance는 `Pending Invite` 상태입니다. repository URL 메일 제출 단계 `SUB-006`만 `TODO`입니다. |
 | 이제 사용할 수 있는 공식 디자인 source와 시각 구현을 비교한 뒤 `V-081`이 통과한다. | 충족 (`PASS`, baseline `04dd668`, 이후 UI 변경 없음; [`DESIGN_COMPARISON.md`](DESIGN_COMPARISON.md) 참고) |
 | README가 최종 구현을 정확히 반영한다. | `V-090`은 2026-10-01의 historical evidence입니다. 최종 문서 정리가 PR #50 Playwright/CI 동작을 포함해 README와 지원 문서를 `3c902dc` 기준으로 다시 audit했고, 그 이후 현재 `main`까지 production/config code 변경은 없습니다 |
 
@@ -1844,7 +1844,7 @@ project 시작 시 정한 기준을 현재 상태와 함께 남깁니다.
 ## 완료 상태
 
 - **Engineering 검증:** 완료(`ENGINEERING_VERIFICATION_COMPLETE`). 제품 동작, UI, engineering 검증은 위 조건에서 끝났습니다.
-- **과제 제출:** 아직 완료가 아닙니다(`PENDING_EXTERNAL_SUBMISSION_STEPS`). `SUB-003`과 `SUB-006`은 repository 밖에서 해야 하는 단계입니다.
+- **과제 제출:** 아직 완료가 아닙니다(`PENDING_EXTERNAL_SUBMISSION_STEPS`). collaborator invitation 생성은 `SUB-003` `VERIFIED`로 확인되었지만 recipient acceptance는 pending이고, repository 밖에서 수행할 최종 URL 메일 제출 `SUB-006`이 `TODO`로 남아 있습니다.
 
 ## 수용한 trade-off
 
@@ -1858,7 +1858,8 @@ project 시작 시 정한 기준을 현재 상태와 함께 남깁니다.
 
 ## 남은 항목 / 주장하지 않는 것
 
-- repository 밖의 제출 단계 `SUB-003`(`APRCORPORATION`을 collaborator로 추가)과 `SUB-006`(최종 repository URL 메일 제출)은 `TODO`로 남습니다.
+- `SUB-003`은 `VERIFIED`입니다. 2026-10-05 manual GitHub Settings verification에서 `APRCORPORATION` collaborator invitation 생성이 확인되었고, recipient acceptance는 `Pending Invite` / `Awaiting APRCORPORATION's response` 상태입니다. acceptance 전이므로 active collaborator access가 이미 활성화되었다고 주장하지 않습니다.
+- `SUB-006`은 `TODO`입니다. 최종 repository URL 메일 제출은 아직 수행하지 않았습니다.
 - production traffic과 부하 동작, production observability, 실제 인증(요청자 header/cookie는 과제 계약), Docker image 취약점 scan, 배포/CD는 검증하지 않았습니다.
 - deadlock이 없음은 일반적으로 증명되지 않았습니다. 동시성 test에서 deadlock은 관찰되지 않았고 명백한 lock cycle도 찾지 못했습니다(F-09).
 - 성능 수치는 emulate한 기기와 host 하나에서 나왔습니다. 실제 기기와 HTTP/2 production network는 측정하지 않았습니다.
