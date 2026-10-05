@@ -2,7 +2,7 @@
 
 APR Product Engineer 인턴 과제의 모바일 커뮤니티를 Spring Boot·PostgreSQL과 Next.js로 구현했습니다. 화면을 완성하는 데서 멈추지 않고, 빈 DB 재현부터 긴 목록의 요청 단위, mutation 뒤 cache 일관성, readiness·동시성·keyboard focus 같은 경계를 실제 실행으로 확인했습니다.
 
-구현 과정은 `구현 → 문제/불확실성 관찰 → 재현·측정 → 최소 수정 → 필요한 회귀 보호` 순서를 따랐습니다. 상세한 판단 과정은 [Engineering Notes](docs/ENGINEERING_NOTES.md), 실행 근거는 [Verification](docs/VERIFICATION.md)에 있습니다.
+구현 과정은 `구현 → 문제/불확실성 관찰 → 재현·측정 → 최소 수정 → 필요한 회귀 보호` 순서를 따랐습니다. 상세한 판단 과정은 [엔지니어링 노트](docs/ENGINEERING_NOTES.md), 실행 근거는 [인수 검증 기록](docs/VERIFICATION.md)에 있습니다.
 
 ## 실행
 
@@ -50,7 +50,7 @@ APR이 제공한 범위는 Java 17/Spring Boot 3.5와 JDBC·PostgreSQL 연결, `
 | TanStack Query | 목록·상세·댓글 server state와 mutation cache를 관리하고, 서버 응답으로 증명 가능한 변경은 exact patch, membership·ordering 변화는 invalidate합니다.[^tanstack-cancellation] | query key와 invalidation policy를 application이 명시하고 모든 cache 조합을 검증해야 합니다. |
 | CSS Modules | 375px 디자인을 component-local하게 정밀 조정하고 class 충돌을 막았습니다. | 별도 UI framework abstraction을 만들지 않아 일부 CSS 선언을 반복합니다. |
 
-선택의 후보와 변화 과정, primary source 전체는 [Engineering Notes](docs/ENGINEERING_NOTES.md)에 정리했습니다.
+선택의 후보와 변화 과정, primary source 전체는 [엔지니어링 노트](docs/ENGINEERING_NOTES.md)에 정리했습니다.
 
 ## 상태 설계
 
@@ -92,7 +92,7 @@ query key에는 page size, `latest`/`likes`, 정규화된 검색어가 들어가
 | Comment continuation | `10 / 20 / 30 / 50` | `30` | 10은 요청이 많고 50은 첫 반영과 over-fetch가 컸습니다. 30은 120개까지 5회 요청, 빠른 소비 중 loading 노출 1회였습니다. |
 | Search debounce | `200 / 300 / 500ms` | `300ms` | 짧은 입력 pause의 요청은 흡수하면서 500ms보다 최종 결과를 약 200ms 빨리 보였습니다. |
 
-최초 댓글 `limit=2`는 실험 대상이 아니라 과제 계약입니다. 재방문도 다시 2개에서 시작하고 사용자가 “더보기”를 누르기 전에는 continuation을 요청하지 않습니다. 반복 run, 160-post dataset과 SQL plan은 [Performance](docs/PERFORMANCE.md)에 있습니다.
+최초 댓글 `limit=2`는 실험 대상이 아니라 과제 계약입니다. 재방문도 다시 2개에서 시작하고 사용자가 “더보기”를 누르기 전에는 continuation을 요청하지 않습니다. 반복 run, 160-post dataset과 SQL plan은 [성능 감사 및 측정 기록](docs/PERFORMANCE.md)에 있습니다.
 
 현재 runtime contract는 게시글 최초·후속 page 모두 15개, 게시글 선조회 500px, 댓글 최초 2개·후속 30개, 댓글 선조회 200px입니다. 적용 뒤 clean seed의 39 readable posts는 `15 / 15 / 9`로 끝났고, 1,411-comment post도 최초 2개 이후 30개 cursor page로 중복·누락 없이 종료했습니다. 전체 데이터 크기에 맞춰 고정한 값이 아니라 한 session에서 사용자가 소비하는 깊이와 요청 시점을 기준으로 정한 값입니다.
 
@@ -129,7 +129,7 @@ flowchart TB
     X -. "server-confirmed" .-> Q
 ```
 
-backend의 `RequesterResolver`, `MutationValidator`, cursor codec과 error handler는 횡단 규칙을 한곳에 둡니다. frontend page는 route parameter를 feature에 연결하는 얇은 경계이고, query key와 cache 갱신은 `frontend/lib/query`가 담당합니다. 실제 class/file 책임과 request 흐름은 [Architecture](docs/ARCHITECTURE.md)에 있습니다.
+backend의 `RequesterResolver`, `MutationValidator`, cursor codec과 error handler는 횡단 규칙을 한곳에 둡니다. frontend page는 route parameter를 feature에 연결하는 얇은 경계이고, query key와 cache 갱신은 `frontend/lib/query`가 담당합니다. 실제 class/file 책임과 request 흐름은 [아키텍처 결정 기록](docs/ARCHITECTURE.md)에 있습니다.
 
 - Controller는 HTTP parameter/body와 response boundary만 다룹니다.
 - Read service는 cursor와 조회 계약을, mutation service는 validation·ownership·transaction을 담당합니다.
@@ -183,7 +183,7 @@ posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 �
 
 공식 Figma의 typography·색상·핵심 화면 의미를 유지하면서 정의되지 않은 상태는 글·대화 중심 community 해석과 375×778 실행 결과로 보완했습니다. 목록은 제목 → 본문 preview → 작성자·반응·시간의 content-first hierarchy를 사용하고, 검색과 latest/likes sort는 한 줄 discovery toolbar에 배치했습니다. 수정·삭제 두 command에는 full-width bottom sheet보다 trigger와 관계가 분명한 non-modal popover를 선택하되 destructive delete는 별도 confirmation dialog로 유지했습니다.
 
-최초·후속 loading/error/retry와 mutation pending도 정적 디자인에 없다는 이유로 생략하지 않았습니다. 다만 이를 공식 Figma와 pixel 단위로 일치한다고 주장하지 않습니다. design/product decision 구분은 [UI Spec](docs/UI_SPEC.md)에 있으며 최종 공식 비교 V-081은 `PASS`입니다. 근거와 전체 coverage는 [Official Figma Comparison](docs/DESIGN_COMPARISON.md)에 기록했습니다.
+최초·후속 loading/error/retry와 mutation pending도 정적 디자인에 없다는 이유로 생략하지 않았습니다. 다만 이를 공식 Figma와 pixel 단위로 일치한다고 주장하지 않습니다. design/product decision 구분은 [UI 명세](docs/UI_SPEC.md)에 있으며 최종 공식 비교 V-081은 `PASS`입니다. 근거와 전체 coverage는 [공식 Figma 최종 비교](docs/DESIGN_COMPARISON.md)에 기록했습니다.
 
 아래 Official 이미지는 V-081에서 현재 file/node mapping을 다시 확인한 공식 Figma frame의 repository-preserved export이고, 오른쪽은 production Compose의 Chromium 375×778 구현입니다.
 
@@ -211,7 +211,7 @@ posts/comments와 marker는 함께 commit 또는 rollback됩니다. marker가 �
   <tr><td colspan="2">Figma의 scrim + bottom sheet를 두 command와 trigger의 공간 관계가 분명한 anchored popover로 바꿨습니다. destructive delete는 별도 confirmation dialog를 유지합니다.</td></tr>
 </table>
 
-**12 official frames + shared edit state를 비교했고, V-081은 `PASS`, accidental mismatch는 `0`입니다.** 차이의 기존 rationale와 전체 matrix는 [Official Figma Comparison](docs/DESIGN_COMPARISON.md)에 있습니다.
+**12 official frames + shared edit state를 비교했고, V-081은 `PASS`, accidental mismatch는 `0`입니다.** 차이의 기존 rationale와 전체 matrix는 [공식 Figma 최종 비교](docs/DESIGN_COMPARISON.md)에 있습니다.
 
 ### `aria-modal` 이후에도 확인한 keyboard focus
 
@@ -246,7 +246,7 @@ boundary를 DB 없이 확인할 수 있는 규칙, 실제 PostgreSQL이 필요�
 2. 최초 댓글 2개 → More(30개) → SPA 재방문 시 다시 2개
 3. delete dialog keyboard focus, Escape/trigger 복귀와 confirm 전 DELETE 부재
 
-Playwright는 workers 1, retries 0이며 실패 screenshot과 trace를 `playwright-failure-artifacts`로 보존합니다. 이는 수동 acceptance 전체를 대체하지 않습니다. 전체 cursor traversal, 모든 failure injection과 CRUD/ownership 조합, Firefox/WebKit, visual regression, Lighthouse CI는 여전히 [Verification](docs/VERIFICATION.md)에 범위와 한계를 구분해 기록했습니다.
+Playwright는 workers 1, retries 0이며 실패 screenshot과 trace를 `playwright-failure-artifacts`로 보존합니다. 이는 수동 acceptance 전체를 대체하지 않습니다. 전체 cursor traversal, 모든 failure injection과 CRUD/ownership 조합, Firefox/WebKit, visual regression, Lighthouse CI는 여전히 [인수 검증 기록](docs/VERIFICATION.md)에 범위와 한계를 구분해 기록했습니다.
 
 Playwright 밖의 runtime acceptance에는 다음이 남아 있습니다.
 
@@ -270,7 +270,7 @@ Playwright 밖의 runtime acceptance에는 다음이 남아 있습니다.
 
 장기적으로 대화가 충분히 쌓여 좋은 사용법이 여러 글에 흩어지는 문제가 생기면, 반복 참조되는 경험을 `제품 → 순서 → 부위 → 사용량 → 주의사항` 형태의 따라 할 수 있는 guide로 연결할 수 있습니다. 현재 저장소에는 이 domain이 없으며 실제 사용 근거가 생긴 뒤 검토할 제품 방향입니다.
 
-문서별 기준은 다음과 같습니다: [Engineering Notes](docs/ENGINEERING_NOTES.md)는 결정 과정, [Architecture](docs/ARCHITECTURE.md)는 현재 구조, [Requirements](docs/REQUIREMENTS.md)는 traceability, [Verification](docs/VERIFICATION.md)은 실행 evidence, [Performance](docs/PERFORMANCE.md)는 raw benchmark를 담당합니다.
+문서별 기준은 다음과 같습니다: [엔지니어링 노트](docs/ENGINEERING_NOTES.md)는 결정 과정, [아키텍처 결정 기록](docs/ARCHITECTURE.md)은 현재 구조, [요구사항 추적 매트릭스](docs/REQUIREMENTS.md)는 traceability, [인수 검증 기록](docs/VERIFICATION.md)은 실행 evidence, [성능 감사 및 측정 기록](docs/PERFORMANCE.md)은 raw benchmark를 담당합니다.
 
 [^age-r-app]: [Google Play — 에이지알 메디큐브 디지털클리닉 AGE-R](https://play.google.com/store/apps/details?hl=ko&id=com.apr.digitalclinic)
 [^spring-jdbc-client]: [Spring Framework — Unified JDBC Query/Update Operations: `JdbcClient`](https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html#jdbc-JdbcClient)
